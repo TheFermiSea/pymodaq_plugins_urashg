@@ -1,11 +1,9 @@
 import time
 import serial
-from pymodaq.control_modules.move_utility_classes import (
-    DAQ_Move_base,
-    comon_parameters_fun,
-)
+from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
+from pymodaq.utils.parameter.utils import get_param_path, iter_children
 
 
 class DAQ_Move_Elliptec(DAQ_Move_base):
@@ -140,10 +138,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         },
     ]
 
-    # Add common parameters if the function returns a list
-    common_params = comon_parameters_fun(is_multiaxes=True, axes_names=_axis_names)
-    if isinstance(common_params, list):
-        params.extend(common_params)
+    # PyMoDAQ 5 handles common parameters differently
+    # Common parameters are automatically added by the base class
 
     def __init__(self, parent=None, params_state=None):
         super().__init__(parent, params_state)

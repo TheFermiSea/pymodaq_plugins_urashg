@@ -1,12 +1,9 @@
 import numpy as np
-from pymodaq.control_modules.viewer_utility_classes import (
-    DAQ_Viewer_base,
-    comon_parameters,
-    main,
-)
+from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, main
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import Axis, DataFromPlugins
+from pymodaq_data.data import Axis, DataFromPlugins
 from pymodaq.utils.parameter import Parameter
+from pymodaq.utils.parameter.utils import get_param_path, iter_children
 
 # Try to import PyVCAM and handle the case where it's not installed
 try:
@@ -146,9 +143,8 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         },
     ]
 
-    # Add common parameters if available
-    if hasattr(comon_parameters, "__iter__") and not isinstance(comon_parameters, str):
-        params.extend(comon_parameters)
+    # PyMoDAQ 5 handles common parameters differently
+    # Common parameters are automatically added by the base class
 
     def __init__(self, parent=None, params_state=None):
         super().__init__(parent, params_state)
