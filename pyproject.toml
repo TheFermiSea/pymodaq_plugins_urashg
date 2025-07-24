@@ -1,0 +1,168 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pymodaq-plugins-urashg"
+version = "0.1.0"
+description = "PyMoDAQ plugin package for URASHG (Ultrafast Reflection-mode Angle-resolved Second Harmonic Generation) microscopy systems"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "PyMoDAQ Plugin Development Team", email = "contact@pymodaq.org" },
+]
+maintainers = [
+    { name = "PyMoDAQ Plugin Development Team", email = "contact@pymodaq.org" },
+]
+keywords = [
+    "PyMoDAQ",
+    "plugin",
+    "RASHG",
+    "SHG",
+    "microscopy",
+    "second harmonic generation",
+    "polarimetry",
+    "optics",
+    "laser control",
+    "automation",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "pymodaq>=4.0.0",
+    "numpy>=1.20.0",
+    "pyqt5>=5.15.0",
+    "pyqtgraph>=0.12.0",
+    "h5py>=3.0.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.3.0",
+    "pyserial>=3.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=21.0",
+    "flake8>=3.9",
+    "isort>=5.0",
+    "pre-commit>=2.15",
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0",
+    "myst-parser>=0.15",
+]
+hardware = [
+    # Hardware-specific dependencies (optional due to availability)
+    # "pyvcam>=1.0.0",   # Photometrics Prime BSI camera (not in PyPI)
+    # "elliptec>=0.1.0", # Thorlabs ELL14 rotation mounts (not in PyPI)
+    "opencv-python>=4.5.0", # Image processing
+    "scikit-image>=0.18.0", # Advanced image analysis
+]
+mock = [
+    "pymodaq-plugins-mock>=1.0.0", # For testing without hardware
+]
+galvo = [
+    "pymodaq-plugins-daqmx>=1.0.0", # Future galvo mirror integration
+    "nidaqmx>=0.6.0",               # National Instruments DAQ
+]
+
+[project.urls]
+Homepage = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg"
+Documentation = "https://pymodaq-plugins-urashg.readthedocs.io/"
+Repository = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg"
+Issues = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg/issues"
+Changelog = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg/blob/main/CHANGELOG.md"
+
+[project.entry-points."pymodaq.plugins"]
+urashg = "pymodaq_plugins_urashg"
+
+[project.entry-points."pymodaq.move_plugins"]
+"DAQ_Move_Elliptec" = "pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_Elliptec"
+"DAQ_Move_MaiTai" = "pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai"
+
+[project.entry-points."pymodaq.viewer_plugins"]
+"DAQ_2DViewer_PrimeBSI" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI"
+
+[tool.setuptools]
+packages = ["pymodaq_plugins_urashg"]
+package-dir = { "" = "src" }
+
+[tool.setuptools.package-data]
+pymodaq_plugins_urashg = [
+    "resources/*",
+    "examples/*",
+    "docs/*",
+    "*.yaml",
+    "*.json",
+    "*.xml",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["pymodaq_plugins_urashg"]
+known_third_party = ["pymodaq", "numpy", "pyqt5", "pyqtgraph"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --cov=pymodaq_plugins_urashg --cov-report=term-missing"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "hardware: marks tests that require hardware (deselect with '-m \"not hardware\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src/pymodaq_plugins_urashg"]
+omit = ["*/tests/*", "*/examples/*", "*/docs/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
