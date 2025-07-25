@@ -132,13 +132,13 @@ pip install pymodaq --upgrade --force-reinstall
 
 ```bash
 # Install Qt backend
-pip install PyQt5>=5.15.0
+pip install PySide6>=6.0.0
 # or
 pip install PyQt6>=6.0.0
 
 # For macOS, you may need:
 brew install qt5
-export QT_API=pyqt5
+export QT_API=pyside6
 ```
 
 ### Issue 3: Plugin Not Found in Dashboard

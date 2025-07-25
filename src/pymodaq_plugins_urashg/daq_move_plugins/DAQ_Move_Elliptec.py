@@ -1,4 +1,5 @@
 import time
+
 import serial
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
 from pymodaq.utils.daq_utils import ThreadCommand
