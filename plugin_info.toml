@@ -42,10 +42,7 @@ DAQ_2DViewer_PrimeBSI = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DA
 manufacturers = ["Thorlabs", "Photometrics", "Red Pitaya", "Spectra-Physics"]
 
 [hardware-compatibility.actuators]
-"Thorlabs ELL14" = {
-    plugin = "Elliptec",
-communication = "Serial/USB",
-description = "Motorized rotation mount for polarization control",
+"Thorlabs ELL14" = { plugin = "Elliptec", communication = "Serial/USB", description = "Motorized rotation mount for polarization control" }
 
 }
 
