@@ -1,15 +1,21 @@
 # Core PyMoDAQ dependencies
-pymodaq>=4.0.0
+pymodaq>=5.0.0
+pymodaq-gui>=5.0.0
+pymodaq-data>=5.0.0
+pymodaq-utils>=0.0.14
 numpy>=1.20.0
-pyqt5>=5.15.0
+pyqt6>=6.0.0
 pyqtgraph>=0.12.0
 h5py>=3.0.0
 scipy>=1.7.0
 matplotlib>=3.3.0
+pyserial>=3.4
 
-# Hardware-specific dependencies
-pyvcam>=1.0.0      # Photometrics Prime BSI camera control
-elliptec>=0.1.0     # Thorlabs ELL14 rotation mount control
+# Hardware-specific dependencies (install from GitHub)
+# Install with: pip install git+https://github.com/Photometrics/PyVCAM.git
+# Install with: pip install git+https://github.com/roesel/elliptec.git
+git+https://github.com/Photometrics/PyVCAM.git      # Photometrics Prime BSI camera control
+git+https://github.com/roesel/elliptec.git          # Thorlabs ELL14 rotation mount control
 
 # Optional but recommended for advanced features
 opencv-python>=4.5.0    # Image processing capabilities

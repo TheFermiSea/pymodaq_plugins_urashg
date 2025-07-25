@@ -1,9 +1,9 @@
 """
-Automated RASHG Measurement Example Script
+Automated μRASHG Measurement Example Script
 
 This script demonstrates how to perform automated polarization-resolved SHG measurements
 using the URASHG PyMoDAQ plugin package. It includes setup, configuration, data acquisition,
-and basic analysis for a complete RASHG experiment.
+and basic analysis for a complete μRASHG experiment.
 
 This example shows the integration of all hardware components:
 - Red Pitaya PID laser stabilization
@@ -33,11 +33,11 @@ from pymodaq_plugins_urashg.analysis import rashg_analysis
 from pymodaq_plugins_urashg.utils import configuration_manager
 
 
-class AutomatedRASHGScanner:
+class AutomatedμRASHGScanner:
     """
-    Automated RASHG measurement system for polarization-resolved SHG experiments.
+    Automated μRASHG measurement system for polarization-resolved SHG experiments.
 
-    This class provides high-level automation for RASHG measurements, including:
+    This class provides high-level automation for μRASHG measurements, including:
     - System initialization and hardware coordination
     - Automated polarization scans with precise angle control
     - Real-time data acquisition and processing
@@ -50,7 +50,7 @@ class AutomatedRASHGScanner:
 
     def __init__(self, config_file: Optional[str] = None):
         """
-        Initialize the automated RASHG scanner.
+        Initialize the automated μRASHG scanner.
 
         Args:
             config_file: Path to YAML configuration file with hardware settings
@@ -87,7 +87,7 @@ class AutomatedRASHGScanner:
             return self._get_default_config()
 
     def _get_default_config(self) -> Dict:
-        """Return default configuration for RASHG measurements."""
+        """Return default configuration for μRASHG measurements."""
         return {
             "hardware": {
                 "redpitaya": {
@@ -133,18 +133,18 @@ class AutomatedRASHGScanner:
 
     def initialize_system(self) -> bool:
         """
-        Initialize the complete RASHG measurement system.
+        Initialize the complete μRASHG measurement system.
 
         Returns:
             bool: True if initialization successful, False otherwise
         """
         try:
-            self.logger.info("Initializing RASHG measurement system...")
+            self.logger.info("Initializing μRASHG measurement system...")
 
             # Initialize PyMoDAQ dashboard
             self.dashboard = DashBoard()
 
-            # Load RASHG preset configuration
+            # Load μRASHG preset configuration
             preset_file = Path(__file__).parent / "presets" / "RASHG_System.xml"
             if preset_file.exists():
                 self.dashboard.load_preset(str(preset_file))
@@ -169,7 +169,7 @@ class AutomatedRASHGScanner:
                 raise RuntimeError("System diagnostics failed")
 
             self.is_initialized = True
-            self.logger.info("RASHG system initialization complete")
+            self.logger.info("μRASHG system initialization complete")
             return True
 
         except Exception as e:
@@ -512,7 +512,7 @@ class AutomatedRASHGScanner:
     def shutdown_system(self):
         """Safely shutdown the measurement system."""
         try:
-            self.logger.info("Shutting down RASHG system...")
+            self.logger.info("Shutting down μRASHG system...")
 
             if self.measurement_active:
                 self.stop_measurement()
@@ -534,7 +534,7 @@ def main():
     """Main function for standalone script execution."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Automated RASHG Measurement")
+    parser = argparse.ArgumentParser(description="Automated μRASHG Measurement")
     parser.add_argument("--config", type=str, help="Configuration file path")
     parser.add_argument(
         "--output",
@@ -566,7 +566,7 @@ def main():
         angles = [float(x.strip()) for x in args.angles.split(",")]
 
     # Initialize scanner
-    scanner = AutomatedRASHGScanner(config_file=args.config)
+    scanner = AutomatedμRASHGScanner(config_file=args.config)
 
     try:
         # Initialize system

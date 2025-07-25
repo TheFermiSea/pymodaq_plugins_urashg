@@ -4,7 +4,8 @@ import serial
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.parameter.utils import get_param_path, iter_children
+
+# Removed unused imports: get_param_path, iter_children
 
 
 class DAQ_Move_Elliptec(DAQ_Move_base):
@@ -223,7 +224,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                         ThreadCommand(
                             "status",
                             [
-                                f"{axis_name} setup complete. Pulses/Deg: {self.pulses_per_deg[axis_name]:.2f}",
+                                f"{axis_name} setup complete. "
+                                f"Pulses/Deg: {self.pulses_per_deg[axis_name]:.2f}",
                                 "log",
                             ],
                         )

@@ -5,7 +5,8 @@ import serial
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.parameter.utils import get_param_path, iter_children
+
+# Removed unused imports: get_param_path, iter_children
 
 
 class DAQ_Move_MaiTai(DAQ_Move_base):

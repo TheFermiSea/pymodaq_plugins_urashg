@@ -2,10 +2,10 @@
 URASHG Hardware Control Module
 
 This module provides comprehensive hardware control interfaces for the URASHG
-(Ultrafast Reflection-mode Angle-resolved Second Harmonic Generation) microscope system.
+(micro Rotational Anisotropy Second Harmonic Generation) microscope system.
 
 The module implements low-level device controllers and high-level system coordination
-for all major hardware components in the RASHG setup.
+for all major hardware components in the μRASHG setup.
 
 Hardware Controllers:
 ==================
@@ -216,7 +216,7 @@ SYSTEM_REQUIREMENTS = {
 # Default configuration templates
 DEFAULT_CONFIGURATIONS = {
     "standard_rashg": {
-        "description": "Standard RASHG microscopy configuration",
+        "description": "Standard μRASHG microscopy configuration",
         "laser_power_mw": 100.0,
         "camera_exposure_ms": 100.0,
         "polarization_step_degrees": 5.0,

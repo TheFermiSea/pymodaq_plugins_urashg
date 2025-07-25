@@ -2,7 +2,8 @@ import numpy as np
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, main
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.parameter.utils import get_param_path, iter_children
+
+# Removed unused imports: get_param_path, iter_children
 from pymodaq_data.data import Axis, DataWithAxes, DataToExport, DataSource
 
 # Try to import PyVCAM and handle the case where it's not installed
@@ -168,7 +169,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
             # Initialize viewer interface with dummy data (PyMoDAQ 5.0+ pattern)
             self._emit_temp_data_for_initialization()
-            
+
             self.status.update(
                 msg=f"Camera {self.camera.name} Initialized.", busy=False
             )
@@ -407,7 +408,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                 name="PrimeBSI",
                 source=DataSource.raw,
                 data=[frame],
-                axes=[self.y_axis, self.x_axis]
+                axes=[self.y_axis, self.x_axis],
             )
             data_to_emit = [dwa_2d]
 
@@ -421,7 +422,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                     dwa_0d = DataWithAxes(
                         name="SHG Signal",
                         source=DataSource.calculated,
-                        data=[integrated_signal]
+                        data=[integrated_signal],
                     )
                     data_to_emit.append(dwa_0d)
 
@@ -451,44 +452,48 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         """
         try:
             # Get current sensor size for dummy data
-            if hasattr(self, 'camera') and self.camera:
+            if hasattr(self, "camera") and self.camera:
                 height, width = self.camera.sensor_size
             else:
                 height, width = 512, 512  # Default size
-            
+
             # Create dummy frame data
             dummy_frame = np.zeros((height, width), dtype=np.float64)
-            
+
             # Create axes
-            x_axis = Axis(label='X', units='pixels', data=np.arange(width))
-            y_axis = Axis(label='Y', units='pixels', data=np.arange(height))
-            
+            x_axis = Axis(label="X", units="pixels", data=np.arange(width))
+            y_axis = Axis(label="Y", units="pixels", data=np.arange(height))
+
             # Create DataWithAxes for 2D camera data
             dwa_2d = DataWithAxes(
                 name="PrimeBSI",
                 source=DataSource.raw,
                 data=[dummy_frame],
-                axes=[y_axis, x_axis]
+                axes=[y_axis, x_axis],
             )
-            
+
             data_to_emit = [dwa_2d]
-            
+
             # Add 0D data if ROI integration is enabled
             if self.settings.child("roi_settings", "roi_integration").value():
                 dwa_0d = DataWithAxes(
                     name="SHG Signal",
                     source=DataSource.calculated,
-                    data=[np.array([0.0])]
+                    data=[np.array([0.0])],
                 )
                 data_to_emit.append(dwa_0d)
-            
+
             # Emit temporary data to set up viewer interface
             dte = DataToExport(name="PrimeBSI_Init", data=data_to_emit)
             self.dte_signal_temp.emit(dte)
-            
+
         except Exception as e:
             # Don't fail initialization if temp data emission fails
-            self.emit_status(ThreadCommand("Warning", [f"Could not emit initialization data: {str(e)}"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Warning", [f"Could not emit initialization data: {str(e)}"]
+                )
+            )
 
 
 if __name__ == "__main__":

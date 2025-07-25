@@ -1,7 +1,7 @@
 [plugin-info]
 name = "pymodaq_plugins_urashg"
 version = "0.1.0"
-description = "PyMoDAQ plugin package for URASHG (Ultrafast Reflection-mode Angle-resolved Second Harmonic Generation) microscopy systems"
+description = "PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems"
 author = "PyMoDAQ Plugin Development Team"
 author-email = "contact@pymodaq.org"
 homepage = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg"
@@ -30,10 +30,10 @@ DAQ_Move_MaiTai = "pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai:DAQ_M
 DAQ_2DViewer_PrimeBSI = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
 
 [plugin-info.entry-points.h5exporters]
-# Future: Custom HDF5 exporters for RASHG data
+# Future: Custom HDF5 exporters for μRASHG data
 
 [plugin-info.entry-points.extensions]
-# Future: Custom PyMoDAQ extensions for RASHG workflows
+# Future: Custom PyMoDAQ extensions for μRASHG workflows
 
 [plugin-info.entry-points.pid_models]
 # Future: Custom PID models for laser stabilization

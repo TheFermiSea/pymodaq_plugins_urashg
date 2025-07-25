@@ -13,7 +13,7 @@ import os
 import importlib
 from pathlib import Path
 
-def check_python_version():
+
     """Ensure Python 3.8+ is being used"""
     if sys.version_info < (3, 8):
         raise RuntimeError("Python 3.8+ is required for PyMoDAQ v5")
@@ -298,19 +298,19 @@ def main():
 
         # Step 5: Validate installation
         if validate_installation():
-            print("\n✅ Test environment setup completed successfully!")
+            print("\n[SUCCESS] Test environment setup completed successfully!")
             print("\nNext steps:")
             print("1. Run individual plugin tests: python test_plugin_name.py")
             print("2. Run all tests: python run_all_tests.py")
             print("3. View test results in the console output")
             return 0
         else:
-            print("\n❌ Test environment setup completed with warnings")
+            print("\n[WARNING] Test environment setup completed with warnings")
             print("Some modules may not be available - tests may fail")
             return 1
 
     except Exception as e:
-        print(f"\n❌ Setup failed: {e}")
+        print(f"\n[ERROR] Setup failed: {e}")
         import traceback
         traceback.print_exc()
         return 1

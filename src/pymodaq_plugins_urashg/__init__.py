@@ -1,7 +1,9 @@
 """
-PyMoDAQ Plugin Package for URASHG (Ultrafast Reflection-mode Angle-resolved Second Harmonic Generation) Microscopy
+PyMoDAQ Plugin Package for URASHG
+(micro Rotational Anisotropy Second Harmonic Generation) Microscopy
 
-This package provides PyMoDAQ plugins for controlling a complete RASHG microscope system including:
+This package provides PyMoDAQ plugins for controlling a complete μRASHG
+microscope system including:
 - MaiTai laser with EOM power control
 - Red Pitaya FPGA-based PID control for laser stabilization
 - Thorlabs ELL14 motorized rotation mounts for polarization control

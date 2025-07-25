@@ -8,7 +8,7 @@ This document outlines the comprehensive development plan for creating a PyMoDAQ
 
 ### Hardware Components
 
-**Core RASHG Microscope Stack:**
+**Core μRASHG Microscope Stack:**
 - **MaiTai Laser** with Electro-Optic Modulator (EOM) for power control
 - **Red Pitaya** for FPGA-based PID laser stabilization (base address: 0x40300000)
 - **3x Thorlabs ELL14** motorized rotation mounts:
@@ -404,13 +404,13 @@ WORKDIR /workspace
 - Plugin validation and testing standards
 
 **Educational Resources:**
-- Tutorial series for RASHG microscopy
+- Tutorial series for μRASHG microscopy
 - Hands-on workshops and training
 - Academic collaboration partnerships
 
 ## Conclusion
 
-This comprehensive plan leverages container-use's distributed development capabilities to create a robust, professional-grade PyMoDAQ plugin package for RASHG microscopy. By assigning specialized agents to different components and maintaining isolated development environments, we can ensure rapid, high-quality development while minimizing integration risks.
+This comprehensive plan leverages container-use's distributed development capabilities to create a robust, professional-grade PyMoDAQ plugin package for μRASHG microscopy. By assigning specialized agents to different components and maintaining isolated development environments, we can ensure rapid, high-quality development while minimizing integration risks.
 
 The modular architecture ensures that each component can be developed, tested, and refined independently, while the container-use workflow provides transparency, control, and easy integration of successful work. This approach will deliver a production-ready plugin package that serves as a model for complex scientific instrument control systems.
 

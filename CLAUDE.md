@@ -14,11 +14,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a PyMoDAQ plugin package for URASHG (Ultrafast Reflection-mode Angle-resolved Second Harmonic Generation) microscopy systems. It provides complete automation and control for polarimetric SHG measurements with three main hardware components:
+This is a PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems. It provides complete automation and control for polarimetric SHG measurements with three main hardware components:
 
 - **Red Pitaya FPGA**: PID laser stabilization with memory-mapped register access
 - **Thorlabs ELL14 rotation mounts**: Serial communication for polarization control (3 mounts: QWP, HWP incident, HWP analyzer)
 - **Photometrics Prime BSI camera**: PyVCAM-based 2D detection with ROI support
+
+## [COMPLETE] PyMoDAQ 5.0+ Migration Complete
+
+**Status**: Successfully migrated from PyMoDAQ 4.x to 5.0+ (January 2025)
+
+**Key Changes Applied**:
+- Updated data structures: `DataFromPlugins` → `DataWithAxes` + `DataToExport`
+- Qt framework migration: PyQt5 → PySide6
+- Signal updates: `data_grabed_signal` → `dte_signal`
+- Dependency updates: All PyMoDAQ packages to 5.0+
+- Entry point validation and consistency fixes
+- Code quality improvements (linting, unused imports)
+
+**Testing Status**: All 8 unit tests pass in isolated container environments
+**Plugin Discovery**: Confirmed working with PyMoDAQ 5.0+ framework
 
 ## Development Commands
 

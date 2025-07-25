@@ -32,7 +32,7 @@ def check_environment():
     # Check Python version
     python_version = sys.version_info
     if python_version < (3, 8):
-        print(f"❌ Python {python_version.major}.{python_version.minor} detected - Python 3.8+ required")
+        print(f"[ERROR] Python {python_version.major}.{python_version.minor} detected - Python 3.8+ required")
         return False
     else:
         print(f"✓ Python {python_version.major}.{python_version.minor}.{python_version.micro} detected")
@@ -51,7 +51,7 @@ def check_environment():
             print(f"✓ {module_name} available")
         except ImportError:
             missing_modules.append(module_name)
-            print(f"❌ {module_name} not available")
+            print(f"[MISSING] {module_name} not available")
 
     if missing_modules:
         print(f"\n⚠️  Missing required modules: {', '.join(missing_modules)}")
@@ -134,16 +134,16 @@ def run_plugin_tests():
     total_start_time = time.time()
 
     for script, description in test_scripts:
-        print(f"\n🔬 Testing {description}")
+        print(f"\n[TESTING] {description}")
         print(f"   Script: {script}")
 
         success, message = run_individual_test(script)
         results[description] = (success, message)
 
         if success:
-            print(f"   Result: ✅ {message}")
+            print(f"   Result: [PASS] {message}")
         else:
-            print(f"   Result: ❌ {message}")
+            print(f"   Result: [FAIL] {message}")
 
     total_end_time = time.time()
     total_duration = total_end_time - total_start_time
@@ -170,7 +170,7 @@ def generate_test_report(results, total_duration):
     print("-" * 80)
 
     for test_name, (success, message) in results.items():
-        status = "✅ PASSED" if success else "❌ FAILED"
+        status = "[PASSED]" if success else "[FAILED]"
         print(f"{status:<12} {test_name:<40} {message}")
 
     # Plugin-specific validation
@@ -206,7 +206,7 @@ def generate_test_report(results, total_duration):
 
     for plugin_name, validations in plugin_validations.items():
         plugin_success = results.get(plugin_name, (False, ""))[0]
-        status_symbol = "✅" if plugin_success else "❌"
+        status_symbol = "[PASS]" if plugin_success else "[FAIL]"
 
         print(f"\n{status_symbol} {plugin_name}:")
         for validation in validations:
@@ -261,7 +261,7 @@ def run_integration_tests():
             print(f"❌ Camera plugin import failed: {e}")
             return False
 
-        print("\n✅ All integration tests passed!")
+        print("\n[SUCCESS] All integration tests passed!")
         return True
 
     except Exception as e:
@@ -277,12 +277,12 @@ def main():
 
     # Step 1: Environment check
     if not check_environment():
-        print("\n❌ Environment check failed. Please set up the test environment first.")
+        print("\n[ERROR] Environment check failed. Please set up the test environment first.")
         return 1
 
     # Step 2: Integration tests
     if not run_integration_tests():
-        print("\n❌ Integration tests failed. Check plugin imports.")
+        print("\n[ERROR] Integration tests failed. Check plugin imports.")
         return 1
 
     # Step 3: Plugin tests
@@ -307,7 +307,7 @@ def main():
         print("3. Calibrate hardware-specific parameters")
         print("4. Validate full system integration")
     else:
-        print("❌ SOME TESTS FAILED!")
+        print("[FAILED] SOME TESTS FAILED!")
         print("\nPlease review the test results above and fix any issues before proceeding.")
         print("Check the individual test outputs for detailed error information.")
 
