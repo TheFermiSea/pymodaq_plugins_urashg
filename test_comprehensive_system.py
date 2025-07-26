@@ -21,9 +21,14 @@ from typing import Dict, List, Any
 # Add src to path
 sys.path.insert(0, 'src')
 
+# Check if running in CI environment
+IS_CI = os.environ.get('CI', 'false').lower() == 'true' or os.environ.get('GITHUB_ACTIONS', 'false').lower() == 'true'
+
 print("COMPREHENSIVE URASHG SYSTEM TESTING")
 print("=" * 60)
 print("Testing all hardware controllers, plugins, and integrations")
+if IS_CI:
+    print("RUNNING IN CI MODE - Mock mode enabled, hardware access disabled")
 print()
 
 # Test Results Storage
@@ -68,8 +73,8 @@ def test_hardware_controller(name: str, module_path: str, class_name: str, **kwa
             info = controller.get_device_info()
             print(f"   Device info: {info.get('model', 'Unknown')}")
         
-        # Test connection attempt (will fail without hardware, which is expected)
-        if hasattr(controller, 'connect'):
+        # Test connection attempt (skip in CI to avoid hardware access)
+        if hasattr(controller, 'connect') and not IS_CI:
             connected = controller.connect()
             if connected:
                 print(f"   WARNING: {name} connected unexpectedly")
@@ -77,6 +82,10 @@ def test_hardware_controller(name: str, module_path: str, class_name: str, **kwa
                     controller.disconnect()
             else:
                 print(f"   Connection failed as expected (no hardware)")
+        elif hasattr(controller, 'connect') and IS_CI:
+            print(f"   Skipping connection test in CI mode")
+        else:
+            print(f"   No connection method available")
         
         print(f"   {name} controller: PASS")
         return True
@@ -161,12 +170,13 @@ def test_pymodaq_plugin(name: str, module_path: str, class_name: str) -> bool:
 print("HARDWARE CONTROLLER TESTS")
 print("-" * 40)
 
-# Test MaiTai Controller
+# Test MaiTai Controller (force mock mode in CI)
 test_results['maitai_controller'] = test_hardware_controller(
     "MaiTai",
     "pymodaq_plugins_urashg.hardware.urashg.maitai_control",
     "MaiTaiController",
-    port='/dev/ttyUSB0'
+    port='/dev/ttyUSB0',
+    mock_mode=IS_CI
 )
 
 print()
@@ -176,12 +186,13 @@ test_results['elliptec_controller'] = test_hardware_controller(
     "Elliptec",
     "pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper",
     "ElliptecController",
-    port='/dev/ttyUSB1'
+    port='/dev/ttyUSB1',
+    mock_mode=IS_CI
 )
 
 print()
 
-# Test Newport 1830C Controller
+# Test Newport 1830C Controller (no mock mode available, but don't connect in CI)
 test_results['newport1830c_controller'] = test_hardware_controller(
     "Newport 1830C",
     "pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller", 
@@ -191,7 +202,7 @@ test_results['newport1830c_controller'] = test_hardware_controller(
 
 print()
 
-# Test ESP300 Controller
+# Test ESP300 Controller (no mock mode available, but don't connect in CI)
 test_results['esp300_controller'] = test_hardware_controller(
     "ESP300",
     "pymodaq_plugins_urashg.hardware.urashg.esp300_controller",

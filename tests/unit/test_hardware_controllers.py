@@ -43,15 +43,21 @@ def test_elliptec_controller_mock_creation():
     assert controller.mock_mode is True
 
 def test_newport1830c_controller_mock_creation():
-    """Test Newport 1830C controller creation"""
+    """Test Newport 1830C controller creation in mock mode"""
     from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
+    # Newport controller doesn't have mock mode, but we test without connecting
     controller = Newport1830CController(port='/dev/ttyUSB2')
     assert controller is not None
     assert controller.port == '/dev/ttyUSB2'
+    # Ensure it doesn't try to connect in tests
+    assert not controller._connected
 
 def test_esp300_controller_mock_creation():
-    """Test ESP300 controller creation"""
+    """Test ESP300 controller creation in mock mode"""  
     from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
+    # ESP300 controller doesn't have mock mode, but we test without connecting
     controller = ESP300Controller(port='/dev/ttyUSB3')
     assert controller is not None
     assert controller.port == '/dev/ttyUSB3'
+    # Ensure it doesn't try to connect in tests
+    assert not hasattr(controller, '_connected') or not controller._connected

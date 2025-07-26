@@ -53,6 +53,8 @@ jobs:
         QT_QPA_PLATFORM: offscreen
         QT_DEBUG_PLUGINS: 0
         DISPLAY: :99
+        CI: true
+        PYMODAQ_TEST_MODE: mock
     
     - name: Run comprehensive system test
       run: |
@@ -62,6 +64,8 @@ jobs:
       env:
         QT_QPA_PLATFORM: offscreen
         QT_DEBUG_PLUGINS: 0
+        CI: true
+        PYMODAQ_TEST_MODE: mock
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
