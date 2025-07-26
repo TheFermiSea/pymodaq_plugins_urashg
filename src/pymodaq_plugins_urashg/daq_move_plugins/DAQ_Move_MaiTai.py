@@ -1,317 +1,206 @@
-import threading
 import time
+from typing import Optional
 
-import serial
-from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
+from qtpy.QtCore import QTimer
+from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.parameter import Parameter
-
-# Removed unused imports: get_param_path, iter_children
 
 
 class DAQ_Move_MaiTai(DAQ_Move_base):
     """
-    PyMoDAQ Plugin for the Spectra-Physics MaiTai Ti:Sapphire Laser.
-
-    This plugin provides control over the laser's wavelength and shutter,
-    and includes asynchronous monitoring of key laser parameters such as
-    output power, status, and current operating wavelength.
-
-    It communicates with the laser via an RS-22 serial connection.
+    PyMoDAQ plugin for MaiTai laser wavelength control.
+    
+    Fully compliant with PyMoDAQ DAQ_Move_base standards:
+    - Uses hardware controller for abstraction
+    - Implements non-blocking operations
+    - Proper error handling and status reporting
+    - Thread-safe operations
+    - Follows PyMoDAQ parameter management
     """
-
-    # Complete command reference from the MaiTai manual (Chapter 6)
-    _command_reference = {
-        "CONTrol:PHAse": "Sets/reads the RF phase control for the modelocker.",
-        "CONTrol:MLENable": "Turns the modelocker RF drive signal on (1) or off (0).",
-        "ON": "Turns on the pump laser.",
-        "OFF": "Turns off the pump laser diodes.",
-        "MODE": "Sets the control mode to pump power (PPOWer) or pump current (PCURrent).",
-        "PLASer:ERRCode?": "Returns the pump laser error code.",
-        "PLASer:HISTory?": "Returns the 16 most recent status codes from the history buffer.",
-        "PLASer:AHISTory?": "Returns an ASCII version of the history buffer.",
-        "PLASer:PCURrent": "Sets the pump laser percentage of available current.",
-        "PLASer:POWer": "Sets the pump laser output power in Watts.",
-        "READ:PCTWarmedup?": "Reads the system warm-up status as a percentage.",
-        "READ:PLASer:POWer?": "Reads the actual output power of the pump laser.",
-        "READ:PLASer:PCURrent?": "Reads the percentage of full operating current for the pump laser.",
-        "READ:PLASer:SHGS?": "Reads the pump laser SHG crystal temperature status.",
-        "READ:PLASer:DIODe#:CURRent?": "Reads the current of a specific pump diode (1 or 2).",
-        "READ:PLASer:DIODe#:TEMPerature?": "Reads the temperature of a specific pump diode (1 or 2).",
-        "READ:POWer?": "Reads the output power of the Mai Tai laser.",
-        "READ:WAVelength?": "Reads the current operating wavelength of the Mai Tai.",
-        "SAVE": "Saves the current Mai Tai status to non-volatile memory.",
-        "SHUTter": "Opens (1) or closes (0) the shutter.",
-        "SYSTem:COMMunications:SERial:BAUD": "Sets the serial communication baud rate.",
-        "SYSTem:ERR?": "Returns the last communication error message.",
-        "TIMer:WATChdog": "Sets the software watchdog timer in seconds (0 disables).",
-        "WAVelength": "Sets the Mai Tai output wavelength in nm.",
-        "WAVelength:MIN?": "Returns the minimum configurable wavelength.",
-        "WAVelength:MAX?": "Returns the maximum configurable wavelength.",
-        "*IDN?": "Returns the system identification string.",
-        "*STB?": "Returns the status byte, indicating modelocking, emission, etc.",
-    }
-
-    # Define the specific settings for this plugin
-    params = [
-        {
-            "title": "Multi-axis settings:",
-            "name": "multi_axis",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Axes names:",
-                    "name": "axis_names",
-                    "type": "list",
-                    "limits": ["Wavelength", "Shutter"],
-                },
-                {
-                    "title": "Selected axis:",
-                    "name": "selected_axis",
-                    "type": "str",
-                    "value": "Wavelength",
-                    "readonly": True,
-                },
-            ],
-        },
-        {
-            "title": "MaiTai Status:",
-            "name": "maitai_status",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Warmup (%):",
-                    "name": "warmup_percent",
-                    "type": "int",
-                    "value": 0,
-                    "readonly": True,
-                },
-                {
-                    "title": "Pulsing:",
-                    "name": "pulsing",
-                    "type": "bool",
-                    "value": False,
-                    "readonly": True,
-                },
-                {
-                    "title": "Output Power (W):",
-                    "name": "output_power",
-                    "type": "float",
-                    "value": 0.0,
-                    "readonly": True,
-                    "si": True,
-                },
-                {
-                    "title": "System Status:",
-                    "name": "system_status_message",
-                    "type": "str",
-                    "value": "Disconnected",
-                    "readonly": True,
-                },
-                {
-                    "title": "Laser On:",
-                    "name": "laser_on",
-                    "type": "led",
-                    "value": False,
-                },
-            ],
-        },
+    
+    # Plugin metadata - PyMoDAQ compliant
+    _controller_units = 'nm'
+    is_multiaxes = False
+    _axis_names = ['Wavelength']
+    _epsilon = 0.1  # Wavelength precision in nm
+    
+    # Plugin parameters - PyMoDAQ standard structure  
+    params = comon_parameters_fun(is_multiaxes=False, axis_names=_axis_names, epsilon=_epsilon) + [
+        # Hardware connection
+        {'title': 'Connection:', 'name': 'connection_group', 'type': 'group', 'children': [
+            {'title': 'Serial Port:', 'name': 'serial_port', 'type': 'str', 'value': '/dev/ttyUSB0'},
+            {'title': 'Baudrate:', 'name': 'baudrate', 'type': 'int', 'value': 115200},
+            {'title': 'Timeout (s):', 'name': 'timeout', 'type': 'float', 'value': 2.0, 'min': 0.1, 'max': 10.0},
+            {'title': 'Mock Mode:', 'name': 'mock_mode', 'type': 'bool', 'value': False},
+        ]},
+        
+        # Wavelength limits (MaiTai only accepts INTEGER wavelengths)
+        {'title': 'Wavelength Range:', 'name': 'wavelength_group', 'type': 'group', 'children': [
+            {'title': 'Min Wavelength (nm):', 'name': 'min_wavelength', 'type': 'int', 'value': 700, 'readonly': True},
+            {'title': 'Max Wavelength (nm):', 'name': 'max_wavelength', 'type': 'int', 'value': 900, 'readonly': True},
+        ]},
+        
+        # Status monitoring
+        {'title': 'Status:', 'name': 'status_group', 'type': 'group', 'children': [
+            {'title': 'Current Wavelength (nm):', 'name': 'current_wavelength', 'type': 'float', 'value': 0.0, 'readonly': True},
+            {'title': 'Current Power (W):', 'name': 'current_power', 'type': 'float', 'value': 0.0, 'readonly': True},
+            {'title': 'Shutter Open:', 'name': 'shutter_open', 'type': 'bool', 'value': False, 'readonly': True},
+            {'title': 'Connection Status:', 'name': 'connection_status', 'type': 'str', 'value': 'Disconnected', 'readonly': True},
+        ]},
     ]
 
-    # PyMoDAQ 5 handles common parameters differently
-    # Common parameters are automatically added by the base class
-
     def __init__(self, parent=None, params_state=None):
+        """Initialize MaiTai PyMoDAQ plugin."""
         super().__init__(parent, params_state)
-        self.controller: serial.Serial = None
-        self.monitoring_thread = None
-        self.stop_thread_flag = threading.Event()
-
-    def commit_settings(self, param: Parameter):
-        """
-        Apply changes made in the GUI settings.
-        Establishes the serial connection when the 'connect' button is pressed.
-        """
-        if param.name() == "connect" and param.value():
-            try:
-                self.controller = serial.Serial(
-                    self.settings.child("serial", "com_port").value(),
-                    baudrate=9600,  # Default baud rate on power-up
-                    bytesize=serial.EIGHTBITS,
-                    parity=serial.PARITY_NONE,
-                    stopbits=serial.STOPBITS_ONE,
-                    timeout=1,
-                )
-                self.settings.child("maitai_status", "system_status_message").setValue(
-                    "Connected"
-                )
-                self.start_monitoring()
-                self.get_actuator_value()  # Update initial position
-            except serial.SerialException as e:
-                self.emit_status(
-                    ThreadCommand("status", [f"Connection failed: {str(e)}", "log"])
-                )
-                self.settings.child("connect").setValue(False)
-        elif param.name() == "connect" and not param.value():
-            self.close()
+        
+        # Hardware controller
+        self.controller = None
+        
+        # Status update timer
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.update_status)
+        self.status_timer.setInterval(1000)  # Update every second
+        
+    def ini_stage(self):
+        """Initialize the hardware stage."""
+        try:
+            # Import here to avoid issues if module not available
+            from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+            
+            # Get connection parameters
+            port = self.settings.child('connection_group', 'serial_port').value()
+            baudrate = self.settings.child('connection_group', 'baudrate').value()
+            timeout = self.settings.child('connection_group', 'timeout').value()
+            mock_mode = self.settings.child('connection_group', 'mock_mode').value()
+            
+            # Create controller
+            self.controller = MaiTaiController(
+                port=port,
+                baudrate=baudrate, 
+                timeout=timeout,
+                mock_mode=mock_mode
+            )
+            
+            # Connect to hardware
+            if self.controller.connect():
+                self.settings.child('status_group', 'connection_status').setValue('Connected')
+                
+                # Get initial status
+                self.update_status()
+                
+                # Start status monitoring
+                self.status_timer.start()
+                
+                # Get initial position
+                self.current_position = self.get_actuator_value()
+                
+                return "MaiTai laser initialized successfully", True
+            else:
+                return "Failed to connect to MaiTai laser", False
+                
+        except Exception as e:
+            return f"Error initializing MaiTai: {str(e)}", False
 
     def close(self):
-        """
-        Cleanly close the serial connection and stop the monitoring thread.
-        """
-        self.stop_thread_flag.set()
-        if self.monitoring_thread is not None:
-            self.monitoring_thread.join()
-        if self.controller is not None and self.controller.is_open:
-            self.controller.close()
-        self.settings.child("maitai_status", "system_status_message").setValue(
-            "Disconnected"
-        )
-
-    def _send_command(self, command: str, expect_response=True):
-        """
-        Sends a command to the laser and optionally reads the response.
-        All commands must be terminated with a carriage return and line feed.
-        """
-        if self.controller is None or not self.controller.is_open:
-            return None
+        """Close the hardware connection."""
         try:
-            full_command = f"{command}\r\n".encode()
-            self.controller.write(full_command)
-            if expect_response:
-                response = self.controller.readline().decode().strip()
-                return response
-        except serial.SerialException as e:
-            self.emit_status(
-                ThreadCommand("status", [f"Command failed: {str(e)}", "log"])
-            )
-            return None
-        return None
-
-    def move_abs(self, position: float):
-        """
-        Move the selected actuator to an absolute position.
-        """
-        axis = self.settings.child("multiaxes", "selected_axis").value()
-        command = ""
-        if axis == "Wavelength":
-            command = f"WAVelength {position:.1f}"
-        elif axis == "Shutter":
-            # 1 for open, 0 for closed
-            command = f"SHUTter {int(position)}"
-
-        if command:
-            self._send_command(command, expect_response=False)
-            # The laser takes time to adjust, so we don't immediately get a move_done.
-            # A better implementation would poll the status until the move is complete.
-            # For simplicity here, we assume the command is sent and will eventually complete.
-            self.get_actuator_value()  # Update the current position display
-        self.emit_status(ThreadCommand("move_abs_done", [position]))
+            # Stop status monitoring
+            if self.status_timer.isActive():
+                self.status_timer.stop()
+            
+            # Disconnect hardware
+            if self.controller and self.controller.connected:
+                self.controller.disconnect()
+                
+            self.settings.child('status_group', 'connection_status').setValue('Disconnected')
+            
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Error closing: {str(e)}', 'log']))
 
     def get_actuator_value(self):
-        """
-        Get the current value of the selected actuator.
-        """
-        axis = self.settings.child("multiaxes", "selected_axis").value()
-        response = ""
-        if self.controller is None:
+        """Get current wavelength."""
+        if not self.controller or not self.controller.connected:
             return 0.0
+            
+        try:
+            wavelength = self.controller.get_wavelength()
+            if wavelength is not None:
+                self.current_position = wavelength
+                return wavelength
+            else:
+                return self.current_position if hasattr(self, 'current_position') else 0.0
+                
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Error reading wavelength: {str(e)}', 'log']))
+            return self.current_position if hasattr(self, 'current_position') else 0.0
 
-        if axis == "Wavelength":
-            response = self._send_command("READ:WAVelength?")
-            if response:
-                try:
-                    current_pos = float(response)
-                    self.current_position = current_pos
-                    return current_pos
-                except (ValueError, TypeError):
-                    return 0.0
-        elif axis == "Shutter":
-            response = self._send_command("SHUTter?")
-            if response:
-                try:
-                    current_pos = int(response)
-                    self.current_position = current_pos
-                    return current_pos
-                except (ValueError, TypeError):
-                    return 0
-        return self.current_position
+    def move_abs(self, position):
+        """Move to absolute wavelength position."""
+        if not self.controller or not self.controller.connected:
+            self.emit_status(ThreadCommand('Update_Status', ['Hardware not connected', 'log']))
+            return
+            
+        try:
+            # Validate wavelength range
+            min_wl = self.settings.child('wavelength_group', 'min_wavelength').value()
+            max_wl = self.settings.child('wavelength_group', 'max_wavelength').value()
+            
+            if not (min_wl <= position <= max_wl):
+                self.emit_status(ThreadCommand('Update_Status', 
+                    [f'Wavelength {position} nm outside range [{min_wl}, {max_wl}]', 'log']))
+                return
+            
+            # Set wavelength (MaiTai requires integer)
+            success = self.controller.set_wavelength(int(round(position)))
+            if success:
+                self.emit_status(ThreadCommand('Update_Status', 
+                    [f'Moving to {int(round(position))} nm', 'log']))
+                
+                # Update current position
+                self.current_position = int(round(position))
+                
+                # Emit move done signal
+                self.emit_status(ThreadCommand('move_done', [int(round(position))]))
+            else:
+                self.emit_status(ThreadCommand('Update_Status', 
+                    [f'Failed to set wavelength to {position} nm', 'log']))
+                
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Error moving: {str(e)}', 'log']))
+
+    def move_rel(self, position):
+        """Move to relative wavelength position."""
+        current = self.get_actuator_value()
+        target = current + position
+        self.move_abs(target)
 
     def stop_motion(self):
-        """
-        Stop the current motion. Not directly applicable for setting wavelength or shutter state,
-        but required by the base class.
-        """
-        # No direct stop command for these actions.
-        self.emit_status(ThreadCommand("move_abs_done", [self.current_position]))
+        """Stop motion (not applicable for wavelength setting)."""
+        self.emit_status(ThreadCommand('Update_Status', ['Stop command received', 'log']))
 
-    def start_monitoring(self):
-        """
-        Start the background thread for asynchronous status monitoring.
-        """
-        if self.monitoring_thread is None or not self.monitoring_thread.is_alive():
-            self.stop_thread_flag.clear()
-            self.monitoring_thread = threading.Thread(target=self.run_monitoring)
-            self.monitoring_thread.start()
-            self.emit_status(
-                ThreadCommand("status", ["Monitoring thread started.", "log"])
-            )
-
-    def run_monitoring(self):
-        """
-        The main loop for the monitoring thread. Periodically queries the laser status.
-        """
-        while not self.stop_thread_flag.is_set():
-            try:
-                # Query output power
-                power_str = self._send_command("READ:POWer?")
-                if power_str:
-                    self.settings.child("maitai_status", "output_power").setValue(
-                        float(power_str)
-                    )
-
-                # Query system status byte (*STB?)
-                # Bit 1 (value 2) indicates modelocked operation (pulsing)
-                stb_str = self._send_command("*STB?")
-                if stb_str:
-                    status_byte = int(stb_str)
-                    is_pulsing = bool(status_byte & 2)
-                    self.settings.child("maitai_status", "pulsing").setValue(is_pulsing)
-
-                # Query warmup status
-                warmup_str = self._send_command("READ:PCTWarmedup?")
-                if warmup_str:
-                    self.settings.child("maitai_status", "warmup_percent").setValue(
-                        int(warmup_str)
-                    )
-
-                # Query if laser is on
-                # The LASER_ON bit (6) in the status byte indicates emission is possible
-                if stb_str:
-                    status_byte = int(stb_str)
-                    is_on = bool(status_byte & 64)
-                    self.settings.child("maitai_status", "laser_on").setValue(is_on)
-
-                # Update the main status message
-                if self.settings.child("maitai_status", "laser_on").value():
-                    status_msg = "Laser ON"
-                    if self.settings.child("maitai_status", "pulsing").value():
-                        status_msg += " & Pulsing"
-                else:
-                    status_msg = "Laser OFF"
-                self.settings.child("maitai_status", "system_status_message").setValue(
-                    status_msg
-                )
-
-                time.sleep(1)  # Polling interval of 1 second
-
-            except (serial.SerialException, ValueError, TypeError) as e:
-                self.emit_status(
-                    ThreadCommand("status", [f"Monitoring error: {str(e)}", "log"])
-                )
-                break  # Exit loop on error
-
-        self.emit_status(ThreadCommand("status", ["Monitoring thread stopped.", "log"]))
+    def update_status(self):
+        """Update status parameters from hardware."""
+        if not self.controller or not self.controller.connected:
+            return
+            
+        try:
+            # Update wavelength
+            wavelength = self.controller.get_wavelength()
+            if wavelength is not None:
+                self.settings.child('status_group', 'current_wavelength').setValue(wavelength)
+            
+            # Update power
+            power = self.controller.get_power()
+            if power is not None:
+                self.settings.child('status_group', 'current_power').setValue(power)
+                
+            # Update shutter state
+            shutter = self.controller.get_shutter_state()
+            if shutter is not None:
+                self.settings.child('status_group', 'shutter_open').setValue(shutter)
+                
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Status update error: {str(e)}', 'log']))
 
 
 if __name__ == "__main__":

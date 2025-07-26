@@ -1,0 +1,167 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          libegl1-mesa \
+          libgl1-mesa-glx \
+          libglib2.0-0 \
+          libxkbcommon-x11-0 \
+          libxcb-icccm4 \
+          libxcb-image0 \
+          libxcb-keysyms1 \
+          libxcb-randr0 \
+          libxcb-render-util0 \
+          libxcb-xinerama0 \
+          libxcb-xfixes0
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pytest-xvfb
+        pip install -e .
+    
+    - name: Run tests with xvfb
+      run: |
+        xvfb-run -a python -m pytest tests/ -v --cov=pymodaq_plugins_urashg --cov-report=xml --cov-report=term-missing
+      env:
+        QT_QPA_PLATFORM: offscreen
+        QT_DEBUG_PLUGINS: 0
+    
+    - name: Run comprehensive system test
+      run: |
+        xvfb-run -a python test_comprehensive_system.py
+      env:
+        QT_QPA_PLATFORM: offscreen
+        QT_DEBUG_PLUGINS: 0
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort flake8
+    
+    - name: Check code formatting with black
+      run: black --check --diff src/
+    
+    - name: Check import sorting with isort
+      run: isort --check-only --diff src/
+    
+    - name: Lint with flake8
+      run: flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  plugin-discovery:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+    
+    - name: Test plugin discovery
+      run: |
+        python -c "
+        import importlib.metadata
+        eps = importlib.metadata.entry_points()
+        
+        # Check move plugins
+        if hasattr(eps, 'select'):
+            move_plugins = list(eps.select(group='pymodaq.move_plugins'))
+            viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins'))
+        else:
+            move_plugins = eps.get('pymodaq.move_plugins', [])
+            viewer_plugins = eps.get('pymodaq.viewer_plugins', [])
+        
+        urashg_move = [ep for ep in move_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['maitai', 'elliptec', 'esp300'])]
+        urashg_viewer = [ep for ep in viewer_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['newport', 'prime'])]
+        
+        print(f'Found {len(urashg_move)} URASHG move plugins')
+        print(f'Found {len(urashg_viewer)} URASHG viewer plugins')
+        
+        expected_move = 3  # MaiTai, Elliptec, ESP300
+        expected_viewer = 2  # Newport1830C, PrimeBSI
+        
+        if len(urashg_move) >= expected_move and len(urashg_viewer) >= expected_viewer:
+            print('Plugin discovery: SUCCESS')
+        else:
+            print('Plugin discovery: FAILED')
+            exit(1)
+        "
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, lint, plugin-discovery]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Check package
+      run: twine check dist/*
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/

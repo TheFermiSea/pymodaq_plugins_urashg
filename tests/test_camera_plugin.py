@@ -369,14 +369,14 @@ def test_camera_plugin_comprehensive():
         sys.path.insert(0, str(plugin_path))
         from DAQ_Viewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
 
-        print("✓ Plugin imported successfully")
+        print("[OK] Plugin imported successfully")
         test_results['import'] = True
 
         # Test 1: Plugin instantiation
         print("\n--- Test 1: Plugin Instantiation ---")
         plugin = DAQ_2DViewer_PrimeBSI()
         assert plugin is not None, "Plugin should be instantiated"
-        print("✓ Plugin instance created successfully")
+        print("[OK] Plugin instance created successfully")
         test_results['instantiation'] = True
 
         # Test 2: Parameter structure validation
@@ -391,7 +391,7 @@ def test_camera_plugin_comprehensive():
         for group in required_groups:
             assert group in param_names, f"Missing parameter group: {group}"
 
-        print(f"✓ Plugin has required parameter groups: {required_groups}")
+        print(f"[OK] Plugin has required parameter groups: {required_groups}")
         test_results['parameter_structure'] = True
 
         # Test 3: Camera initialization
@@ -405,25 +405,25 @@ def test_camera_plugin_comprehensive():
             if plugin.initialized:
                 assert plugin.camera is not None, "Camera should be initialized"
                 assert plugin.camera.is_open, "Camera should be open"
-                print("✓ Camera initialization successful")
+                print("[OK] Camera initialization successful")
                 print(f"  Camera name: {plugin.camera.name}")
                 print(f"  Sensor size: {plugin.camera.sensor_size}")
             else:
-                print("⚠️  Camera initialization failed, but test continuing")
+                print("[WARNING]  Camera initialization failed, but test continuing")
                 print(f"  Status message: {status.message}")
                 # Create a mock camera for testing purposes
                 plugin.camera = MockCamera()
                 plugin.camera.open()
                 plugin.initialized = True
-                print("✓ Mock camera created for testing")
+                print("[OK] Mock camera created for testing")
 
         except Exception as e:
-            print(f"⚠️  Camera initialization exception: {e}")
+            print(f"[WARNING]  Camera initialization exception: {e}")
             # Create a mock camera for testing purposes
             plugin.camera = MockCamera()
             plugin.camera.open()
             plugin.initialized = True
-            print("✓ Mock camera created for testing")
+            print("[OK] Mock camera created for testing")
 
         test_results['camera_initialization'] = True
 
@@ -437,13 +437,13 @@ def test_camera_plugin_comprehensive():
         assert camera_name == plugin.camera.name, "Camera name should be set"
         assert isinstance(sensor_size, str), "Sensor size should be formatted as string"
 
-        print(f"✓ Camera name: {camera_name}")
-        print(f"✓ Sensor size: {sensor_size}")
+        print(f"[OK] Camera name: {camera_name}")
+        print(f"[OK] Sensor size: {sensor_size}")
 
         # Check readout ports
         readout_limits = plugin.settings.child('camera_settings', 'readout_port')._limits
         assert len(readout_limits) > 0, "Readout ports should be populated"
-        print(f"✓ Readout ports: {readout_limits}")
+        print(f"[OK] Readout ports: {readout_limits}")
 
         test_results['camera_parameters'] = True
 
@@ -458,8 +458,8 @@ def test_camera_plugin_comprehensive():
         assert len(x_axis.data) == plugin.camera.roi[2], "X-axis size should match ROI width"
         assert len(y_axis.data) == plugin.camera.roi[3], "Y-axis size should match ROI height"
 
-        print(f"✓ X-axis: {len(x_axis.data)} pixels")
-        print(f"✓ Y-axis: {len(y_axis.data)} pixels")
+        print(f"[OK] X-axis: {len(x_axis.data)} pixels")
+        print(f"[OK] Y-axis: {len(y_axis.data)} pixels")
 
         test_results['axis_generation'] = True
 
@@ -474,14 +474,14 @@ def test_camera_plugin_comprehensive():
         exposure_param.setValue(new_exposure)
         plugin.commit_settings(exposure_param)
 
-        print(f"✓ Exposure changed: {original_exposure} -> {new_exposure} ms")
+        print(f"[OK] Exposure changed: {original_exposure} -> {new_exposure} ms")
 
         # Test readout port change
         readout_param = plugin.settings.child('camera_settings', 'readout_port')
         if readout_param._limits:
             readout_param.setValue(readout_param._limits[0])
             plugin.commit_settings(readout_param)
-            print(f"✓ Readout port changed to: {readout_param.value()}")
+            print(f"[OK] Readout port changed to: {readout_param.value()}")
 
         test_results['parameter_changes'] = True
 
@@ -504,7 +504,7 @@ def test_camera_plugin_comprehensive():
         assert frame is not None, "Frame should be generated"
         assert len(frame) == plugin.camera.roi[2] * plugin.camera.roi[3], "Frame size should match ROI"
 
-        print(f"✓ Frame acquired: {len(frame)} pixels")
+        print(f"[OK] Frame acquired: {len(frame)} pixels")
         print(f"  Frame stats: min={np.min(frame)}, max={np.max(frame)}, mean={np.mean(frame):.1f}")
 
         test_results['data_acquisition'] = True
@@ -520,9 +520,9 @@ def test_camera_plugin_comprehensive():
             roi_bounds = plugin.get_roi_bounds()
             if roi_bounds:
                 y, h, x, w = roi_bounds
-                print(f"✓ ROI bounds: x={x}, y={y}, w={w}, h={h}")
+                print(f"[OK] ROI bounds: x={x}, y={y}, w={w}, h={h}")
 
-        print(f"✓ ROI integration enabled: {roi_enabled}")
+        print(f"[OK] ROI integration enabled: {roi_enabled}")
 
         test_results['roi_integration'] = True
 
@@ -532,12 +532,12 @@ def test_camera_plugin_comprehensive():
         # Test parameter creation for advanced settings
         if hasattr(plugin, 'populate_advanced_params'):
             plugin.populate_advanced_params()
-            print("✓ Advanced parameters populated")
+            print("[OK] Advanced parameters populated")
 
         # Test post-processing parameters
         if hasattr(plugin, 'populate_post_processing_params'):
             plugin.populate_post_processing_params()
-            print("✓ Post-processing parameters populated")
+            print("[OK] Post-processing parameters populated")
 
         test_results['advanced_parameters'] = True
 
@@ -548,13 +548,13 @@ def test_camera_plugin_comprehensive():
         current_temp = plugin.camera.temp
 
         temp_param.setValue(current_temp)
-        print(f"✓ Temperature monitoring: {current_temp}°C")
+        print(f"[OK] Temperature monitoring: {current_temp}°C")
 
         # Test temperature setpoint
         setpoint_param = plugin.settings.child('camera_settings', 'temperature_setpoint')
         setpoint_param.setValue(-15)
         plugin.commit_settings(setpoint_param)
-        print(f"✓ Temperature setpoint changed to: {setpoint_param.value()}°C")
+        print(f"[OK] Temperature setpoint changed to: {setpoint_param.value()}°C")
 
         test_results['temperature_monitoring'] = True
 
@@ -563,13 +563,13 @@ def test_camera_plugin_comprehensive():
 
         # Test stop method
         result = plugin.stop()
-        print(f"✓ Stop method executed, result: {result}")
+        print(f"[OK] Stop method executed, result: {result}")
 
         # Test invalid parameter handling
         try:
             invalid_param = MockParameter("invalid", value="test")
             plugin.commit_settings(invalid_param)
-            print("✓ Invalid parameter handled gracefully")
+            print("[OK] Invalid parameter handled gracefully")
         except Exception as e:
             print(f"  Note: Invalid parameter handling: {e}")
 
@@ -580,7 +580,7 @@ def test_camera_plugin_comprehensive():
 
         plugin.close()
         assert not plugin.camera.is_open, "Camera should be closed"
-        print("✓ Plugin cleanup successful")
+        print("[OK] Plugin cleanup successful")
 
         test_results['cleanup'] = True
 
@@ -593,21 +593,21 @@ def test_camera_plugin_comprehensive():
         passed_tests = sum(test_results.values())
 
         for test_name, passed in test_results.items():
-            status = "✓ PASSED" if passed else "❌ FAILED"
+            status = "[OK] PASSED" if passed else "ERROR: FAILED"
             print(f"{status:<10} {test_name.replace('_', ' ').title()}")
 
         print("="*60)
         print(f"TOTAL: {passed_tests}/{total_tests} tests passed")
 
         if passed_tests == total_tests:
-            print("🎉 ALL CAMERA PLUGIN TESTS PASSED!")
+            print("SUCCESS: ALL CAMERA PLUGIN TESTS PASSED!")
             return True
         else:
-            print("⚠️  SOME TESTS FAILED!")
+            print("[WARNING]  SOME TESTS FAILED!")
             return False
 
     except Exception as e:
-        print(f"\n❌ Test failed with error: {e}")
+        print(f"\nERROR: Test failed with error: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -639,7 +639,7 @@ def test_camera_specific_features():
             mean_signal = np.mean(frame_2d)
             print(f"  Exposure {exp_time:3d}ms: mean signal = {mean_signal:.1f}")
 
-        print("✓ Frame generation tested across exposure range")
+        print("[OK] Frame generation tested across exposure range")
 
         # Test ROI functionality
         print("\n--- ROI Functionality ---")
@@ -659,7 +659,7 @@ def test_camera_specific_features():
             frame = plugin.camera.get_frame()
             expected_size = roi[2] * roi[3]
             assert len(frame) == expected_size, f"Frame size mismatch for ROI {roi}"
-            print(f"  ROI {roi}: frame size = {len(frame)} pixels ✓")
+            print(f"  ROI {roi}: frame size = {len(frame)} pixels [OK]")
 
         # Restore original ROI
         plugin.camera.roi = original_roi
@@ -683,13 +683,13 @@ def test_camera_specific_features():
             if param:
                 print(f"  Created parameter: {param.name()}")
 
-        print("✓ Parameter discovery tested")
+        print("[OK] Parameter discovery tested")
 
         plugin.close()
         return True
 
     except Exception as e:
-        print(f"❌ Detailed feature test failed: {e}")
+        print(f"ERROR: Detailed feature test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -758,7 +758,7 @@ def test_camera_data_processing():
         return True
 
     except Exception as e:
-        print(f"❌ Data processing test failed: {e}")
+        print(f"ERROR: Data processing test failed: {e}")
         return False
 
 if __name__ == "__main__":
@@ -775,8 +775,8 @@ if __name__ == "__main__":
 
     # Overall result
     if success1 and success2 and success3:
-        print("\n🎉 ALL CAMERA TESTS COMPLETED SUCCESSFULLY!")
+        print("\nSUCCESS: ALL CAMERA TESTS COMPLETED SUCCESSFULLY!")
         sys.exit(0)
     else:
-        print("\n❌ SOME CAMERA TESTS FAILED!")
+        print("\nERROR: SOME CAMERA TESTS FAILED!")
         sys.exit(1)

@@ -235,14 +235,14 @@ def test_elliptec_plugin_comprehensive():
         sys.path.insert(0, str(plugin_path))
         from DAQ_Move_Elliptec import DAQ_Move_Elliptec
 
-        print("✓ Plugin imported successfully")
+        print("[OK] Plugin imported successfully")
         test_results['import'] = True
 
         # Test 1: Plugin instantiation
         print("\n--- Test 1: Plugin Instantiation ---")
         plugin = DAQ_Move_Elliptec()
         assert plugin is not None, "Plugin should be instantiated"
-        print("✓ Plugin instance created successfully")
+        print("[OK] Plugin instance created successfully")
         test_results['instantiation'] = True
 
         # Test 2: Parameter structure validation
@@ -250,18 +250,18 @@ def test_elliptec_plugin_comprehensive():
         assert hasattr(plugin, 'params'), "Plugin should have params attribute"
         assert isinstance(plugin.params, list), "Params should be a list"
         assert len(plugin.params) >= 2, "Should have at least 2 parameter groups"
-        print(f"✓ Plugin has {len(plugin.params)} parameter groups")
+        print(f"[OK] Plugin has {len(plugin.params)} parameter groups")
 
         # Test axis configuration
         assert hasattr(plugin, '_axis_names'), "Should have _axis_names attribute"
         assert len(plugin._axis_names) == 3, "Should have 3 axes"
         assert plugin._axis_names == ["HWP_inc", "QWP", "HWP_ana"], "Incorrect axis names"
-        print(f"✓ Axis names validated: {plugin._axis_names}")
+        print(f"[OK] Axis names validated: {plugin._axis_names}")
 
         assert hasattr(plugin, '_default_addresses'), "Should have _default_addresses"
         assert len(plugin._default_addresses) == 3, "Should have 3 default addresses"
         assert plugin._default_addresses == ["2", "3", "8"], "Incorrect default addresses"
-        print(f"✓ Default addresses validated: {plugin._default_addresses}")
+        print(f"[OK] Default addresses validated: {plugin._default_addresses}")
 
         test_results['parameter_structure'] = True
 
@@ -271,14 +271,14 @@ def test_elliptec_plugin_comprehensive():
         assert len(plugin._error_codes) == 14, f"Should have 14 error codes, got {len(plugin._error_codes)}"
         assert '00' in plugin._error_codes, "Should have OK error code"
         assert plugin._error_codes['00'] == "OK, no error", "Incorrect OK error message"
-        print(f"✓ Error codes validated: {len(plugin._error_codes)} codes")
+        print(f"[OK] Error codes validated: {len(plugin._error_codes)} codes")
 
         assert hasattr(plugin, '_command_reference'), "Should have command reference"
         assert len(plugin._command_reference) == 34, f"Should have 34 commands, got {len(plugin._command_reference)}"
         required_commands = ['in', 'gs', 'ma', 'gp', 'ho', 'st']
         for cmd in required_commands:
             assert cmd in plugin._command_reference, f"Missing required command: {cmd}"
-        print(f"✓ Command reference validated: {len(plugin._command_reference)} commands")
+        print(f"[OK] Command reference validated: {len(plugin._command_reference)} commands")
 
         test_results['error_codes_commands'] = True
 
@@ -287,7 +287,7 @@ def test_elliptec_plugin_comprehensive():
         for axis in plugin._axis_names:
             address = plugin.get_axis_address(axis)
             assert address in plugin._default_addresses, f"Invalid address for {axis}: {address}"
-            print(f"✓ {axis} -> Address {address}")
+            print(f"[OK] {axis} -> Address {address}")
 
         test_results['address_resolution'] = True
 
@@ -312,14 +312,14 @@ def test_elliptec_plugin_comprehensive():
         # Check that controller was created
         assert plugin.controller is not None, "Controller should be initialized"
         assert plugin.controller.is_open, "Controller should be open"
-        print("✓ Mock serial connection established")
+        print("[OK] Mock serial connection established")
 
         # Check that pulses_per_deg was calculated for all axes
         assert len(plugin.pulses_per_deg) == 3, f"Should have pulses/deg for all axes, got {len(plugin.pulses_per_deg)}"
         for axis in plugin._axis_names:
             assert axis in plugin.pulses_per_deg, f"Missing pulses/deg for {axis}"
             assert plugin.pulses_per_deg[axis] > 0, f"Invalid pulses/deg for {axis}"
-        print(f"✓ Pulses per degree calculated for {len(plugin.pulses_per_deg)} axes")
+        print(f"[OK] Pulses per degree calculated for {len(plugin.pulses_per_deg)} axes")
 
         test_results['mock_connection'] = True
 
@@ -346,7 +346,7 @@ def test_elliptec_plugin_comprehensive():
         avg_error = sum(conversion_errors) / len(conversion_errors)
 
         assert max_error < 1.0, f"Maximum conversion error too high: {max_error:.3f}°"
-        print(f"✓ Position conversion: max error {max_error:.3f}°, avg error {avg_error:.3f}°")
+        print(f"[OK] Position conversion: max error {max_error:.3f}°, avg error {avg_error:.3f}°")
 
         test_results['position_conversion'] = True
 
@@ -362,7 +362,7 @@ def test_elliptec_plugin_comprehensive():
             plugin.move_abs(test_angle)
             position = plugin.get_actuator_value()
 
-            print(f"✓ {axis}: moved to {position:.1f}°")
+            print(f"[OK] {axis}: moved to {position:.1f}°")
 
         test_results['multi_axis'] = True
 
@@ -375,7 +375,7 @@ def test_elliptec_plugin_comprehensive():
         status_code = plugin._check_status(address)
 
         assert status_code is not None, "Status check should return a code"
-        print(f"✓ Status check returned: {status_code}")
+        print(f"[OK] Status check returned: {status_code}")
 
         test_results['error_handling'] = True
 
@@ -383,7 +383,7 @@ def test_elliptec_plugin_comprehensive():
         print("\n--- Test 9: Stop Motion ---")
 
         plugin.stop_motion()
-        print("✓ Stop motion command executed")
+        print("[OK] Stop motion command executed")
 
         test_results['stop_motion'] = True
 
@@ -396,7 +396,7 @@ def test_elliptec_plugin_comprehensive():
 
         # Position might change during optimization, that's normal
         final_pos = plugin.get_actuator_value()
-        print(f"✓ Motor optimization completed (pos: {original_pos:.1f}° -> {final_pos:.1f}°)")
+        print(f"[OK] Motor optimization completed (pos: {original_pos:.1f}° -> {final_pos:.1f}°)")
 
         test_results['motor_optimization'] = True
 
@@ -405,7 +405,7 @@ def test_elliptec_plugin_comprehensive():
 
         plugin.close()
         assert not plugin.controller.is_open, "Controller should be closed"
-        print("✓ Plugin cleanup successful")
+        print("[OK] Plugin cleanup successful")
 
         test_results['cleanup'] = True
 
@@ -418,21 +418,21 @@ def test_elliptec_plugin_comprehensive():
         passed_tests = sum(test_results.values())
 
         for test_name, passed in test_results.items():
-            status = "✓ PASSED" if passed else "❌ FAILED"
+            status = "[OK] PASSED" if passed else "ERROR: FAILED"
             print(f"{status:<10} {test_name.replace('_', ' ').title()}")
 
         print("="*60)
         print(f"TOTAL: {passed_tests}/{total_tests} tests passed")
 
         if passed_tests == total_tests:
-            print("🎉 ALL ELLIPTEC PLUGIN TESTS PASSED!")
+            print("SUCCESS: ALL ELLIPTEC PLUGIN TESTS PASSED!")
             return True
         else:
-            print("⚠️  SOME TESTS FAILED!")
+            print("[WARNING]  SOME TESTS FAILED!")
             return False
 
     except Exception as e:
-        print(f"\n❌ Test failed with error: {e}")
+        print(f"\nERROR: Test failed with error: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -461,26 +461,26 @@ def test_specific_elliptec_features():
         connect_param = plugin.settings.child('connect')
         plugin.commit_settings(connect_param)
 
-        print("✓ Home-on-connect feature tested")
+        print("[OK] Home-on-connect feature tested")
 
         # Test wait for action completion
         print("\n--- Action Completion Waiting ---")
         address = plugin.get_axis_address()
         plugin._wait_for_action_completion(address)
-        print("✓ Action completion waiting tested")
+        print("[OK] Action completion waiting tested")
 
         # Test command sending with data
         print("\n--- Command Sending with Data ---")
         response = plugin.send_command("2", "ma", "00001000")
         assert response is not None, "Should receive response"
-        print(f"✓ Command with data sent, response: {response.strip()}")
+        print(f"[OK] Command with data sent, response: {response.strip()}")
 
         plugin.close()
 
         return True
 
     except Exception as e:
-        print(f"❌ Detailed feature test failed: {e}")
+        print(f"ERROR: Detailed feature test failed: {e}")
         return False
 
 if __name__ == "__main__":
@@ -494,8 +494,8 @@ if __name__ == "__main__":
 
     # Overall result
     if success1 and success2:
-        print("\n🎉 ALL ELLIPTEC TESTS COMPLETED SUCCESSFULLY!")
+        print("\nSUCCESS: ALL ELLIPTEC TESTS COMPLETED SUCCESSFULLY!")
         sys.exit(0)
     else:
-        print("\n❌ SOME ELLIPTEC TESTS FAILED!")
+        print("\nERROR: SOME ELLIPTEC TESTS FAILED!")
         sys.exit(1)

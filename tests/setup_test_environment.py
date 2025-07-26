@@ -17,7 +17,7 @@ from pathlib import Path
     """Ensure Python 3.8+ is being used"""
     if sys.version_info < (3, 8):
         raise RuntimeError("Python 3.8+ is required for PyMoDAQ v5")
-    print(f"✓ Python {sys.version_info.major}.{sys.version_info.minor} detected")
+    print(f"[OK] Python {sys.version_info.major}.{sys.version_info.minor} detected")
 
 def install_pymodaq():
     """Install PyMoDAQ version 5 and core dependencies"""
@@ -39,9 +39,9 @@ def install_pymodaq():
             subprocess.run([
                 sys.executable, "-m", "pip", "install", package
             ], check=True, capture_output=True, text=True)
-            print(f"✓ {package} installed successfully")
+            print(f"[OK] {package} installed successfully")
         except subprocess.CalledProcessError as e:
-            print(f"⚠️  Warning: Failed to install {package}: {e}")
+            print(f"[WARNING]  Warning: Failed to install {package}: {e}")
             # Continue with other packages
 
 def setup_mock_modules():
@@ -217,7 +217,7 @@ class pvc:
     # Write mock PyVCAM module
     (mock_dir / "mock_pyvcam.py").write_text(mock_pyvcam_code)
 
-    print("✓ Mock hardware modules created")
+    print("[OK] Mock hardware modules created")
 
 def validate_installation():
     """Validate that required components are properly installed"""
@@ -232,13 +232,13 @@ def validate_installation():
     for module in required_modules:
         try:
             importlib.import_module(module)
-            print(f"✓ {module} available")
+            print(f"[OK] {module} available")
         except ImportError:
             missing_modules.append(module)
-            print(f"❌ {module} not available")
+            print(f"ERROR: {module} not available")
 
     if missing_modules:
-        print(f"⚠️  Missing modules: {', '.join(missing_modules)}")
+        print(f"[WARNING]  Missing modules: {', '.join(missing_modules)}")
         return False
 
     return True
@@ -277,7 +277,7 @@ camera_frame_generation_time = 0.02
 
     config_path = Path(__file__).parent / "test_config.ini"
     config_path.write_text(config_content)
-    print(f"✓ Test configuration created: {config_path}")
+    print(f"[OK] Test configuration created: {config_path}")
 
 def main():
     """Main setup function"""
