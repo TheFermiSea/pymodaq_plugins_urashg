@@ -1,412 +1,219 @@
 import time
+from typing import List
 
-import serial
-from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
+from qtpy.QtCore import QTimer
+from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.parameter import Parameter
-
-# Removed unused imports: get_param_path, iter_children
 
 
 class DAQ_Move_Elliptec(DAQ_Move_base):
     """
-    PyMoDAQ Plugin for Thorlabs Elliptec (ELLx) series rotation mounts.
-
-    This plugin communicates with ELL14 and similar devices using the native
-    serial protocol. It specifically supports multi-drop communication, allowing
-    control of multiple devices on a single serial bus via unique addresses.
-
-    This version dynamically queries each device for its calibration values
-    (pulses per degree) and includes robust error handling and a motor
-    optimization function.
+    PyMoDAQ plugin for Thorlabs Elliptec rotation mounts (ELL14).
+    
+    Supports multi-axis control of up to 3 rotation mounts:
+    - HWP incident polarizer (address 2)
+    - QWP quarter wave plate (address 3) 
+    - HWP analyzer (address 8)
     """
-
-    # Define the default axis names and their corresponding default addresses
-    _axis_names = ["HWP_inc", "QWP", "HWP_ana"]
-    _default_addresses = ["2", "3", "8"]
-
-    # Error codes from the manual (page 11)
-    _error_codes = {
-        "00": "OK, no error",
-        "01": "Communication time out",
-        "02": "Mechanical time out",
-        "03": "Command error or not supported",
-        "04": "Value out of range",
-        "05": "Module isolated",
-        "06": "Module out of isolation",
-        "07": "Initializing error",
-        "08": "Thermal error",
-        "09": "Busy",
-        "0A": "Sensor Error",  # 10 decimal
-        "0B": "Motor Error",  # 11 decimal
-        "0C": "Out of Range",  # 12 decimal
-        "0D": "Over Current error",  # 13 decimal
-    }
-
-    # Complete command reference from the ELLx manual
-    _command_reference = {
-        "in": "Get device information (model, SN, firmware, travel, pulses)",
-        "gs": "Get status/error code",
-        "us": "Save user data (like motor frequencies) to non-volatile memory",
-        "ca": "Change the device address",
-        "i1": "Get information for Motor 1 (state, current, frequencies)",
-        "f1": "Set the forward frequency period for Motor 1",
-        "b1": "Set the backward frequency period for Motor 1",
-        "s1": "Perform a frequency search to optimize Motor 1",
-        "c1": "Request a scan of the current curve for Motor 1",
-        "is": "Isolate the device from communication for a specified time",
-        "i2": "Get information for Motor 2",
-        "f2": "Set the forward frequency period for Motor 2",
-        "b2": "Set the backward frequency period for Motor 2",
-        "s2": "Perform a frequency search to optimize Motor 2",
-        "c2": "Request a scan of the current curve for Motor 2",
-        "ho": "Move to the home position",
-        "ah": "Set auto-homing behavior on startup (ELL15 Iris only)",
-        "ma": "Move to an absolute position",
-        "mr": "Move by a relative amount",
-        "go": "Get the home offset distance",
-        "so": "Set the home offset distance",
-        "gj": "Get the jog step size",
-        "sj": "Set the jog step size (0 for continuous motion)",
-        "fw": "Jog forward by the jog step size",
-        "bw": "Jog backward by the jog step size",
-        "st": "Stop the current motion",
-        "gp": "Get the current absolute position",
-        "gv": "Get the velocity setting (% of max)",
-        "sv": "Set the velocity setting (% of max)",
-        "ga": "Assign a temporary group address for synchronized moves",
-        "om": "Perform an extended motor optimization routine",
-        "cm": "Start a mechanical cleaning cycle",
-        "e1": "Energize Motor 1 at a specified frequency (piezo drivers only)",
-        "h1": "Halt (de-energize) Motor 1 (piezo drivers only)",
-    }
-
-    # Define the specific settings for this plugin
-    params = [
-        {
-            "title": "Multi-axis settings:",
-            "name": "multiaxes",
-            "type": "group",
-            "visible": True,
-            "children": [
-                {
-                    "title": "Axes names:",
-                    "name": "axis_names",
-                    "type": "list",
-                    "limits": _axis_names,
-                },
-                {
-                    "title": "Selected axis:",
-                    "name": "selected_axis",
-                    "type": "str",
-                    "value": _axis_names[0],
-                    "readonly": True,
-                },
-            ],
-        },
-        {
-            "title": "Elliptec Settings",
-            "name": "elliptec_settings",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Addresses",
-                    "name": "addresses",
-                    "type": "group",
-                    "children": [
-                        # NOTE: The addresses below are defaults. Please verify these against your
-                        # actual hardware configuration before connecting.
-                        {
-                            "title": f"{name} Address:",
-                            "name": f"address_{name}",
-                            "type": "str",
-                            "value": addr,
-                        }
-                        for name, addr in zip(_axis_names, _default_addresses)
-                    ],
-                },
-                {
-                    "title": "Home All on Connect",
-                    "name": "home_on_connect",
-                    "type": "bool",
-                    "value": True,
-                },
-                {
-                    "title": "Optimize Selected Motor",
-                    "name": "optimize_motor",
-                    "type": "action",
-                },
-            ],
-        },
+    
+    # Plugin metadata
+    _controller_units = 'degrees'
+    is_multiaxes = True
+    _axis_names = ['Mount_2', 'Mount_3', 'Mount_8']  # Mount addresses
+    _epsilon = 0.1  # Position precision in degrees
+    
+    # Plugin parameters
+    params = comon_parameters_fun(is_multiaxes=True, axis_names=_axis_names, epsilon=_epsilon) + [
+        # Hardware connection
+        {'title': 'Connection:', 'name': 'connection_group', 'type': 'group', 'children': [
+            {'title': 'Serial Port:', 'name': 'serial_port', 'type': 'str', 'value': '/dev/ttyUSB1'},
+            {'title': 'Baudrate:', 'name': 'baudrate', 'type': 'int', 'value': 9600},
+            {'title': 'Timeout (s):', 'name': 'timeout', 'type': 'float', 'value': 2.0, 'min': 0.1, 'max': 10.0},
+            {'title': 'Mount Addresses:', 'name': 'mount_addresses', 'type': 'str', 'value': '2,3,8'},
+            {'title': 'Mock Mode:', 'name': 'mock_mode', 'type': 'bool', 'value': False},
+        ]},
+        
+        # Device actions
+        {'title': 'Actions:', 'name': 'actions_group', 'type': 'group', 'children': [
+            {'title': 'Home All Mounts:', 'name': 'home_all', 'type': 'action'},
+        ]},
+        
+        # Status monitoring
+        {'title': 'Status:', 'name': 'status_group', 'type': 'group', 'children': [
+            {'title': 'Mount 2 Position (deg):', 'name': 'mount_2_pos', 'type': 'float', 'value': 0.0, 'readonly': True},
+            {'title': 'Mount 3 Position (deg):', 'name': 'mount_3_pos', 'type': 'float', 'value': 0.0, 'readonly': True},
+            {'title': 'Mount 8 Position (deg):', 'name': 'mount_8_pos', 'type': 'float', 'value': 0.0, 'readonly': True},
+            {'title': 'Connection Status:', 'name': 'connection_status', 'type': 'str', 'value': 'Disconnected', 'readonly': True},
+        ]},
     ]
 
-    # PyMoDAQ 5 handles common parameters differently
-    # Common parameters are automatically added by the base class
-
     def __init__(self, parent=None, params_state=None):
+        """Initialize Elliptec PyMoDAQ plugin."""
         super().__init__(parent, params_state)
-        self.controller: serial.Serial = None
-        self.pulses_per_deg = {}  # Dictionary to store calibration for each axis
-
-    def get_axis_address(self, axis_name=None):
-        """Gets the address for a given axis name from the settings."""
-        if axis_name is None:
-            axis_name = self.settings.child("multiaxes", "selected_axis").value()
-        return self.settings.child(
-            "elliptec_settings", "addresses", f"address_{axis_name}"
-        ).value()
-
-    def commit_settings(self, param: Parameter):
-        """Apply changes made in the GUI settings."""
-        if param.name() == "connect" and param.value():
-            try:
-                self.controller = serial.Serial(
-                    self.settings.child("serial", "com_port").value(),
-                    baudrate=9600,
-                    bytesize=serial.EIGHTBITS,
-                    parity=serial.PARITY_NONE,
-                    stopbits=serial.STOPBITS_ONE,
-                    timeout=1.0,
-                )
-                self.emit_status(
-                    ThreadCommand("status", ["Serial connection opened.", "log"])
-                )
-
-                # Query information and set up each axis
-                for axis in self._axis_names:
-                    self.setup_axis(axis)
-
-                if self.settings.child("elliptec_settings", "home_on_connect").value():
-                    self.home_all_axes()
-
-                self.get_actuator_value()  # Update initial position
-
-            except serial.SerialException as e:
-                self.emit_status(
-                    ThreadCommand("status", [f"Connection failed: {str(e)}", "log"])
-                )
-                self.settings.child("connect").setValue(False)
-
-        elif param.name() == "connect" and not param.value():
-            self.close()
-
-        elif param.name() == "optimize_motor":
-            self.run_optimization()
-
-    def setup_axis(self, axis_name: str):
-        """Queries an axis for its info and calculates its pulses_per_deg."""
-        address = self.get_axis_address(axis_name)
-        self.emit_status(
-            ThreadCommand(
-                "status",
-                [
-                    f"Querying info for {axis_name} at address {address}...",
-                    "log",
-                ],
+        
+        # Hardware controller
+        self.controller = None
+        
+        # Status update timer
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.update_status)
+        self.status_timer.setInterval(2000)  # Update every 2 seconds
+        
+    def ini_stage(self):
+        """Initialize the hardware stage."""
+        try:
+            # Import here to avoid issues if module not available
+            from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import ElliptecController
+            
+            # Get connection parameters
+            port = self.settings.child('connection_group', 'serial_port').value()
+            baudrate = self.settings.child('connection_group', 'baudrate').value()
+            timeout = self.settings.child('connection_group', 'timeout').value()
+            mount_addresses = self.settings.child('connection_group', 'mount_addresses').value()
+            mock_mode = self.settings.child('connection_group', 'mock_mode').value()
+            
+            # Create controller
+            self.controller = ElliptecController(
+                port=port,
+                baudrate=baudrate,
+                timeout=timeout,
+                mount_addresses=mount_addresses,
+                mock_mode=mock_mode
             )
-        )
-
-        # Command 'in' gets device information (see manual page 10)
-        response = self.send_command(address, "in")
-
-        if response and len(response) == 33 and response[1:3] == "IN":
-            try:
-                # Response format: <addr>IN<type><sn><year><fw><hw><travel><pulses>
-                travel_hex = response[21:25]
-                pulses_hex = response[25:33]
-
-                travel = int(travel_hex, 16)  # This is 360 for rotation stages
-                pulses_per_rev = int(pulses_hex, 16)
-
-                if travel > 0:
-                    self.pulses_per_deg[axis_name] = pulses_per_rev / travel
-                    self.emit_status(
-                        ThreadCommand(
-                            "status",
-                            [
-                                f"{axis_name} setup complete. "
-                                f"Pulses/Deg: {self.pulses_per_deg[axis_name]:.2f}",
-                                "log",
-                            ],
-                        )
-                    )
-                else:
-                    raise ValueError("Travel reported as zero.")
-
-            except (ValueError, IndexError) as e:
-                self.emit_status(
-                    ThreadCommand(
-                        "status",
-                        [
-                            f"Failed to parse info for {axis_name}. Response: {response}. Error: {e}",
-                            "error",
-                        ],
-                    )
-                )
-                self.pulses_per_deg[axis_name] = 262144 / 360.0  # Fallback to default
-        else:
-            self.emit_status(
-                ThreadCommand(
-                    "status",
-                    [
-                        f"No/Invalid info from {axis_name} at address {address}. Using default calibration.",
-                        "warning",
-                    ],
-                )
-            )
-            self.pulses_per_deg[axis_name] = 262144 / 360.0  # Fallback to default
-
-    def home_all_axes(self):
-        """Sends the home command to all configured axes."""
-        self.emit_status(ThreadCommand("status", ["Homing all axes...", "log"]))
-        for axis in self._axis_names:
-            address = self.get_axis_address(axis)
-            self.send_command(address, "ho", "1")  # Home CCW
-            self._wait_for_action_completion(address)
-            self.emit_status(ThreadCommand("status", [f"{axis} homed.", "log"]))
-        self.emit_status(ThreadCommand("status", ["Homing complete.", "log"]))
+            
+            # Connect to hardware
+            if self.controller.connect():
+                self.settings.child('status_group', 'connection_status').setValue('Connected')
+                
+                # Get initial status
+                self.update_status()
+                
+                # Start status monitoring
+                self.status_timer.start()
+                
+                # Get initial positions
+                self.current_position = self.get_actuator_value()
+                
+                return "Elliptec mounts initialized successfully", True
+            else:
+                return "Failed to connect to Elliptec mounts", False
+                
+        except Exception as e:
+            return f"Error initializing Elliptec: {str(e)}", False
 
     def close(self):
-        """Cleanly close the serial connection."""
-        if self.controller is not None and self.controller.is_open:
-            self.controller.close()
-        self.emit_status(ThreadCommand("status", ["Serial connection closed.", "log"]))
-
-    def send_command(self, address: str, command: str, data: str = ""):
-        """Constructs and sends a command, returning the response."""
-        if self.controller is None or not self.controller.is_open:
-            return None
+        """Close the hardware connection."""
         try:
-            full_command = f"{address}{command}{data}\r".encode()
-            self.controller.reset_input_buffer()
-            self.controller.write(full_command)
-            time.sleep(0.05)  # Short pause for device to process
-            response = self.controller.readline().decode().strip()
-            return response
-        except serial.SerialException as e:
-            self.emit_status(
-                ThreadCommand("status", [f"Command failed: {str(e)}", "error"])
-            )
-            return None
+            # Stop status monitoring
+            if self.status_timer.isActive():
+                self.status_timer.stop()
+            
+            # Disconnect hardware
+            if self.controller and self.controller.connected:
+                self.controller.disconnect()
+                
+            self.settings.child('status_group', 'connection_status').setValue('Disconnected')
+            
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Error closing: {str(e)}', 'log']))
 
-    def _check_status(self, address: str):
-        """Sends 'gs' to get status and logs any errors."""
-        status_response = self.send_command(address, "gs")
-        if status_response and len(status_response) >= 5:
-            status_code = status_response[3:5].upper()
-            if status_code != "00" and status_code != "09":  # Ignore OK and Busy
-                error_msg = self._error_codes.get(
-                    status_code, f"Unknown error code: {status_code}"
-                )
-                self.emit_status(
-                    ThreadCommand(
-                        "status",
-                        [f"Error from address {address}: {error_msg}", "error"],
-                    )
-                )
-            return status_code
-        self.emit_status(
-            ThreadCommand(
-                "status",
-                [f"No status response from address {address}", "warning"],
-            )
-        )
-        return None
+    def commit_settings(self, param):
+        """Handle parameter changes."""
+        if param.name() == 'home_all':
+            self.home_all_mounts()
 
-    def _wait_for_action_completion(self, address: str):
-        """Polls the device status until it is no longer busy."""
-        while True:
-            status_code = self._check_status(address)
-            if status_code is None or status_code != "09":  # '09' means Busy
-                break
-            time.sleep(0.2)  # Polling interval
-
-    def run_optimization(self):
-        """Runs the 'om' motor optimization routine on the selected axis."""
-        axis = self.settings.child("multiaxes", "selected_axis").value()
-        address = self.get_axis_address(axis)
-
-        self.emit_status(
-            ThreadCommand(
-                "status",
-                [
-                    f"Starting motor optimization for {axis}. This will take several minutes...",
-                    "log",
-                ],
-            )
-        )
-
-        # This is a blocking call as requested. The GUI may be unresponsive.
-        self.send_command(address, "om")
-        self._wait_for_action_completion(address)
-
-        # Final status check
-        final_status = self._check_status(address)
-        if final_status == "00":
-            self.emit_status(
-                ThreadCommand(
-                    "status",
-                    [f"Optimization for {axis} completed successfully.", "log"],
-                )
-            )
-        else:
-            self.emit_status(
-                ThreadCommand("status", [f"Optimization for {axis} failed.", "error"])
-            )
-
-    def move_abs(self, position: float):
-        """Move the selected actuator to an absolute position in degrees."""
-        axis = self.settings.child("multiaxes", "selected_axis").value()
-        address = self.get_axis_address(axis)
-
-        conversion_factor = self.pulses_per_deg.get(axis, 262144 / 360.0)
-        pos_in_pulses = int(position * conversion_factor)
-
-        hex_pos = f"{pos_in_pulses & 0xFFFFFFFF:08X}"
-
-        self.send_command(address, "ma", hex_pos)
-        self._wait_for_action_completion(address)
-
-        self.emit_status(ThreadCommand("move_abs_done", [position]))
+    def home_all_mounts(self):
+        """Home all rotation mounts."""
+        if not self.controller or not self.controller.connected:
+            self.emit_status(ThreadCommand('Update_Status', ['Hardware not connected', 'log']))
+            return
+            
+        try:
+            self.emit_status(ThreadCommand('Update_Status', ['Homing all mounts...', 'log']))
+            success = self.controller.home_all()
+            if success:
+                self.emit_status(ThreadCommand('Update_Status', ['All mounts homed successfully', 'log']))
+                self.update_status()
+            else:
+                self.emit_status(ThreadCommand('Update_Status', ['Homing failed', 'log']))
+                
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Error homing: {str(e)}', 'log']))
 
     def get_actuator_value(self):
-        """Get the current value of the selected actuator in degrees."""
-        axis = self.settings.child("multiaxes", "selected_axis").value()
-        address = self.get_axis_address(axis)
+        """Get current positions of all mounts."""
+        if not self.controller or not self.controller.connected:
+            return [0.0] * len(self.controller.mount_addresses) if self.controller else [0.0, 0.0, 0.0]
+            
+        try:
+            positions = self.controller.get_all_positions()
+            # Convert dict to list in correct order
+            position_list = []
+            for addr in self.controller.mount_addresses:
+                position_list.append(positions.get(addr, 0.0))
+            
+            self.current_position = position_list
+            return position_list
+                
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Error reading positions: {str(e)}', 'log']))
+            return self.current_position if hasattr(self, 'current_position') else [0.0, 0.0, 0.0]
 
-        if self.controller is None:
-            return 0.0
+    def move_abs(self, positions):
+        """Move to absolute positions."""
+        if not self.controller or not self.controller.connected:
+            self.emit_status(ThreadCommand('Update_Status', ['Hardware not connected', 'log']))
+            return
+            
+        try:
+            # Move each mount to its target position
+            for i, (addr, position) in enumerate(zip(self.controller.mount_addresses, positions)):
+                success = self.controller.move_absolute(addr, position)
+                if success:
+                    self.emit_status(ThreadCommand('Update_Status', 
+                        [f'Mount {addr} moving to {position:.2f} degrees', 'log']))
+                else:
+                    self.emit_status(ThreadCommand('Update_Status', 
+                        [f'Failed to move mount {addr}', 'log']))
+            
+            # Update current position
+            self.current_position = positions
+            
+            # Emit move done signal
+            self.emit_status(ThreadCommand('move_done', [positions]))
+                
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Error moving: {str(e)}', 'log']))
 
-        response = self.send_command(address, "gp")  # gp = get position
-        if response and len(response) == 11 and response[1:3] == "PO":
-            hex_pos = response[3:]
-            try:
-                pulses = int(hex_pos, 16)
-                if pulses > 0x7FFFFFFF:
-                    pulses -= 0x100000000
-
-                conversion_factor = self.pulses_per_deg.get(axis, 262144 / 360.0)
-                current_pos_deg = pulses / conversion_factor
-                self.current_position = current_pos_deg
-                return current_pos_deg
-            except (ValueError, ZeroDivisionError) as e:
-                self.emit_status(
-                    ThreadCommand(
-                        "status",
-                        [
-                            f"Invalid position response or setup for {axis}: {e}",
-                            "error",
-                        ],
-                    )
-                )
-                return 0.0
-        return self.current_position
+    def move_rel(self, positions):
+        """Move to relative positions."""
+        current = self.get_actuator_value()
+        target = [c + p for c, p in zip(current, positions)]
+        self.move_abs(target)
 
     def stop_motion(self):
-        """Stop the current motion of the selected actuator."""
-        address = self.get_axis_address()
-        self.send_command(address, "st")  # st = stop
-        self.emit_status(ThreadCommand("move_abs_done", [self.current_position]))
+        """Stop motion (not implemented for Elliptec)."""
+        self.emit_status(ThreadCommand('Update_Status', ['Stop command received', 'log']))
+
+    def update_status(self):
+        """Update status parameters from hardware."""
+        if not self.controller or not self.controller.connected:
+            return
+            
+        try:
+            # Update positions
+            positions = self.controller.get_all_positions()
+            
+            # Update individual mount positions in UI
+            if '2' in positions:
+                self.settings.child('status_group', 'mount_2_pos').setValue(positions['2'])
+            if '3' in positions:
+                self.settings.child('status_group', 'mount_3_pos').setValue(positions['3'])
+            if '8' in positions:
+                self.settings.child('status_group', 'mount_8_pos').setValue(positions['8'])
+                
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [f'Status update error: {str(e)}', 'log']))
 
 
 if __name__ == "__main__":

@@ -232,14 +232,14 @@ def test_maitai_plugin_comprehensive():
         sys.path.insert(0, str(plugin_path))
         from DAQ_Move_MaiTai import DAQ_Move_MaiTai
 
-        print("✓ Plugin imported successfully")
+        print("[OK] Plugin imported successfully")
         test_results['import'] = True
 
         # Test 1: Plugin instantiation
         print("\n--- Test 1: Plugin Instantiation ---")
         plugin = DAQ_Move_MaiTai()
         assert plugin is not None, "Plugin should be instantiated"
-        print("✓ Plugin instance created successfully")
+        print("[OK] Plugin instance created successfully")
         test_results['instantiation'] = True
 
         # Test 2: Parameter structure validation
@@ -247,7 +247,7 @@ def test_maitai_plugin_comprehensive():
         assert hasattr(plugin, 'params'), "Plugin should have params attribute"
         assert isinstance(plugin.params, list), "Params should be a list"
         assert len(plugin.params) >= 2, "Should have at least 2 parameter groups"
-        print(f"✓ Plugin has {len(plugin.params)} parameter groups")
+        print(f"[OK] Plugin has {len(plugin.params)} parameter groups")
 
         # Check for multi-axis configuration
         multi_axis_found = False
@@ -262,14 +262,14 @@ def test_maitai_plugin_comprehensive():
                         limits = child.get('limits', [])
                         assert 'Wavelength' in limits, "Wavelength axis should be available"
                         assert 'Shutter' in limits, "Shutter axis should be available"
-                        print(f"✓ Available axes: {limits}")
+                        print(f"[OK] Available axes: {limits}")
             elif param_group.get('name') == 'maitai_status':
                 maitai_status_found = True
                 status_params = [child.get('name') for child in param_group.get('children', [])]
                 required_status = ['warmup_percent', 'pulsing', 'output_power', 'laser_on']
                 for req_param in required_status:
                     assert req_param in status_params, f"Missing status parameter: {req_param}"
-                print(f"✓ Status parameters: {status_params}")
+                print(f"[OK] Status parameters: {status_params}")
 
         assert multi_axis_found, "Multi-axis parameter group not found"
         assert maitai_status_found, "MaiTai status parameter group not found"
@@ -286,7 +286,7 @@ def test_maitai_plugin_comprehensive():
             found = any(cmd in key for key in plugin._command_reference.keys())
             assert found, f"Essential command not found: {cmd}"
 
-        print(f"✓ Command reference validated: {len(plugin._command_reference)} commands")
+        print(f"[OK] Command reference validated: {len(plugin._command_reference)} commands")
         test_results['command_reference'] = True
 
         # Test 4: Mock connection simulation
@@ -310,7 +310,7 @@ def test_maitai_plugin_comprehensive():
         # Check that controller was created
         assert plugin.controller is not None, "Controller should be initialized"
         assert plugin.controller.is_open, "Controller should be open"
-        print("✓ Mock serial connection established")
+        print("[OK] Mock serial connection established")
 
         test_results['mock_connection'] = True
 
@@ -338,7 +338,7 @@ def test_maitai_plugin_comprehensive():
 
         max_wl_error = max(wavelength_errors)
         assert max_wl_error < 5.0, f"Wavelength control error too high: {max_wl_error:.3f}nm"
-        print(f"✓ Wavelength control: max error {max_wl_error:.3f}nm")
+        print(f"[OK] Wavelength control: max error {max_wl_error:.3f}nm")
 
         test_results['wavelength_control'] = True
 
@@ -357,7 +357,7 @@ def test_maitai_plugin_comprehensive():
             readback_name = "OPEN" if readback_state else "CLOSED"
 
             assert readback_state == shutter_state, f"Shutter state mismatch: {readback_state} != {shutter_state}"
-            print(f"  Shutter {state_name} -> {readback_name} ✓")
+            print(f"  Shutter {state_name} -> {readback_name} [OK]")
 
         test_results['shutter_control'] = True
 
@@ -371,7 +371,7 @@ def test_maitai_plugin_comprehensive():
         # Check thread status
         assert plugin.monitoring_thread is not None, "Monitoring thread should exist"
         assert plugin.monitoring_thread.is_alive(), "Monitoring thread should be running"
-        print("✓ Background monitoring thread started")
+        print("[OK] Background monitoring thread started")
 
         # Check if status parameters are being updated
         # Note: In a real system, these would be updated by the monitoring thread
@@ -380,7 +380,7 @@ def test_maitai_plugin_comprehensive():
 
         print(f"  Current power: {current_power}W")
         print(f"  Warmup status: {current_warmup}%")
-        print("✓ Status monitoring operational")
+        print("[OK] Status monitoring operational")
 
         test_results['background_monitoring'] = True
 
@@ -408,12 +408,12 @@ def test_maitai_plugin_comprehensive():
 
         # Test stop motion (should not crash)
         plugin.stop_motion()
-        print("✓ Stop motion command executed")
+        print("[OK] Stop motion command executed")
 
         # Test invalid wavelength handling (should be graceful)
         try:
             plugin.move_abs(1500.0)  # Outside typical range
-            print("✓ Out-of-range wavelength handled gracefully")
+            print("[OK] Out-of-range wavelength handled gracefully")
         except Exception as e:
             print(f"  Note: Out-of-range handling: {e}")
 
@@ -430,7 +430,7 @@ def test_maitai_plugin_comprehensive():
         # Check thread stopped
         if plugin.monitoring_thread:
             assert not plugin.monitoring_thread.is_alive(), "Monitoring thread should be stopped"
-        print("✓ Monitoring thread stopped cleanly")
+        print("[OK] Monitoring thread stopped cleanly")
 
         test_results['thread_cleanup'] = True
 
@@ -439,7 +439,7 @@ def test_maitai_plugin_comprehensive():
 
         plugin.close()
         assert not plugin.controller.is_open, "Controller should be closed"
-        print("✓ Plugin cleanup successful")
+        print("[OK] Plugin cleanup successful")
 
         test_results['cleanup'] = True
 
@@ -452,21 +452,21 @@ def test_maitai_plugin_comprehensive():
         passed_tests = sum(test_results.values())
 
         for test_name, passed in test_results.items():
-            status = "✓ PASSED" if passed else "❌ FAILED"
+            status = "[OK] PASSED" if passed else "ERROR: FAILED"
             print(f"{status:<10} {test_name.replace('_', ' ').title()}")
 
         print("="*60)
         print(f"TOTAL: {passed_tests}/{total_tests} tests passed")
 
         if passed_tests == total_tests:
-            print("🎉 ALL MAITAI PLUGIN TESTS PASSED!")
+            print("SUCCESS: ALL MAITAI PLUGIN TESTS PASSED!")
             return True
         else:
-            print("⚠️  SOME TESTS FAILED!")
+            print("[WARNING]  SOME TESTS FAILED!")
             return False
 
     except Exception as e:
-        print(f"\n❌ Test failed with error: {e}")
+        print(f"\nERROR: Test failed with error: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -503,7 +503,7 @@ def test_maitai_specific_features():
             is_on = bool(status_byte & 64)
             print(f"  Status byte: {status_byte} (pulsing: {is_pulsing}, on: {is_on})")
 
-        print("✓ Laser status interpretation tested")
+        print("[OK] Laser status interpretation tested")
 
         # Test parameter change handling
         print("\n--- Parameter Change Handling ---")
@@ -513,7 +513,7 @@ def test_maitai_specific_features():
         wavelength_param.setValue('Wavelength')
 
         # This should not cause errors
-        print("✓ Parameter change handling tested")
+        print("[OK] Parameter change handling tested")
 
         # Test error response handling
         print("\n--- Error Response Handling ---")
@@ -522,13 +522,13 @@ def test_maitai_specific_features():
         if error_response:
             print(f"  Error query response: {error_response.strip()}")
 
-        print("✓ Error response handling tested")
+        print("[OK] Error response handling tested")
 
         plugin.close()
         return True
 
     except Exception as e:
-        print(f"❌ Detailed feature test failed: {e}")
+        print(f"ERROR: Detailed feature test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -566,7 +566,7 @@ def test_maitai_threading_safety():
             position = plugin.get_actuator_value()
             print(f"  Operation {i+1}: moved to {position}nm")
 
-        print("✓ Operations during monitoring completed safely")
+        print("[OK] Operations during monitoring completed safely")
 
         # Stop monitoring
         plugin.stop_thread_flag.set()
@@ -577,7 +577,7 @@ def test_maitai_threading_safety():
         return True
 
     except Exception as e:
-        print(f"❌ Threading safety test failed: {e}")
+        print(f"ERROR: Threading safety test failed: {e}")
         return False
 
 if __name__ == "__main__":
@@ -594,8 +594,8 @@ if __name__ == "__main__":
 
     # Overall result
     if success1 and success2 and success3:
-        print("\n🎉 ALL MAITAI TESTS COMPLETED SUCCESSFULLY!")
+        print("\nSUCCESS: ALL MAITAI TESTS COMPLETED SUCCESSFULLY!")
         sys.exit(0)
     else:
-        print("\n❌ SOME MAITAI TESTS FAILED!")
+        print("\nERROR: SOME MAITAI TESTS FAILED!")
         sys.exit(1)

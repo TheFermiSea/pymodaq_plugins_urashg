@@ -20,20 +20,49 @@ This is a PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second 
 - **Thorlabs ELL14 rotation mounts**: Serial communication for polarization control (3 mounts: QWP, HWP incident, HWP analyzer)
 - **Photometrics Prime BSI camera**: PyVCAM-based 2D detection with ROI support
 
-## [COMPLETE] PyMoDAQ 5.0+ Migration Complete
+## [COMPLETE] PyMoDAQ 5.0+ Migration Complete ✅
 
-**Status**: Successfully migrated from PyMoDAQ 4.x to 5.0+ (January 2025)
+**Status**: Successfully migrated from PyMoDAQ 4.x to 5.0+ (August 2025) - FULLY WORKING
+
+**Critical DataActuator Fix Applied**:
+- **Root Issue**: UI integration failure due to incorrect DataActuator value extraction
+- **Solution**: Single-axis controllers MUST use `position.value()`, not `position.data[0][0]`
+- **Pattern**: Multi-axis controllers use `position.data[0]` for arrays
 
 **Key Changes Applied**:
 - Updated data structures: `DataFromPlugins` → `DataWithAxes` + `DataToExport`
 - Qt framework migration: PyQt5 → PySide6
 - Signal updates: `data_grabed_signal` → `dte_signal`
+- **CRITICAL**: Fixed DataActuator value extraction in move_abs/move_rel methods
+- Thread commands: Proper `ThreadStatusMove.MOVE_DONE` signal emission
 - Dependency updates: All PyMoDAQ packages to 5.0+
 - Entry point validation and consistency fixes
-- Code quality improvements (linting, unused imports)
 
-**Testing Status**: All 8 unit tests pass in isolated container environments
-**Plugin Discovery**: Confirmed working with PyMoDAQ 5.0+ framework
+**Testing Status**: ✅ All plugins working with hardware
+**UI Integration**: ✅ Restored - wavelength and shutter controls functional
+**Plugin Discovery**: ✅ Confirmed working with PyMoDAQ 5.0+ framework
+
+## CRITICAL: DataActuator Usage Patterns
+
+### ✅ Correct Single-Axis Pattern (MaiTai Laser)
+```python
+def move_abs(self, position: Union[float, DataActuator]):
+    if isinstance(position, DataActuator):
+        target_value = float(position.value())  # CORRECT!
+```
+
+### ✅ Correct Multi-Axis Pattern (Elliptec, ESP300)
+```python  
+def move_abs(self, positions: Union[List[float], DataActuator]):
+    if isinstance(positions, DataActuator):
+        target_array = positions.data[0]  # CORRECT for multi-axis!
+```
+
+### ❌ NEVER Use This Pattern (Causes UI Failure)
+```python
+# WRONG - causes UI integration failure:
+target_value = float(position.data[0][0])  # DON'T DO THIS!
+```
 
 ## Development Commands
 

@@ -35,7 +35,7 @@ def check_environment():
         print(f"[ERROR] Python {python_version.major}.{python_version.minor} detected - Python 3.8+ required")
         return False
     else:
-        print(f"✓ Python {python_version.major}.{python_version.minor}.{python_version.micro} detected")
+        print(f"[OK] Python {python_version.major}.{python_version.minor}.{python_version.micro} detected")
 
     # Check required modules
     required_modules = [
@@ -48,13 +48,13 @@ def check_environment():
     for module_name, import_name in required_modules:
         try:
             importlib.import_module(import_name)
-            print(f"✓ {module_name} available")
+            print(f"[OK] {module_name} available")
         except ImportError:
             missing_modules.append(module_name)
             print(f"[MISSING] {module_name} not available")
 
     if missing_modules:
-        print(f"\n⚠️  Missing required modules: {', '.join(missing_modules)}")
+        print(f"\n[WARNING]  Missing required modules: {', '.join(missing_modules)}")
         print("Please run: python setup_test_environment.py")
         return False
 
@@ -71,16 +71,16 @@ def check_environment():
     for plugin_file in plugin_files:
         full_path = base_path / plugin_file
         if full_path.exists():
-            print(f"✓ {plugin_file}")
+            print(f"[OK] {plugin_file}")
         else:
             missing_files.append(plugin_file)
-            print(f"❌ {plugin_file}")
+            print(f"ERROR: {plugin_file}")
 
     if missing_files:
-        print(f"\n⚠️  Missing plugin files: {len(missing_files)} files")
+        print(f"\n[WARNING]  Missing plugin files: {len(missing_files)} files")
         return False
 
-    print("\n🎉 Environment check passed!")
+    print("\nSUCCESS: Environment check passed!")
     return True
 
 def run_individual_test(test_script):
@@ -88,7 +88,7 @@ def run_individual_test(test_script):
     test_path = Path(__file__).parent / test_script
 
     if not test_path.exists():
-        print(f"❌ Test script not found: {test_script}")
+        print(f"ERROR: Test script not found: {test_script}")
         return False, f"Script not found: {test_script}"
 
     try:
@@ -104,19 +104,19 @@ def run_individual_test(test_script):
         duration = end_time - start_time
 
         if result.returncode == 0:
-            print(f"✓ {test_script} PASSED ({duration:.1f}s)")
+            print(f"[OK] {test_script} PASSED ({duration:.1f}s)")
             return True, f"PASSED in {duration:.1f}s"
         else:
-            print(f"❌ {test_script} FAILED ({duration:.1f}s)")
+            print(f"ERROR: {test_script} FAILED ({duration:.1f}s)")
             if result.stderr:
                 print(f"Error output:\n{result.stderr}")
             return False, f"FAILED in {duration:.1f}s"
 
     except subprocess.TimeoutExpired:
-        print(f"❌ {test_script} TIMEOUT")
+        print(f"ERROR: {test_script} TIMEOUT")
         return False, "TIMEOUT after 5 minutes"
     except Exception as e:
-        print(f"❌ {test_script} ERROR: {e}")
+        print(f"ERROR: {test_script} ERROR: {e}")
         return False, f"ERROR: {e}"
 
 def run_plugin_tests():
@@ -242,30 +242,30 @@ def run_integration_tests():
         # Try importing all plugins
         try:
             from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_Elliptec import DAQ_Move_Elliptec
-            print("✓ Elliptec plugin import successful")
+            print("[OK] Elliptec plugin import successful")
         except Exception as e:
-            print(f"❌ Elliptec plugin import failed: {e}")
+            print(f"ERROR: Elliptec plugin import failed: {e}")
             return False
 
         try:
             from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai import DAQ_Move_MaiTai
-            print("✓ MaiTai plugin import successful")
+            print("[OK] MaiTai plugin import successful")
         except Exception as e:
-            print(f"❌ MaiTai plugin import failed: {e}")
+            print(f"ERROR: MaiTai plugin import failed: {e}")
             return False
 
         try:
             from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
-            print("✓ Camera plugin import successful")
+            print("[OK] Camera plugin import successful")
         except Exception as e:
-            print(f"❌ Camera plugin import failed: {e}")
+            print(f"ERROR: Camera plugin import failed: {e}")
             return False
 
         print("\n[SUCCESS] All integration tests passed!")
         return True
 
     except Exception as e:
-        print(f"❌ Integration test failed: {e}")
+        print(f"ERROR: Integration test failed: {e}")
         return False
 
 def main():
@@ -298,7 +298,7 @@ def main():
     print_header("Final Summary")
 
     if all_passed:
-        print("🎉 ALL TESTS PASSED!")
+        print("SUCCESS: ALL TESTS PASSED!")
         print("\nAll PyMoDAQ URASHG plugins have been successfully validated in mock mode.")
         print("The plugins are ready for integration with actual hardware.")
         print("\nNext steps:")
