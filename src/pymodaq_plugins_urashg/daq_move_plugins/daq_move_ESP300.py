@@ -358,6 +358,12 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     ThreadCommand("Update_Status", ["ESP300 in mock mode"])
                 )
                 self.controller = None
+                
+                # Initialize mock configuration
+                num_axes = self.settings.child("axes_config", "num_axes").value()
+                axes_config = self._build_axes_config(num_axes)
+                self._current_axes = [cfg.name for cfg in axes_config]
+                
                 return "ESP300 mock mode", True
 
             # Get connection parameters
@@ -609,7 +615,41 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             to extract the numpy array (PyMoDAQ 5.x multi-axis pattern).
         """
         try:
-            if not self.controller or not self.controller.is_connected():
+            # Handle mock mode - simulate successful move
+            if not self.controller:
+                # Extract target positions for mock mode response
+                if isinstance(position, DataActuator):
+                    if self.is_multiaxes:
+                        target_positions_array = position.data[0]
+                        target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
+                    else:
+                        target_positions_list = float(position.data[0][0])
+                else:
+                    target_positions_list = position
+
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["ESP300 mock move completed"])
+                )
+                
+                # Emit move done signal for mock mode
+                current_positions = self.get_actuator_value()
+                plugin_name = getattr(self, 'title', self.__class__.__name__)
+                if self.is_multiaxes:
+                    data_actuator = DataActuator(
+                        name=plugin_name,
+                        data=[np.array(current_positions)],
+                        units=self._controller_units
+                    )
+                else:
+                    data_actuator = DataActuator(
+                        name=plugin_name,
+                        data=[np.array([current_positions])],
+                        units=self._controller_units
+                    )
+                self.emit_status(ThreadCommand(ThreadStatusMove.MOVE_DONE, data_actuator))
+                return
+                
+            if not self.controller.is_connected():
                 self.emit_status(
                     ThreadCommand(
                         "Update_Status", ["Cannot move: ESP300 not connected"]
