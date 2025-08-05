@@ -12,9 +12,11 @@ try:
     import pyvcam
     from pyvcam import pvc
     from pyvcam.camera import Camera
-    from pyvcam.enums import ClearMode, Param, TriggerMode
-except ImportError:
-    print("PyVCAM library is not installed. This plugin will not be usable.")
+    from pyvcam.constants import CLEAR_NEVER, CLEAR_PRE_SEQUENCE, EXT_TRIG_INTERNAL
+    PYVCAM_AVAILABLE = True
+except ImportError as e:
+    print(f"PyVCAM import error: {e}")
+    PYVCAM_AVAILABLE = False
 
     # Define dummy classes to avoid crashing on import if pyvcam is missing
     class Camera:
@@ -161,15 +163,32 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         """
         self.status.update(msg="Initializing Camera...", busy=True)
         try:
+            # Ensure clean PVCAM state
+            # Ensure clean PVCAM state - safely uninitialize if needed
+            try:
+                if pvc.get_cam_total() >= 0:  # Check if already initialized
+                    pvc.uninit_pvcam()
+            except:
+                pass  # PVCAM not initialized or other state issues
+                
+            # Fresh initialization
             pvc.init_pvcam()
-            self.camera = next(Camera.detect_camera())
+            
+            # Check camera availability
+            total_cams = pvc.get_cam_total()
+            if total_cams == 0:
+                raise RuntimeError("No cameras found by PVCAM")
+            
+            cameras = list(Camera.detect_camera())
+            if len(cameras) == 0:
+                raise RuntimeError("No cameras detected by PyVCAM Camera.detect_camera()")
+                
+            self.camera = cameras[0]  # Use first camera
             self.camera.open()
 
             self.update_camera_params()
             self.populate_advanced_params()
             self.populate_post_processing_params()
-
-            
 
             self.status.update(
                 msg=f"Camera {self.camera.name} Initialized.", busy=False
@@ -177,9 +196,10 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             self.initialized = True
             return self.status
 
-        except (StopIteration, Exception) as e:
+        except Exception as e:
+            error_msg = f"Camera Initialization Failed: {str(e)}"
             self.status.update(
-                msg=f"Camera Initialization Failed: {str(e)}", busy=False
+                msg=error_msg, busy=False
             )
             self.initialized = False
             return self.status
@@ -195,29 +215,37 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         self.settings.child("camera_settings", "readout_port").setLimits(
             self.camera.readout_ports
         )
-        self.settings.child("camera_settings", "speed_index").setLimits(
-            list(range(self.camera.speed_table_size))
-        )
-        self.settings.child("camera_settings", "gain").setLimits(self.camera.gains)
+        # Get available speeds from current port
+        current_port = self.camera.readout_port
+        port_name = list(self.camera.readout_ports.keys())[list(self.camera.readout_ports.values()).index(current_port)]
+        port_info = self.camera.port_speed_gain_table[port_name]
+        speed_names = [k for k in port_info.keys() if k.startswith("Speed_")]
+        self.settings.child("camera_settings", "speed_index").setLimits(speed_names)
+        # Get available gains for current speed
+        current_speed_name = f"Speed_{self.camera.speed}"
+        if current_speed_name in port_info:
+            speed_info = port_info[current_speed_name]
+            gain_names = [k for k in speed_info.keys() if k not in ["speed_index", "pixel_time", "bit_depth", "gain_range"]]
+            self.settings.child("camera_settings", "gain").setLimits(gain_names)
         self.settings.child("camera_settings", "trigger_mode").setLimits(
-            [e.name for e in TriggerMode]
+            list(self.camera.exp_modes.keys())
         )
         self.settings.child("camera_settings", "clear_mode").setLimits(
-            [e.name for e in ClearMode]
+            list(self.camera.clear_modes.keys())
         )
 
         self.settings.child("camera_settings", "readout_port").setValue(
             self.camera.readout_port
         )
         self.settings.child("camera_settings", "speed_index").setValue(
-            self.camera.speed_table_index
+            f"Speed_{self.camera.speed}"
         )
-        self.settings.child("camera_settings", "gain").setValue(self.camera.gain)
+        self.settings.child("camera_settings", "gain").setValue(self.camera.gain_name)
         self.settings.child("camera_settings", "trigger_mode").setValue(
-            self.camera.trigger_mode.name
+            list(self.camera.exp_modes.keys())[list(self.camera.exp_modes.values()).index(self.camera.exp_mode)]
         )
         self.settings.child("camera_settings", "clear_mode").setValue(
-            self.camera.clear_mode.name
+            list(self.camera.clear_modes.keys())[list(self.camera.clear_modes.values()).index(self.camera.clear_mode)]
         )
         self.settings.child("camera_settings", "temperature_setpoint").setValue(
             self.camera.temp_setpoint
@@ -277,37 +305,42 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             child.remove()
 
         # Set of parameters already handled in the main 'Camera Settings' group
-        handled_params = {
-            Param.EXP_TIME,
-            Param.READOUT_PORT,
-            Param.PIX_TIME,
-            Param.GAIN_INDEX,
-            Param.TEMP_SETPOINT,
-        }
-
-        for param_enum, param_info in self.camera.params.items():
-            if param_enum in handled_params or param_info["access"] in [
-                "Read Only",
-                "Unavailable",
-            ]:
-                continue
-
-            # PyVCAM param_info is slightly different from post_processing_features
-            feature_dict = {
-                "name": param_info["name"],
-                "access": param_info["access"],
-                "type": param_info["type"].__name__,
-                "id": param_enum,
-                "values": param_info.get("enum_map", {}).keys(),
-                "min": param_info.get("min"),
-                "max": param_info.get("max"),
+        if PYVCAM_AVAILABLE:
+            from pyvcam.constants import PARAM_EXP_TIME, PARAM_READOUT_PORT, PARAM_PIX_TIME, PARAM_GAIN_INDEX, PARAM_TEMP_SETPOINT
+            handled_params = {
+                PARAM_EXP_TIME,
+                PARAM_READOUT_PORT,
+                PARAM_PIX_TIME,
+                PARAM_GAIN_INDEX,
+                PARAM_TEMP_SETPOINT,
             }
+        else:
+            handled_params = set()
 
-            new_param = self._create_param_from_feature(
-                feature_dict, is_post_processing=False
-            )
-            if new_param:
-                adv_group.addChild(new_param)
+        if hasattr(self.camera, "params"):
+            for param_enum, param_info in self.camera.params.items():
+                if param_enum in handled_params or param_info["access"] in [
+                    "Read Only",
+                    "Unavailable",
+                ]:
+                    continue
+
+                # PyVCAM param_info is slightly different from post_processing_features
+                feature_dict = {
+                    "name": param_info["name"],
+                    "access": param_info["access"],
+                    "type": param_info["type"].__name__,
+                    "id": param_enum,
+                    "values": param_info.get("enum_map", {}).keys(),
+                    "min": param_info.get("min"),
+                    "max": param_info.get("max"),
+                }
+
+                new_param = self._create_param_from_feature(
+                    feature_dict, is_post_processing=False
+                )
+                if new_param:
+                    adv_group.addChild(new_param)
 
     def populate_post_processing_params(self):
         """Dynamically discovers and creates GUI controls for post-processing features."""
@@ -339,17 +372,28 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                 self.camera.exp_time = int(param.value())
             elif param.name() == "readout_port":
                 self.camera.readout_port = param.value()
-                self.settings.child("camera_settings", "speed_index").setLimits(
-                    list(range(self.camera.speed_table_size))
-                )
+                # Update speed limits when port changes
+                current_port = param.value()
+                port_name = list(self.camera.readout_ports.keys())[list(self.camera.readout_ports.values()).index(current_port)]
+                port_info = self.camera.port_speed_gain_table[port_name]
+                speed_names = [k for k in port_info.keys() if k.startswith("Speed_")]
+                self.settings.child("camera_settings", "speed_index").setLimits(speed_names)
             elif param.name() == "speed_index":
-                self.camera.speed_table_index = param.value()
+                # Extract speed index from Speed_X format
+                speed_index = int(param.value().split("_")[1])
+                self.camera.speed = speed_index
             elif param.name() == "gain":
-                self.camera.gain = param.value()
+                # Find gain_index from gain name
+                current_port = self.camera.readout_port
+                port_name = list(self.camera.readout_ports.keys())[list(self.camera.readout_ports.values()).index(current_port)]
+                port_info = self.camera.port_speed_gain_table[port_name]
+                speed_info = port_info[f"Speed_{self.camera.speed}"]
+                if param.value() in speed_info:
+                    self.camera.gain = speed_info[param.value()]["gain_index"]
             elif param.name() == "trigger_mode":
-                self.camera.trigger_mode = TriggerMode[param.value()]
+                self.camera.exp_mode = self.camera.exp_modes[param.value()]
             elif param.name() == "clear_mode":
-                self.camera.clear_mode = ClearMode[param.value()]
+                self.camera.clear_mode = self.camera.clear_modes[param.value()]
             elif param.name() == "temperature_setpoint":
                 self.camera.temp_setpoint = param.value()
 
@@ -372,22 +416,24 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
     def get_xaxis(self):
         """Get the x_axis from the camera sensor size."""
-        if self.camera:
-            return Axis(data=np.arange(self.camera.roi[2]), label="Pixels")
+        if self.camera and self.camera.rois:
+            roi = self.camera.rois[0]
+            return Axis(data=np.arange(roi.shape[1]), label="Pixels")
         return Axis(data=np.arange(1), label="Pixels")
 
     def get_yaxis(self):
         """Get the y_axis from the camera sensor size."""
-        if self.camera:
-            return Axis(data=np.arange(self.camera.roi[3]), label="Pixels")
+        if self.camera and self.camera.rois:
+            roi = self.camera.rois[0]
+            return Axis(data=np.arange(roi.shape[0]), label="Pixels")
         return Axis(data=np.arange(1), label="Pixels")
 
     def get_roi_bounds(self):
         """Get ROI bounds for integration. Returns None if no ROI is set."""
-        if self.camera and hasattr(self.camera, "roi"):
-            # camera.roi format is typically (x, y, width, height)
-            x, y, width, height = self.camera.roi
-            return (y, height, x, width)
+        if self.camera and self.camera.rois:
+            roi = self.camera.rois[0]
+            # ROI bounds: (start_row, height, start_col, width)
+            return (roi.p1, roi.p2 - roi.p1 + 1, roi.s1, roi.s2 - roi.s1 + 1)
         return None
 
     def grab_data(self, Naverage=1, **kwargs):
@@ -402,7 +448,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
             frame = self.camera.get_frame(
                 exp_time=self.settings.child("camera_settings", "exposure").value()
-            ).reshape((self.camera.roi[3], self.camera.roi[2]))
+            ).reshape(self.camera.rois[0].shape)
 
             # PyMoDAQ 5.0+ data structure
             dwa_2d = DataWithAxes(
