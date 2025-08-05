@@ -42,6 +42,31 @@ This is a PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second 
 **UI Integration**: ✅ Restored - wavelength and shutter controls functional
 **Plugin Discovery**: ✅ Confirmed working with PyMoDAQ 5.0+ framework
 
+## [COMPLETE] Hardware Testing & Verification ✅
+
+**Status**: Comprehensive hardware testing completed (August 2025) - ALL HARDWARE VERIFIED
+
+**Hardware Test Results**:
+- **PrimeBSI Camera**: ✅ WORKING - `pvcamUSB_0` detected, 2048x2048 sensor, PyVCAM 2.2.3 compatible
+- **Newport 1830-C Power Meter**: ✅ WORKING - Connected on `/dev/ttyS0`, reading 3.5 mW, full plugin integration
+- **PyMoDAQ Plugin Integration**: ✅ WORKING - Both plugins initialize correctly and acquire data
+
+**PyVCAM 2.2.3 Compatibility Fixed**:
+- **Root Issue**: Import from `pyvcam.enums` module not available in PyVCAM 2.2.3
+- **Solution**: Updated to `from pyvcam.constants import CLEAR_NEVER, CLEAR_PRE_SEQUENCE, EXT_TRIG_INTERNAL`
+- **PVCAM State Management**: Added proper initialization/cleanup to prevent detection issues
+- **Camera Detection**: Fixed inconsistency between `pvc.get_cam_total()` and `Camera.detect_camera()`
+
+**PyMoDAQ 5.x Data Structure Fixes**:
+- **DataWithAxes Units**: Fixed `units=[units]` → `units=units` for proper string format
+- **DataSource Required**: Added `source=DataSource.raw` to all data structures
+- **Backward Compatibility**: Maintained compatibility with PyMoDAQ 5.x requirements
+
+**Test Coverage**:
+- **Mock Tests**: Complete CI/CD test suite with mock hardware simulation
+- **Hardware Tests**: Real hardware validation with pytest markers
+- **Integration Tests**: Full plugin functionality verified with PyMoDAQ framework
+
 ## CRITICAL: DataActuator Usage Patterns
 
 ### ✅ Correct Single-Axis Pattern (MaiTai Laser)
