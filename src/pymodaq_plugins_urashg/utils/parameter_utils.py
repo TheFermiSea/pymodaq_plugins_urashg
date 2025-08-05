@@ -3,14 +3,15 @@
 Parameter utility functions for PyMoDAQ 5.x compatibility.
 """
 
+
 def child_exists(param, *path):
     """
     Check if a child parameter exists at the given path.
-    
+
     Args:
         param: Parent parameter
         *path: Path components to child parameter
-        
+
     Returns:
         bool: True if child exists, False otherwise
     """
@@ -20,15 +21,16 @@ def child_exists(param, *path):
     except:
         return False
 
+
 def get_child_value(param, *path, default=None):
     """
     Get child parameter value with default fallback.
-    
+
     Args:
         param: Parent parameter
         *path: Path components to child parameter
         default: Default value if child doesn't exist
-        
+
     Returns:
         Value of child parameter or default
     """
@@ -37,14 +39,15 @@ def get_child_value(param, *path, default=None):
     except:
         return default
 
+
 def set_child_value(param, *path_and_value):
     """
     Set child parameter value safely.
-    
+
     Args:
         param: Parent parameter
         *path_and_value: Path components followed by value
-        
+
     Returns:
         bool: True if successful, False otherwise
     """

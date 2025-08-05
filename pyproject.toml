@@ -91,13 +91,13 @@ Changelog = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg/blob/main/CHANGEL
 urashg = "pymodaq_plugins_urashg"
 
 [project.entry-points."pymodaq.move_plugins"]
-"DAQ_Move_Elliptec" = "pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_Elliptec"
-"DAQ_Move_MaiTai" = "pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai"
-"DAQ_Move_ESP300" = "pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_ESP300"
+"DAQ_Move_Elliptec" = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
+"DAQ_Move_MaiTai" = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"
+"DAQ_Move_ESP300" = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300:DAQ_Move_ESP300"
 
 [project.entry-points."pymodaq.viewer_plugins"]
-"DAQ_2DViewer_PrimeBSI" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI"
-"DAQ_0DViewer_Newport1830C" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C"
+"DAQ_2DViewer_PrimeBSI" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
+"DAQ_0DViewer_Newport1830C" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
 
 [tool.setuptools]
 packages = ["pymodaq_plugins_urashg"]
@@ -150,6 +150,7 @@ markers = [
     "hardware: marks tests that require hardware (deselect with '-m \"not hardware\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "camera: marks tests for camera functionality",
 ]
 
 [tool.coverage.run]

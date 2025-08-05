@@ -1,8 +1,7 @@
 import importlib
 from pathlib import Path
-
-from ..utils import set_logger
-logger = set_logger('move_plugins', add_to_console=False)
+from ...utils import set_logger
+logger = set_logger('viewer2D_plugins', add_to_console=False)
 
 path = Path(__file__)
 

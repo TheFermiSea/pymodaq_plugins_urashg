@@ -8,7 +8,6 @@ from pymodaq.control_modules.move_utility_classes import (
 )
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataActuator
-from pymodaq.control_modules.thread_commands import ThreadStatusMove
 from qtpy.QtCore import QTimer
 
 
@@ -318,7 +317,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 data=[np.array(target_positions_list)],
                 units=self._controller_units
             )
-            self.emit_status(ThreadCommand(ThreadStatusMove.MOVE_DONE, data_actuator))
+            self.move_done()  # Emit move_done signal
 
         except Exception as e:
             self.emit_status(
@@ -402,7 +401,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 data=[np.array(position_list)],
                 units=self._controller_units
             )
-            self.emit_status(ThreadCommand(ThreadStatusMove.GET_ACTUATOR_VALUE, current_data))
+            # Status update - no specific signal needed for GET_ACTUATOR_VALUE in PyMoDAQ 5.x
 
         except Exception as e:
             self.emit_status(

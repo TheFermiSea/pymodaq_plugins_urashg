@@ -1,17 +1,20 @@
+# -*- coding: utf-8 -*-
 """
 PyMoDAQ Viewer Plugins for URASHG Microscopy
-
-This module contains all DAQ_Viewer plugins for detection systems in the URASHG microscope:
-- Photometrics Prime BSI sCMOS camera for SHG signal detection
-- Future: Photodiode plugins for laser power monitoring
-- Future: Spectrometer plugins for spectral analysis
-
-Each plugin inherits from DAQ_Viewer_base and implements the standard PyMoDAQ detector interface
-with hardware-specific acquisition logic, data processing, and real-time analysis capabilities.
 """
 
-from .plugins_2D.DAQ_Viewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
+import importlib
+from pathlib import Path
 
-__all__ = [
-    "DAQ_2DViewer_PrimeBSI",
-]
+from ..utils import set_logger
+logger = set_logger('viewer_plugins', add_to_console=False)
+
+path = Path(__file__)
+
+for path_file in Path(__file__).parent.iterdir():
+    try:
+        if '__init__' not in str(path_file) and path_file.is_dir():
+            importlib.import_module('.' + path_file.stem, __package__)
+    except Exception as e:
+        logger.warning("{:} plugin couldn't be loaded due to some missing packages or errors: {:}".format(path_file.stem, str(e)))
+        pass

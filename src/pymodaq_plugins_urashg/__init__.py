@@ -25,10 +25,6 @@ __author__ = "PyMoDAQ Plugin Development Team"
 __email__ = "contact@pymodaq.org"
 __license__ = "MIT"
 
-# Import main plugin modules for easier access
-from .daq_move_plugins import *
-from .daq_viewer_plugins import *
-
 # Hardware abstraction layers
 from .hardware import urashg
 
