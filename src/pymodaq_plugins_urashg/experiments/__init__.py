@@ -25,8 +25,17 @@ from .eom_calibration import EOMCalibrationExperiment
 from .elliptec_calibration import ElliptecCalibrationExperiment
 from .variable_attenuator_calibration import VariableAttenuatorCalibrationExperiment
 from .pdshg_experiment import PDSHGExperiment
-from .basic_urashg_experiment import BasicURASHGExperiment
-from .wavelength_dependent_rashg import WavelengthDependentRASHGExperiment
+
+# Placeholder imports for future implementations
+try:
+    from .basic_urashg_experiment import BasicURASHGExperiment
+except NotImplementedError:
+    BasicURASHGExperiment = None
+
+try:
+    from .wavelength_dependent_rashg import WavelengthDependentRASHGExperiment
+except NotImplementedError:
+    WavelengthDependentRASHGExperiment = None
 
 __all__ = [
     'URASHGBaseExperiment',
@@ -34,6 +43,21 @@ __all__ = [
     'ElliptecCalibrationExperiment',
     'VariableAttenuatorCalibrationExperiment',
     'PDSHGExperiment',
+    # 'BasicURASHGExperiment',  # Future implementation
+    # 'WavelengthDependentRASHGExperiment'  # Future implementation
+]
+
+# Implemented experiments (ready for use)
+IMPLEMENTED_EXPERIMENTS = [
+    'URASHGBaseExperiment',
+    'EOMCalibrationExperiment',
+    'ElliptecCalibrationExperiment', 
+    'VariableAttenuatorCalibrationExperiment',
+    'PDSHGExperiment'
+]
+
+# Future experiments (placeholders)
+FUTURE_EXPERIMENTS = [
     'BasicURASHGExperiment',
     'WavelengthDependentRASHGExperiment'
 ]
