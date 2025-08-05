@@ -187,6 +187,12 @@ docs/source/_build/
 # Container-use specific
 .container-use/
 
+# Archived development files
+archive_temp_files/
+
+# Serena cache files
+.serena/cache/
+
 pymodaq_dev_guide_gemini.md
 pymodaq_development_guide.md
 .llm.env
