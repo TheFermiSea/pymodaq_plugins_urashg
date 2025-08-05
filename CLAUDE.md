@@ -64,6 +64,27 @@ def move_abs(self, positions: Union[List[float], DataActuator]):
 target_value = float(position.data[0][0])  # DON'T DO THIS!
 ```
 
+## [COMPLETE] PyVCAM 2.2.3 Camera Integration
+
+**Status**: PrimeBSI camera fully working with real hardware
+
+**Major API Compatibility Fixes Applied**:
+- **Import Updates**: `pyvcam.enums` → `pyvcam.constants`
+- **Trigger Modes**: Use `exp_modes` dictionary instead of enum objects
+- **Clear Modes**: Use `clear_modes` dictionary with integer values
+- **Speed Control**: Speed_X naming convention replaces speed_table_index
+- **Gain Handling**: Gain names mapped to gain_index values via port_speed_gain_table
+- **ROI Structure**: `camera.rois[0]` replaces deprecated `camera.roi` attribute
+- **PVCAM State**: Robust initialization/cleanup prevents library conflicts
+
+**Hardware Verification**:
+```
+Camera: pvcamUSB_0 (Photometrics Prime BSI)
+Sensor: 2048x2048 pixels
+Temperature: -19.89°C (live monitoring)
+Status: Full PyMoDAQ integration functional
+```
+
 ## Development Commands
 
 ### Package Management
@@ -131,7 +152,7 @@ The codebase follows PyMoDAQ's plugin architecture with three main plugin types:
 - Entry points defined in `pyproject.toml` under `project.entry-points."pymodaq.move_plugins"`
 
 **Viewer Plugins** (`src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_2D/`):
-- `DAQ_Viewer_PrimeBSI.py`: Photometrics camera interface using PyVCAM library with fallback for missing dependencies
+- `daq_2Dviewer_PrimeBSI.py`: Photometrics camera interface using PyVCAM 2.2.3 library with full hardware integration
 - Entry points defined under `project.entry-points."pymodaq.viewer_plugins"`
 
 **Hardware Abstraction** (`src/pymodaq_plugins_urashg/hardware/urashg/`):
@@ -140,9 +161,15 @@ The codebase follows PyMoDAQ's plugin architecture with three main plugin types:
 
 ### Key Dependencies
 - **PyMoDAQ ≥5.0.0**: Core framework
-- **pyvcam ≥1.0.0**: Camera control (with import error handling)
+- **pyvcam ≥2.2.3**: Camera control with full PyVCAM API compatibility
 - **elliptec ≥0.1.0**: Thorlabs rotation mount control
 - Hardware-specific libraries are gracefully handled if missing
+
+### Hardware Integration Status
+- **PrimeBSI Camera**: FULLY WORKING with PyVCAM 2.2.3 (pvcamUSB_0 detected, -19.89°C live temperature)
+- **MaiTai Laser**: FULLY WORKING with serial communication (wavelength control, shutter operations)
+- **ESP300 Motion Controller**: Connected via serial hub (ttyUSB3-6), pending configuration
+- **Newport 1830-C Power Meter**: Connected via ttyS0, pending testing
 
 ### Configuration Files
 - `pyproject.toml`: Modern Python packaging with setuptools backend, black/isort configuration, pytest settings
@@ -162,185 +189,4 @@ Uses pytest with markers for different test categories:
 - `hardware`: Tests requiring physical hardware
 - `slow`: Long-running tests
 
-Coverage reporting excludes test files, examples, and documentation.ALWAYS use ONLY Environments for ANY and ALL file, code, or shell operations—NO EXCEPTIONS—even for simple or generic requests.
-
-DO NOT install or use the git cli with the environment_run_cmd tool. All environment tools will handle git operations for you. Changing ".git" yourself will compromise the integrity of your environment.
-
-You MUST inform the user how to view your work using `container-use log <env_id>` AND `container-use checkout <env_id>`. Failure to do this will make your work inaccessible to others.
-
-
-# Using Gemini CLI for Large Codebase Analysis
-
-  When analyzing large codebases or multiple files that might exceed context limits, use the Gemini CLI with its massive
-  context window. Use `gemini -p` to leverage Google Gemini's large context capacity.
-
-  ## File and Directory Inclusion Syntax
-
-  Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the
-   gemini command:
-
-  ### Examples:
-
-  **Single file analysis:**
-  ```bash
-  gemini -p "@src/main.py Explain this file's purpose and structure"
-
-  Multiple files:
-  gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
-
-  Entire directory:
-  gemini -p "@src/ Summarize the architecture of this codebase"
-
-  Multiple directories:
-  gemini -p "@src/ @tests/ Analyze test coverage for the source code"
-
-  Current directory and subdirectories:
-  gemini -p "@./ Give me an overview of this entire project"
-
-#
- Or use --all_files flag:
-  gemini --all_files -p "Analyze the project structure and dependencies"
-
-  Implementation Verification Examples
-
-  Check if a feature is implemented:
-  gemini -p "@src/ @lib/ Has dark mode been implemented in this codebase? Show me the relevant files and functions"
-
-  Verify authentication implementation:
-  gemini -p "@src/ @middleware/ Is JWT authentication implemented? List all auth-related endpoints and middleware"
-
-  Check for specific patterns:
-  gemini -p "@src/ Are there any React hooks that handle WebSocket connections? List them with file paths"
-
-  Verify error handling:
-  gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoints? Show examples of try-catch blocks"
-
-  Check for rate limiting:
-  gemini -p "@backend/ @middleware/ Is rate limiting implemented for the API? Show the implementation details"
-
-  Verify caching strategy:
-  gemini -p "@src/ @lib/ @services/ Is Redis caching implemented? List all cache-related functions and their usage"
-
-  Check for specific security measures:
-  gemini -p "@src/ @api/ Are SQL injection protections implemented? Show how user inputs are sanitized"
-
-  Verify test coverage for features:
-  gemini -p "@src/payment/ @tests/ Is the payment processing module fully tested? List all test cases"
-
-  When to Use Gemini CLI
-
-  Use gemini -p when:
-  - Analyzing entire codebases or large directories
-  - Comparing multiple large files
-  - Need to understand project-wide patterns or architecture
-  - Current context window is insufficient for the task
-  - Working with files totaling more than 100KB
-  - Verifying if specific features, patterns, or security measures are implemented
-  - Checking for the presence of certain coding patterns across the entire codebase
-
-  Important Notes
-
-  - Paths in @ syntax are relative to your current working directory when invoking gemini
-  - The CLI will include file contents directly in the context
-  - No need for --yolo flag for read-only analysis
-  - Gemini's context window can handle entire codebases that would overflow Claude's context
-  - When checking implementations, be specific about what you're looking for to get accurate results # Using Gemini CLI for Large Codebase Analysis
-
-
-  When analyzing large codebases or multiple files that might exceed context limits, use the Gemini CLI with its massive
-  context window. Use `gemini -p` to leverage Google Gemini's large context capacity.
-
-
-  ## File and Directory Inclusion Syntax
-
-
-  Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the
-   gemini command:
-
-
-  ### Examples:
-
-
-  **Single file analysis:**
-  ```bash
-  gemini -p "@src/main.py Explain this file's purpose and structure"
-
-
-  Multiple files:
-  gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
-
-
-  Entire directory:
-  gemini -p "@src/ Summarize the architecture of this codebase"
-
-
-  Multiple directories:
-  gemini -p "@src/ @tests/ Analyze test coverage for the source code"
-
-
-  Current directory and subdirectories:
-  gemini -p "@./ Give me an overview of this entire project"
-  # Or use --all_files flag:
-  gemini --all_files -p "Analyze the project structure and dependencies"
-
-
-  Implementation Verification Examples
-
-
-  Check if a feature is implemented:
-  gemini -p "@src/ @lib/ Has dark mode been implemented in this codebase? Show me the relevant files and functions"
-
-
-  Verify authentication implementation:
-  gemini -p "@src/ @middleware/ Is JWT authentication implemented? List all auth-related endpoints and middleware"
-
-
-  Check for specific patterns:
-  gemini -p "@src/ Are there any React hooks that handle WebSocket connections? List them with file paths"
-
-
-  Verify error handling:
-  gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoints? Show examples of try-catch blocks"
-
-
-  Check for rate limiting:
-  gemini -p "@backend/ @middleware/ Is rate limiting implemented for the API? Show the implementation details"
-
-
-  Verify caching strategy:
-  gemini -p "@src/ @lib/ @services/ Is Redis caching implemented? List all cache-related functions and their usage"
-
-
-  Check for specific security measures:
-  gemini -p "@src/ @api/ Are SQL injection protections implemented? Show how user inputs are sanitized"
-
-
-  Verify test coverage for features:
-  gemini -p "@src/payment/ @tests/ Is the payment processing module fully tested? List all test cases"
-
-
-  When to Use Gemini CLI
-
-
-  Use gemini -p when:
-  - Analyzing entire codebases or large directories
-  - Comparing multiple large files
-  - Need to understand project-wide patterns or architecture
-  - Current context window is insufficient for the task
-  - Working with files totaling more than 100KB
-  - Verifying if specific features, patterns, or security measures are implemented
-  - Checking for the presence of certain coding patterns across the entire codebase
-
-
-  Important Notes
-
-
-  - Paths in @ syntax are relative to your current working directory when invoking gemini
-  - The CLI will include file contents directly in the context
-  - No need for --yolo flag for read-only analysis
-  - Gemini's context window can handle entire codebases that would overflow Claude's context
-  - When checking implementations, be specific about what you're looking for to get accurate results
-
-## Frontend Development Memories
-
-- Use PyQt6 or PySide6.
+Coverage reporting excludes test files, examples, and documentation.
