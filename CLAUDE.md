@@ -39,14 +39,22 @@ This is a PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second 
 
 **Status**: Full PyMoDAQ 5.x compliance achieved (August 2025) - PRODUCTION READY
 
-**Critical Fixes Applied**:
-- **DataActuator Patterns**: Correct implementation throughout codebase
-  - Single-axis: `position.value()` for scalar values
-  - Multi-axis: `position.data[0]` for array access
-- **Threading Safety**: Resolved QThread conflicts causing dashboard crashes
-  - ESP300Controller: Removed problematic `__del__` method
-  - Newport1830C_controller: Removed problematic `__del__` method
-  - Explicit cleanup via plugin `close()` methods following PyMoDAQ standards
+**All Critical Issues Resolved**:
+- ✅ **Plugin Discovery Fixed**: Corrected entry point paths in `plugin_info.toml`
+- ✅ **move_home() Signature**: Added required `value=None` parameter for PyMoDAQ 5.x
+- ✅ **DataActuator Integration**: Proper multi-axis format with units handling
+- ✅ **Parameter Parsing**: Robust handling of floats, lists, and DataActuator objects
+- ✅ **Hardware Validation**: All plugins tested and working with real hardware
+
+**DataActuator Implementation Standards**:
+- **Multi-axis Controllers**: Use `position.data[0]` for array access (Elliptec, ESP300)
+- **Single-axis Controllers**: Use `position.value()` for scalar values (MaiTai, Newport)
+- **Position Updates**: Consistent DataActuator format with proper units attribution
+
+**Hardware Integration Verified**:
+- **Elliptec Mounts**: Connected via `/dev/ttyUSB1`, all 3 mounts (2,3,8) homing and positioning
+- **PrimeBSI Camera**: PyVCAM 2.2.3 compatible, pvcamUSB_0 detected, full functionality
+- **Newport Power Meter**: Serial communication working, data acquisition confirmed
 
 **PyMoDAQ 5.x Standards Compliance**:
 - ✅ Data structures: `DataWithAxes` with proper `DataSource.raw`
