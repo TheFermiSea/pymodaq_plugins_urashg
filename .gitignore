@@ -187,6 +187,42 @@ docs/source/_build/
 # Container-use specific
 .container-use/
 
+# Archived development files
+archive_temp_files/
+archive_temp_files.tar.gz
+
+# Development and testing artifacts
+tests/development/logs/
+tests/integration/logs/
+tests/hardware/logs/
+scripts/logs/
+
+# Compressed archives
+*.tar.gz
+*.zip
+
+# Claude Code specific
+.claude/
+
+# Development environment
+.dev/
+dev_logs/
+development_logs/
+
+# PyRPL specific files
+*.yml.backup
+redpitaya_*.log
+
+# Threading test outputs
+threading_test_*.log
+
+# Experiment data and logs
+experiment_*.log
+calibration_*.log
+
+# Serena cache files
+.serena/cache/
+
 pymodaq_dev_guide_gemini.md
 pymodaq_development_guide.md
 .llm.env
