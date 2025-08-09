@@ -72,6 +72,11 @@ hardware = [
     "opencv-python>=4.5.0", # Image processing
     "scikit-image>=0.18.0", # Advanced image analysis
 ]
+pyrpl = [
+    # PyRPL Red Pitaya control integration
+    "pymodaq-plugins-pyrpl @ file:///home/maitai/pymodaq_plugins_pyrpl", # Local PyRPL plugins
+    "pyrpl>=0.9.3", # PyRPL library
+]
 mock = [
     "pymodaq-plugins-mock>=1.0.0", # For testing without hardware
 ]
@@ -98,6 +103,14 @@ urashg = "pymodaq_plugins_urashg"
 [project.entry-points."pymodaq.viewer_plugins"]
 "DAQ_2DViewer_PrimeBSI" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
 "DAQ_0DViewer_Newport1830C" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
+
+# [project.entry-points."pymodaq.extensions"]
+# Extension modules not yet implemented - comment out to avoid import errors
+# "URASHG_EOM_Calibration" = "pymodaq_plugins_urashg.extensions.eom_calibration_extension:URASHG_EOM_Calibration"
+# "URASHG_Elliptec_Calibration" = "pymodaq_plugins_urashg.extensions.elliptec_calibration_extension:URASHG_Elliptec_Calibration"
+# "URASHG_Variable_Attenuator" = "pymodaq_plugins_urashg.extensions.variable_attenuator_extension:URASHG_Variable_Attenuator"
+# "URASHG_PDSHG_Experiment" = "pymodaq_plugins_urashg.extensions.pdshg_experiment_extension:URASHG_PDSHG_Experiment"
+# "URASHG_Basic_Experiment" = "pymodaq_plugins_urashg.extensions.basic_urashg_extension:URASHG_Basic_Experiment"
 
 [tool.setuptools]
 packages = ["pymodaq_plugins_urashg"]

@@ -24,9 +24,9 @@ from qtpy.QtCore import QThread
 from pymodaq.utils.parameter import Parameter
 from pymodaq.utils.data import DataWithAxes, DataToExport, Axis
 from pymodaq.utils.enums import BaseEnum
-from pymodaq.extensions import ExtensionBase
-from pymodaq.utils.gui_utils.dock import DockArea
-from pymodaq.control_modules.utils import DataActuator
+from pymodaq_gui.utils.custom_app import CustomApp
+from pymodaq_gui.utils.dock import DockArea
+from pymodaq.utils.data import DataActuator
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class ExperimentError(Exception):
     pass
 
 
-class URASHGBaseExperiment(ExtensionBase):
+class URASHGBaseExperiment:
     """
     Base class for all μRASHG experiments providing common functionality.
     
@@ -75,14 +75,15 @@ class URASHGBaseExperiment(ExtensionBase):
     required_modules = []  # Override in subclasses
     optional_modules = []  # Override in subclasses
     
-    def __init__(self, dashboard=None):
+    def __init__(self, dashboard):
         """
         Initialize the base experiment.
         
         Args:
             dashboard: PyMoDAQ dashboard instance for module access
         """
-        super().__init__(dashboard)
+        # Store dashboard but don't call super().__init__ yet (requires Qt widgets)
+        self.dashboard = dashboard
         
         # Experiment state management
         self.state = ExperimentState.IDLE
@@ -105,18 +106,30 @@ class URASHGBaseExperiment(ExtensionBase):
         # Thread management for non-blocking execution
         self.experiment_thread = None
         
-        # Initialize parameters and GUI
+        # GUI components (initialized on demand)
+        self.main_widget = None
+        self.settings = None
+        self.dock_area = None
+        self.param_tree = None
+        self._customapp_initialized = False
+        
+        # Initialize parameters (does not create GUI)
         self.setup_parameters()
-        self.setup_gui()
         
         logger.info(f"Initialized {self.experiment_name}")
+
+    def ensure_gui_initialized(self):
+        """Ensure GUI is initialized when needed."""
+        if self.main_widget is None:
+            self.setup_gui()
+        return self.main_widget
     
     def setup_parameters(self):
         """Set up the parameter tree for experiment configuration."""
-        self.settings = Parameter.create({
-            'name': 'urashg_experiment',
-            'type': 'group',
-            'children': [
+        self.settings = Parameter.create(
+            name='urashg_experiment',
+            type='group',
+            children=[
                 {
                     'name': 'experiment_info',
                     'type': 'group',
@@ -182,20 +195,28 @@ class URASHGBaseExperiment(ExtensionBase):
                     ]
                 }
             ]
-        })
+        )
         
-        # Connect parameter change signals
-        self.settings.sigTreeStateChanged.connect(self.parameter_changed)
+        # Signal connection will be done in setup_gui() when Qt application exists
     
     def setup_gui(self):
         """Set up the graphical user interface."""
-        # Create main widget
+        if self.main_widget is not None:
+            return  # GUI already initialized
+            
+        # Create main widget first
         self.main_widget = QtWidgets.QWidget()
         self.main_layout = QtWidgets.QVBoxLayout(self.main_widget)
+        
+        # CustomApp initialization is handled by the extension wrapper
         
         # Create dock area for organized layout
         self.dock_area = DockArea()
         self.main_layout.addWidget(self.dock_area)
+        
+        # Connect parameter change signals now that Qt application exists
+        if self.settings is not None:
+            self.settings.sigTreeStateChanged.connect(self.parameter_changed)
         
         # Create control panel
         self.create_control_panel()
@@ -212,7 +233,7 @@ class URASHGBaseExperiment(ExtensionBase):
         control_layout = QtWidgets.QVBoxLayout(control_widget)
         
         # Parameter tree widget
-        from pymodaq.utils.parameter.pymodaq_ptypes import ParameterTree
+        from pymodaq.utils.parameter import ParameterTree
         self.param_tree = ParameterTree()
         self.param_tree.setParameters(self.settings, showTop=False)
         control_layout.addWidget(self.param_tree)
@@ -242,7 +263,7 @@ class URASHGBaseExperiment(ExtensionBase):
         control_layout.addLayout(button_layout)
         
         # Add to dock area
-        from pymodaq.utils.gui_utils.dock import Dock
+        from pymodaq_gui.utils.dock import Dock
         control_dock = Dock("Experiment Control", size=(400, 600))
         control_dock.addWidget(control_widget)
         self.dock_area.addDock(control_dock, 'left')
@@ -277,7 +298,7 @@ class URASHGBaseExperiment(ExtensionBase):
         status_layout.addWidget(hardware_group)
         
         # Add to dock area
-        from pymodaq.utils.gui_utils.dock import Dock
+        from pymodaq_gui.utils.dock import Dock
         status_dock = Dock("Status Monitor", size=(300, 400))
         status_dock.addWidget(status_widget)
         self.dock_area.addDock(status_dock, 'right')
@@ -308,7 +329,7 @@ class URASHGBaseExperiment(ExtensionBase):
         progress_layout.addWidget(self.eta_info)
         
         # Add to dock area
-        from pymodaq.utils.gui_utils.dock import Dock
+        from pymodaq_gui.utils.dock import Dock
         progress_dock = Dock("Progress Monitor", size=(300, 200))
         progress_dock.addWidget(progress_widget)
         self.dock_area.addDock(progress_dock, 'bottom')
@@ -544,7 +565,8 @@ class URASHGBaseExperiment(ExtensionBase):
                 total_time = elapsed.total_seconds() * 100 / overall_progress
                 remaining_time = total_time - elapsed.total_seconds()
                 if remaining_time > 0:
-                    eta = datetime.now() + QtCore.QTime(seconds=remaining_time)
+                    from datetime import timedelta
+                    eta = datetime.now() + timedelta(seconds=remaining_time)
                     self.eta_info.setText(f"ETA: {eta.strftime('%H:%M:%S')}")
     
     def on_experiment_completed(self):

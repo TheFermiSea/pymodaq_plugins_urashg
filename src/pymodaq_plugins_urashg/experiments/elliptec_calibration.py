@@ -36,7 +36,7 @@ from scipy.interpolate import interp1d
 from qtpy import QtWidgets, QtCore
 from pymodaq.utils.parameter import Parameter
 from pymodaq.utils.data import DataWithAxes, DataToExport, Axis
-from pymodaq.control_modules.utils import DataActuator
+from pymodaq.utils.data import DataActuator
 
 from .base_experiment import URASHGBaseExperiment, ExperimentState, ExperimentError
 import logging

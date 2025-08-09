@@ -675,12 +675,8 @@ class ESP300Controller:
 
         return info
 
-    def __del__(self):
-        """Cleanup on destruction."""
-        try:
-            self.disconnect()
-        except Exception:
-            pass
+    # Note: __del__ method removed to prevent QThread destruction conflicts
+    # Cleanup is handled explicitly via disconnect() in the plugin's close() method
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ from scipy.interpolate import interp2d
 from qtpy import QtWidgets, QtCore
 from pymodaq.utils.parameter import Parameter
 from pymodaq.utils.data import DataWithAxes, DataToExport, Axis
-from pymodaq.control_modules.utils import DataActuator
+from pymodaq.utils.data import DataActuator
 
 from .base_experiment import URASHGBaseExperiment, ExperimentState, ExperimentError
 import logging
@@ -150,7 +150,7 @@ class EOMCalibrationExperiment(URASHGBaseExperiment):
     required_modules = ['MaiTai', 'Newport1830C']  # Power meter required for calibration
     optional_modules = []
     
-    def __init__(self, dashboard=None):
+    def __init__(self, dashboard):
         super().__init__(dashboard)
         
         # PID controller for power control
