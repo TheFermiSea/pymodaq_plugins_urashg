@@ -83,6 +83,8 @@ plugins = find_plugins()
 ```
 
 ### Basic Usage
+
+#### Using Individual Plugins
 ```python
 # Example: ESP300 motion controller
 from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import DAQ_Move_ESP300
@@ -99,6 +101,18 @@ if success:
     esp300.close()                           # Clean shutdown
 ```
 
+#### Using the Comprehensive Extension
+```python
+# Launch PyMoDAQ Dashboard and load the μRASHG Extension
+# 1. Start PyMoDAQ: python -m pymodaq.dashboard
+# 2. Go to Extensions → μRASHG Microscopy Extension
+# 3. Use the comprehensive UI for:
+#    - Multi-device coordination
+#    - Automated measurement sequences  
+#    - Real-time analysis and visualization
+#    - Configuration management
+```
+
 ## Available Plugins
 
 ### Move Plugins (Actuators)
@@ -110,6 +124,16 @@ if success:
 - **`DAQ_2DViewer_PrimeBSI`**: Photometrics Prime BSI camera
 - **`DAQ_0DViewer_Newport1830C`**: Newport 1830-C optical power meter
 
+### Extensions (Complete Applications)
+- **`URASHGMicroscopyExtension`**: **NEW** - Comprehensive multi-device coordination extension
+  - 🎛️ Direct device controls for laser, shutter, and 3-axis rotators
+  - 🔄 Automatic wavelength synchronization between laser and power meter
+  - 📊 Multi-wavelength scanning with automated measurement sequences
+  - 📈 Advanced RASHG curve fitting and analysis tools
+  - ⚙️ Configuration management with JSON persistence
+  - 🛡️ Safety interlocks and real-time device monitoring
+  - 📁 FAIR-compliant data export with HDF5 format
+
 ### External Integration
 - **PyRPL Plugins**: Red Pitaya control via external `pymodaq_plugins_pyrpl` package
 
@@ -120,8 +144,11 @@ if success:
 src/pymodaq_plugins_urashg/
 ├── daq_move_plugins/           # Actuator plugins
 ├── daq_viewer_plugins/         # Detector plugins
+├── extensions/                 # Complete applications (NEW)
+│   ├── urashg_microscopy_extension.py    # Primary comprehensive extension
+│   └── device_manager.py                 # Centralized device coordination
 ├── hardware/urashg/           # Hardware abstraction layer
-├── experiments/               # Experiment frameworks
+├── experiments/               # Experiment frameworks (legacy)
 └── utils/                     # Shared utilities
 ```
 
