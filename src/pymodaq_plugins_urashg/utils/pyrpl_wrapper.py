@@ -62,18 +62,33 @@ try:
 
     import pyrpl
     PYRPL_AVAILABLE = True
+    PYRPL_MOCK = False
     from pyrpl.hardware_modules.pid import Pid as PidModule
+    logger.info("PyRPL library imported successfully")
 except (ImportError, TypeError, AttributeError) as e:
     # Handle PyRPL import issues (e.g., Qt compatibility problems)
     logger.warning(f"PyRPL import failed: {e}")
-    PYRPL_AVAILABLE = False
-    pyrpl = None
-    PidModule = object  # Mock for when PyRPL is not available
-
-    # Create a mock Pyrpl class for type hints when PyRPL is not available
-    class _MockPyrpl:
-        pass
-    pyrpl = type('MockPyrplModule', (), {'Pyrpl': _MockPyrpl})()
+    logger.info("Attempting to load mock PyRPL implementation...")
+    
+    try:
+        # Import our mock PyRPL implementation
+        from .pyrpl_mock import MockPyrpl, MockPID
+        import pymodaq_plugins_urashg.utils.pyrpl_mock as pyrpl
+        PYRPL_AVAILABLE = True  # Mock is available for development
+        PYRPL_MOCK = True
+        PidModule = MockPID
+        logger.info("Mock PyRPL implementation loaded successfully")
+    except ImportError as mock_err:
+        logger.error(f"Failed to load mock PyRPL: {mock_err}")
+        PYRPL_AVAILABLE = False
+        PYRPL_MOCK = False
+        pyrpl = None
+        PidModule = object  # Final fallback
+        
+        # Create a basic mock Pyrpl class for type hints
+        class _MockPyrpl:
+            pass
+        pyrpl = type('MockPyrplModule', (), {'Pyrpl': _MockPyrpl})()
 
 from pymodaq.utils.daq_utils import ThreadCommand
 

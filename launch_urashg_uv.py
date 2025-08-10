@@ -152,10 +152,26 @@ def main():
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
             logger.info("✅ Extension imported via alternative path")
 
-        # Create dock area and dashboard
+        # Create PyMoDAQ Dashboard with DockArea
+        logger.info("Creating PyMoDAQ Dashboard...")
         dock_area = DockArea()
         logger.info("✅ DockArea created")
-
+        
+        # Patch PyMoDAQ Dashboard menubar issue for headless environments
+        from pymodaq.dashboard import DashBoard
+        original_setup_menu = DashBoard.setup_menu
+        
+        def patched_setup_menu(self, menubar):
+            """Patched setup_menu to handle None menubar."""
+            if menubar is None:
+                logger.info("Skipping menubar setup (headless environment)")
+                return
+            return original_setup_menu(self, menubar)
+        
+        DashBoard.setup_menu = patched_setup_menu
+        logger.info("✅ Dashboard menubar patch applied")
+        
+        # Create dashboard with proper menubar handling
         dashboard = DashBoard(dock_area)
         logger.info("✅ PyMoDAQ Dashboard created")
 
