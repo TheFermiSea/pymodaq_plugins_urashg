@@ -104,13 +104,15 @@ urashg = "pymodaq_plugins_urashg"
 "DAQ_2DViewer_PrimeBSI" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
 "DAQ_0DViewer_Newport1830C" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
 
-# [project.entry-points."pymodaq.extensions"]
-# Extension modules not yet implemented - comment out to avoid import errors
-# "URASHG_EOM_Calibration" = "pymodaq_plugins_urashg.extensions.eom_calibration_extension:URASHG_EOM_Calibration"
-# "URASHG_Elliptec_Calibration" = "pymodaq_plugins_urashg.extensions.elliptec_calibration_extension:URASHG_Elliptec_Calibration"
-# "URASHG_Variable_Attenuator" = "pymodaq_plugins_urashg.extensions.variable_attenuator_extension:URASHG_Variable_Attenuator"
-# "URASHG_PDSHG_Experiment" = "pymodaq_plugins_urashg.extensions.pdshg_experiment_extension:URASHG_PDSHG_Experiment"
-# "URASHG_Basic_Experiment" = "pymodaq_plugins_urashg.extensions.basic_urashg_extension:URASHG_Basic_Experiment"
+[project.entry-points."pymodaq.extensions"]
+# Primary comprehensive extension for multi-device coordination
+"URASHGMicroscopyExtension" = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
+# Legacy individual extensions (kept for backward compatibility)
+"URASHG_EOM_Calibration" = "pymodaq_plugins_urashg.extensions.eom_calibration_extension:URASHG_EOM_Calibration"
+"URASHG_Elliptec_Calibration" = "pymodaq_plugins_urashg.extensions.elliptec_calibration_extension:URASHG_Elliptec_Calibration"
+"URASHG_Variable_Attenuator" = "pymodaq_plugins_urashg.extensions.variable_attenuator_extension:URASHG_Variable_Attenuator"
+"URASHG_PDSHG_Experiment" = "pymodaq_plugins_urashg.extensions.pdshg_experiment_extension:URASHG_PDSHG_Experiment"
+"URASHG_Basic_Experiment" = "pymodaq_plugins_urashg.extensions.basic_urashg_extension:URASHG_Basic_Experiment"
 
 [tool.setuptools]
 packages = ["pymodaq_plugins_urashg"]

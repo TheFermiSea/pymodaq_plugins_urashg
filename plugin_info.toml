@@ -35,7 +35,7 @@ DAQ_0DViewer_Newport1830C = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0
 # Future: Custom HDF5 exporters for μRASHG data
 
 [plugin-info.entry-points.extensions]
-# Future: Custom PyMoDAQ extensions for μRASHG workflows
+URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
 
 [plugin-info.entry-points.pid_models]
 # Future: Custom PID models for laser stabilization
