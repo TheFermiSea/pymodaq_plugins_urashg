@@ -92,17 +92,33 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         # Laser Control
         {
             "title": "Laser Control:",
-            "name": "control_group", 
-            "type": "group", 
+            "name": "control_group",
+            "type": "group",
             "children": [
                 {
                     "title": "Target Wavelength (nm):",
                     "name": "target_wavelength",
                     "type": "int",
                     "value": 800,
-                    "min": 700,
-                    "max": 900,
-                    "step": 1,
+                    "min": 690,
+                    "max": 1040,
+                    "suffix": "nm",
+                },
+                {
+                    "title": "Home Wavelength (nm):",
+                    "name": "home_wavelength",
+                    "type": "int",
+                    "value": 800,
+                    "min": 690,
+                    "max": 1040,
+                    "suffix": "nm",
+                    "tip": "Default wavelength for home position",
+                },
+                {
+                    "title": "Tolerance (nm):",
+                    "name": "tolerance",
+                    "type": "float",
+                    "value": 1.0,
                 },
                 {
                     "title": "Set Wavelength",
@@ -111,13 +127,18 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 },
                 {
                     "title": "Open Shutter",
-                    "name": "open_shutter_btn", 
+                    "name": "open_shutter_btn",
                     "type": "action",
                 },
                 {
                     "title": "Close Shutter",
                     "name": "close_shutter_btn",
-                    "type": "action", 
+                    "type": "action",
+                },
+                {
+                    "title": "Go Home",
+                    "name": "go_home_btn",
+                    "type": "action",
                 },
             ],
         },
@@ -170,7 +191,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.update_status)
         self.status_timer.setInterval(1000)  # Update every second
-        
+
         # Initialization flag for enhanced status monitoring
         self._fully_initialized = False
 
@@ -210,7 +231,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
                 # Start status monitoring
                 self.status_timer.start()
-                
+
                 # Enable enhanced status monitoring after initialization
                 self._fully_initialized = True
 
@@ -267,7 +288,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     def move_abs(self, position: Union[float, DataActuator]):
         """
         Move to absolute wavelength position.
-        
+
         Parameters
         ----------
         position : Union[float, DataActuator]
@@ -308,7 +329,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
             # Set wavelength (MaiTai requires integer)
             success = self.controller.set_wavelength(int(round(target_wavelength)))
-            
+
             if success:
                 self.emit_status(
                     ThreadCommand(
@@ -343,7 +364,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     def move_rel(self, position: Union[float, DataActuator]):
         """
         Move to relative wavelength position.
-        
+
         Parameters
         ----------
         position : Union[float, DataActuator]
@@ -367,11 +388,11 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
             current = self.get_actuator_value()
             target = current + relative_move
-            
+
             self.emit_status(
                 ThreadCommand("Update_Status", [f"DEBUG: Current: {current}, Target: {target}", "log"])
             )
-            
+
             # Create DataActuator for target position
             plugin_name = getattr(self, 'title', self.__class__.__name__)
             target_data = DataActuator(
@@ -404,7 +425,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 self.settings.child("status_group", "current_wavelength").setValue(
                     wavelength
                 )
-                
+
                 # Create DataActuator and emit to main PyMoDAQ UI
                 plugin_name = getattr(self, 'title', self.__class__.__name__)
                 current_data = DataActuator(
@@ -425,18 +446,18 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     # Full enhanced status monitoring only after initialization
                     shutter_open, emission_possible = self.controller.get_enhanced_shutter_state()
                     self.settings.child("status_group", "shutter_open").setValue(shutter_open)
-                    
+
                     # Get full status byte information periodically
                     if not hasattr(self, '_status_counter'):
                         self._status_counter = 0
                     self._status_counter += 1
-                    
+
                     if self._status_counter % 25 == 0:  # Even less frequent
                         status_byte, status_info = self.controller.get_status_byte()
                         if status_info.get("connected", False):
                             modelocked = status_info.get("modelocked", False)
                             self.emit_status(
-                                ThreadCommand("Update_Status", 
+                                ThreadCommand("Update_Status",
                                             [f"Status: Emission={emission_possible}, Modelocked={modelocked}, Shutter={shutter_open}", "log"])
                             )
                 except Exception as e:
@@ -458,7 +479,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     def commit_settings(self, param=None):
         """
         Commit settings changes to hardware.
-        
+
         This method is called by PyMoDAQ when parameter values change.
         """
         try:
@@ -470,12 +491,12 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                         self.controller = None
                         # Reinitialize with new settings
                         self.ini_stage()
-                        
+
                 elif param.name() == "set_wavelength_btn":
                     # Set wavelength from target parameter
                     target = self.settings.child("control_group", "target_wavelength").value()
                     self.move_abs(target)
-                    
+
                 elif param.name() == "open_shutter_btn":
                     # Open shutter
                     self.emit_status(
@@ -502,7 +523,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                             self.emit_status(
                                 ThreadCommand("Update_Status", ["Failed to send open shutter command", "log"])
                             )
-                    
+
                 elif param.name() == "close_shutter_btn":
                     # Close shutter
                     self.emit_status(
@@ -529,12 +550,63 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                             self.emit_status(
                                 ThreadCommand("Update_Status", ["Failed to send close shutter command", "log"])
                             )
-                        
+
+                elif param.name() == "go_home_btn":
+                    # Move to home wavelength
+                    self.emit_status(
+                        ThreadCommand("Update_Status", ["Moving to home wavelength...", "log"])
+                    )
+                    self.move_home()
+
         except Exception as e:
             self.emit_status(
                 ThreadCommand("Update_Status", [f"Settings commit error: {str(e)}", "log"])
             )
 
+    def move_home(self, value=None):
+        """
+        Move laser to home wavelength position.
+
+        For MaiTai laser, home position is the default wavelength (800 nm).
+        The value parameter is ignored but required for PyMoDAQ 5.x compliance.
+
+        Parameters
+        ----------
+        value : Any, optional
+            Ignored parameter, required for PyMoDAQ 5.x compatibility
+        """
+        try:
+            home_wavelength = self.settings.child("control_group", "home_wavelength").value()
+
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Moving to home wavelength: {home_wavelength} nm", "log"])
+            )
+
+            # Use move_abs to go to home position
+            self.move_abs(home_wavelength)
+
+            self.emit_status(
+                ThreadCommand("Update_Status", ["Laser moved to home position", "log"])
+            )
+
+        except Exception as e:
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Home move error: {str(e)}", "log"])
+            )
+
+    def stop_motion(self):
+        """Stop any ongoing wavelength movement."""
+        try:
+            if self.controller:
+                # MaiTai doesn't have explicit stop command
+                # Just report current status
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Motion stop requested (MaiTai has no explicit stop)", "log"])
+                )
+        except Exception as e:
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Stop motion error: {str(e)}", "log"])
+            )
 
 if __name__ == "__main__":
     # This part is for testing the plugin independently

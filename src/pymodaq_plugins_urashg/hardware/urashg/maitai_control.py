@@ -137,9 +137,23 @@ class MaiTaiController:
     def _test_communication(self) -> bool:
         """Test communication with laser."""
         try:
-            # Try to get wavelength as communication test
-            response = self._send_command("WAVELENGTH?")
-            return response is not None and response.strip() != ""
+            # Try multiple commands for better communication test
+            # Some MaiTai units respond better to different commands
+            test_commands = ["WAVELENGTH?", "*IDN?", "READ:POW?"]
+            
+            for cmd in test_commands:
+                try:
+                    time.sleep(0.2)  # Longer delay between tests
+                    response = self._send_command(cmd)
+                    if response is not None and response.strip() != "":
+                        self.logger.debug(f"MaiTai responded to {cmd}: {response}")
+                        return True
+                except Exception as e:
+                    self.logger.debug(f"Command {cmd} failed: {e}")
+                    continue
+            
+            self.logger.warning("MaiTai not responding to any test commands")
+            return False
         except Exception:
             return False
 
@@ -181,7 +195,7 @@ class MaiTaiController:
             self.logger.debug(f"Wrote {bytes_written} bytes")
 
             if expect_response:
-                time.sleep(0.1)  # Brief delay for response
+                time.sleep(0.3)  # Longer delay for MaiTai response
                 response = (
                     self._serial_connection.readline()
                     .decode("ascii", errors="ignore")

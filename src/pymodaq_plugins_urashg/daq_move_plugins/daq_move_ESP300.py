@@ -357,12 +357,12 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     ThreadCommand("Update_Status", ["ESP300 in mock mode"])
                 )
                 self.controller = None
-                
+
                 # Initialize mock configuration
                 num_axes = self.settings.child("axes_config", "num_axes").value()
                 axes_config = self._build_axes_config(num_axes)
                 self._current_axes = [cfg.name for cfg in axes_config]
-                
+
                 return "ESP300 mock mode", True
 
             # Get connection parameters
@@ -606,7 +606,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
     def move_abs(self, position: Union[float, List[float], DataActuator]):
         """
         Move to absolute position(s).
-        
+
         Parameters
         ----------
         position : Union[float, List[float], DataActuator]
@@ -622,14 +622,14 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                         target_positions_array = position.data[0]
                         target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
                     else:
-                        target_positions_list = float(position.data[0][0])
+                        target_positions_list = float(position.value())
                 else:
                     target_positions_list = position
 
                 self.emit_status(
                     ThreadCommand("Update_Status", ["ESP300 mock move completed"])
                 )
-                
+
                 # Emit move done signal for mock mode
                 current_positions = self.get_actuator_value()
                 plugin_name = getattr(self, 'title', self.__class__.__name__)
@@ -647,7 +647,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     )
                 self.move_done()  # Emit move_done signal
                 return
-                
+
             if not self.controller.is_connected():
                 self.emit_status(
                     ThreadCommand(
@@ -663,8 +663,8 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     target_positions_array = position.data[0]
                     target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
                 else:
-                    # Single axis: extract single value
-                    target_positions_list = float(position.data[0][0])
+                    # Single axis: extract single value using proper PyMoDAQ 5.x pattern
+                    target_positions_list = float(position.value())
             else:
                 # Fallback for direct numerical input (backward compatibility)
                 target_positions_list = position
@@ -732,7 +732,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
     def move_rel(self, position: Union[float, List[float], DataActuator]):
         """
         Move by relative distance(s).
-        
+
         Parameters
         ----------
         position : Union[float, List[float], DataActuator]
@@ -747,8 +747,8 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     relative_moves_array = position.data[0]
                     relative_moves_list = relative_moves_array.tolist() if hasattr(relative_moves_array, 'tolist') else list(relative_moves_array)
                 else:
-                    # Single axis: extract single value
-                    relative_moves_list = float(position.data[0][0])
+                    # Single axis: extract single value using proper PyMoDAQ 5.x pattern
+                    relative_moves_list = float(position.value())
             else:
                 # Fallback for direct numerical input (backward compatibility)
                 relative_moves_list = position
@@ -776,7 +776,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 self.move_abs(target_data)
             else:
                 target_position = current_positions + relative_moves_list
-                
+
                 # Create DataActuator for target position
                 plugin_name = getattr(self, 'title', self.__class__.__name__)
                 target_data = DataActuator(
@@ -792,7 +792,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             )
             self.settings.child("status_group", "last_error").setValue(str(e))
 
-    def move_home(self):
+    def move_home(self, value=None):
         """Move all axes to home position."""
         try:
             if not self.controller or not self.controller.is_connected():
@@ -913,6 +913,3 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 ThreadCommand("Update_Status", [f"Position check error: {e}"])
             )
             return False
-
-
-

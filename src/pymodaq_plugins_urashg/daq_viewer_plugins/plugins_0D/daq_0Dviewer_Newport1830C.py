@@ -17,7 +17,11 @@ from pymodaq.control_modules.viewer_utility_classes import (
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataToExport, DataWithAxes
 from pymodaq_data.data import DataSource
-from pymodaq.control_modules.thread_commands import ThreadStatusViewer
+try:
+    from pymodaq.control_modules.thread_commands import ThreadStatusViewer
+except ImportError:
+    # PyMoDAQ 5.x compatibility
+    from pymodaq.utils.daq_utils import ThreadCommand as ThreadStatusViewer
 
 from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
     Newport1830CController,
@@ -412,6 +416,3 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
 
         except Exception:
             return False
-
-
-

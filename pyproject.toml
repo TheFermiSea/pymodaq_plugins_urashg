@@ -30,7 +30,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -38,7 +37,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "pymodaq>=5.0.0",
     "pymodaq-gui>=5.0.0",
@@ -66,15 +65,12 @@ dev = [
     "myst-parser>=0.15",
 ]
 hardware = [
-    # Hardware-specific dependencies (install from GitHub)
-    "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git",   # Photometrics Prime BSI camera
-    "elliptec @ git+https://github.com/roesel/elliptec.git", # Thorlabs ELL14 rotation mounts
+    # Hardware-specific dependencies (optional for basic functionality)
     "opencv-python>=4.5.0", # Image processing
     "scikit-image>=0.18.0", # Advanced image analysis
 ]
 pyrpl = [
-    # PyRPL Red Pitaya control integration
-    "pymodaq-plugins-pyrpl @ file:///home/maitai/pymodaq_plugins_pyrpl", # Local PyRPL plugins
+    # PyRPL Red Pitaya control integration (optional)
     "pyrpl>=0.9.3", # PyRPL library
 ]
 mock = [
@@ -106,13 +102,7 @@ urashg = "pymodaq_plugins_urashg"
 
 [project.entry-points."pymodaq.extensions"]
 # Primary comprehensive extension for multi-device coordination
-"URASHGMicroscopyExtension" = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
-# Legacy individual extensions (kept for backward compatibility)
-"URASHG_EOM_Calibration" = "pymodaq_plugins_urashg.extensions.eom_calibration_extension:URASHG_EOM_Calibration"
-"URASHG_Elliptec_Calibration" = "pymodaq_plugins_urashg.extensions.elliptec_calibration_extension:URASHG_Elliptec_Calibration"
-"URASHG_Variable_Attenuator" = "pymodaq_plugins_urashg.extensions.variable_attenuator_extension:URASHG_Variable_Attenuator"
-"URASHG_PDSHG_Experiment" = "pymodaq_plugins_urashg.extensions.pdshg_experiment_extension:URASHG_PDSHG_Experiment"
-"URASHG_Basic_Experiment" = "pymodaq_plugins_urashg.extensions.basic_urashg_extension:URASHG_Basic_Experiment"
+"URASHGMicroscopyExtension" = "pymodaq_plugins_urashg.extensions.urashg_extension:URASHGMicroscopyExtension"
 
 [tool.setuptools]
 packages = ["pymodaq_plugins_urashg"]
@@ -185,3 +175,27 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+
+# UV-specific configuration
+[tool.uv]
+dev-dependencies = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=21.0",
+    "flake8>=3.9",
+    "isort>=5.0",
+    "pre-commit>=2.15",
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0",
+    "myst-parser>=0.15",
+]
+
+# UV workspace configuration
+[tool.uv.workspace]
+members = [".", "examples/*"]
+
+# UV sources for development dependencies
+[tool.uv.sources]
+# Hardware packages can be installed manually when needed:
+# uv add "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git"
+# uv add "elliptec @ git+https://github.com/roesel/elliptec.git"

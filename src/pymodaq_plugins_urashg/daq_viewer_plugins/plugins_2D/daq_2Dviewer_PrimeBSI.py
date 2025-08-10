@@ -2,7 +2,11 @@ import numpy as np
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
-from pymodaq.control_modules.thread_commands import ThreadStatusViewer
+try:
+    from pymodaq.control_modules.thread_commands import ThreadStatusViewer
+except ImportError:
+    # PyMoDAQ 5.x compatibility
+    from pymodaq.utils.daq_utils import ThreadCommand as ThreadStatusViewer
 
 # Removed unused imports: get_param_path, iter_children
 from pymodaq_data.data import Axis, DataSource, DataToExport, DataWithAxes
@@ -170,19 +174,19 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                     pvc.uninit_pvcam()
             except:
                 pass  # PVCAM not initialized or other state issues
-                
+
             # Fresh initialization
             pvc.init_pvcam()
-            
+
             # Check camera availability
             total_cams = pvc.get_cam_total()
             if total_cams == 0:
                 raise RuntimeError("No cameras found by PVCAM")
-            
+
             cameras = list(Camera.detect_camera())
             if len(cameras) == 0:
                 raise RuntimeError("No cameras detected by PyVCAM Camera.detect_camera()")
-                
+
             self.camera = cameras[0]  # Use first camera
             self.camera.open()
 
@@ -491,8 +495,3 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                 ThreadCommand("Stop Error", [f"Error stopping acquisition: {str(e)}"])
             )
         return ""
-
-    
-
-
-

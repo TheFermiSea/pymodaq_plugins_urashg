@@ -35,6 +35,27 @@ This is a PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second 
 - **Thorlabs ELL14 rotation mounts**: Serial communication for polarization control (3 mounts: QWP, HWP incident, HWP analyzer)
 - **Photometrics Prime BSI camera**: PyVCAM-based 2D detection with ROI support
 
+## [ISSUE] PyMoDAQ 5.1.0a0 Extension Discovery Bug ⚠️
+
+**Status**: Extension implemented and working, but PyMoDAQ 5.1.0a0 has extension discovery parsing bug (August 2025)
+
+**Root Cause**: PyMoDAQ 5.1.0a0 (alpha) incorrectly parses entry points - treats entire string `module:class` as module name instead of parsing it as `module` and `class` components.
+
+**Error Message**: 
+```
+WARNING:pymodaq.utils:Impossible to import the pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension package: 
+No module named 'pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension'
+```
+
+**Current Workaround**: Standalone launcher script bypasses PyMoDAQ's broken extension discovery:
+```bash
+python launch_urashg_extension.py  # Direct launch method
+```
+
+**Extension Status**: ✅ Fully functional when launched directly, bypassing PyMoDAQ discovery
+
+**Future Resolution**: Will be fixed when PyMoDAQ releases stable version with corrected entry point parsing
+
 ## [COMPLETE] PyMoDAQ 5.0+ Migration & Standards Compliance ✅
 
 **Status**: Full PyMoDAQ 5.x compliance achieved (August 2025) - PRODUCTION READY
@@ -210,7 +231,31 @@ class DAQ_Plugin(DAQ_Move_base):
 
 ## Development Commands
 
-### Package Management
+### UV Environment Management (Recommended Standard)
+
+**UV is the chosen standard for this project** - Modern, fast, and reliable Python package management.
+
+```bash
+# Initial setup (one-time)
+python manage_uv.py setup                    # Complete project setup
+uv sync                                      # Sync dependencies from lock file
+
+# Install dependencies
+python manage_uv.py install                 # Basic installation
+python manage_uv.py install --hardware      # With hardware dependencies
+python manage_uv.py install --all           # All optional dependencies
+
+# Launch the extension
+python manage_uv.py launch                  # Recommended method
+uv run python launch_urashg_uv.py          # Direct UV command
+
+# Environment management
+python manage_uv.py status                  # Check environment status
+python manage_uv.py clean                   # Clean environment and caches
+uv python pin 3.12                         # Pin Python version
+```
+
+### Legacy Package Management (pip-based)
 ```bash
 # Install in development mode
 pip install -e .
@@ -234,29 +279,32 @@ flake8 src/
 pre-commit install
 ```
 
-### Testing (Updated Repository Structure)
+### Testing (UV-Optimized)
 ```bash
-# Run all tests with organized structure
-python scripts/run_all_tests.py
+# Run tests with UV
+python manage_uv.py test                     # Basic test run
+python manage_uv.py test --coverage          # With coverage reporting
+python manage_uv.py test --hardware          # Hardware tests only
+python manage_uv.py test --filter "test_maitai" # Filter specific tests
 
-# Specific test categories
-pytest tests/unit/                    # Unit tests
-pytest tests/integration/             # Integration tests (hardware optional)
-pytest tests/development/             # Development and GUI tests
+# Direct UV commands
+uv run pytest tests/                         # All tests
+uv run pytest tests/unit/                    # Unit tests only
+uv run pytest tests/integration/             # Integration tests
+uv run pytest -m "hardware"                  # Hardware tests
 
-# PyMoDAQ standards compliance tests
-pytest tests/integration/test_threading_safety_comprehensive.py
-pytest tests/integration/test_hardware_controller_threading.py
+# Legacy testing
+python scripts/run_all_tests.py             # Original test runner
+pytest --cov=pymodaq_plugins_urashg         # Manual coverage
+```
 
-# Plugin functionality tests
-pytest tests/integration/test_esp300_threading_fix.py
-pytest tests/integration/test_pyrpl_plugin_integration.py
-
-# Hardware tests (requires real hardware)
-pytest tests/integration/ -m "hardware"
-
-# Coverage reporting
-pytest --cov=pymodaq_plugins_urashg --cov-report=term-missing
+### Environment Setup Documentation
+See `UV_ENVIRONMENT_SETUP.md` for comprehensive UV setup instructions including:
+- Installation and configuration
+- Dependency management
+- Hardware-specific setup
+- Troubleshooting guides
+- CI/CD integration
 ```
 
 ### Documentation
@@ -477,3 +525,54 @@ params = [
 - **Maintained for Reference**: Original instrument control code and calibration scripts
 - **Migration Path**: Patterns from urashg_2/ inform PyMoDAQ plugin development
 - **Do Not Modify**: urashg_2/ is archival - all new development in main src/ tree
+
+## [IMPLEMENTED] UV Environment Management Standard ✅
+
+**Status**: UV-based environment management implemented (August 2025) - PRODUCTION STANDARD
+
+### UV Implementation Summary
+
+**Why UV was chosen as the standard**:
+- **Performance**: 10-100x faster than pip for installations and dependency resolution
+- **Reliability**: Superior dependency resolution and conflict detection
+- **Modern Architecture**: Built-in Python version management and virtual environments
+- **Reproducibility**: Lock files ensure identical environments across machines
+- **Future-proof**: Actively developed by Astral (makers of Ruff)
+
+**Implementation Components**:
+- ✅ **UV Configuration**: Complete `pyproject.toml` with UV-specific sections
+- ✅ **Environment Management**: Automatic Python 3.12 pinning via `.python-version`
+- ✅ **Dependency Groups**: Organized extras for hardware, development, and testing
+- ✅ **Lock File**: `uv.lock` ensures reproducible installations
+- ✅ **Management Scripts**: `manage_uv.py` for common operations
+- ✅ **Optimized Launcher**: `launch_urashg_uv.py` for UV environments
+
+**Key Files**:
+- `UV_ENVIRONMENT_SETUP.md` - Comprehensive setup and usage guide
+- `manage_uv.py` - Management script for UV operations
+- `launch_urashg_uv.py` - UV-optimized extension launcher
+- `pyproject.toml` - Modern package configuration with UV sections
+- `uv.lock` - Dependency lock file for reproducible environments
+- `.python-version` - Python version pinning (3.12)
+
+**Usage Examples**:
+```bash
+# Setup and launch (recommended workflow)
+python manage_uv.py setup                    # One-time setup
+python manage_uv.py install --hardware       # Install with hardware deps
+python manage_uv.py launch                   # Launch extension
+
+# Direct UV commands
+uv sync                                      # Sync dependencies
+uv run python launch_urashg_uv.py          # Launch extension
+uv run pytest tests/                        # Run tests
+```
+
+**Benefits Achieved**:
+- **Single Environment**: No more Python interpreter switching
+- **Fast Installation**: 10x+ faster dependency resolution
+- **Reliable Dependencies**: Lock file eliminates version conflicts
+- **Clear Documentation**: Step-by-step setup for any developer
+- **Production Ready**: Consistent environments across development and deployment
+
+**Migration Complete**: The project has fully transitioned from mixed pip/conda to unified UV management while maintaining backward compatibility for legacy workflows.

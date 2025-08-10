@@ -182,10 +182,19 @@ class URASHGMicroscopyExtension(CustomApp):
         # Store dashboard reference for device access
         self.dashboard = dashboard
         
-        # Device management
+        # Initialize CustomApp attributes that may not be set by parent
+        if not hasattr(self, 'dockarea') or self.dockarea is None:
+            self.dockarea = dashboard  # Use dashboard as dockarea (should be DockArea)
+        if not hasattr(self, 'docks'):
+            self.docks = {}  # Initialize empty docks dictionary
+        
+        # Device management (initialize before UI setup)
         self.device_manager = URASHGDeviceManager(dashboard)
         self.available_devices = {}
         self.missing_devices = []
+        
+        # Initialize UI components
+        self.setup_ui()
         
         # Measurement state
         self.is_measuring = False
@@ -206,9 +215,21 @@ class URASHGMicroscopyExtension(CustomApp):
         # Timers for periodic tasks
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.update_device_status)
-        self.status_timer.setInterval(2000)  # Update every 2 seconds
+        self.status_timer.setInterval(5000)  # Update every 5 seconds (reduce load)
         
         logger.info(f"Initialized {self.name} extension v{self.version}")
+    
+    def setup_ui(self):
+        """Set up the complete user interface for the extension."""
+        logger.info("Setting up μRASHG extension UI...")
+        
+        # Initialize UI components in proper order
+        self.setup_docks()       # Create dock layout 
+        self.setup_actions()     # Create actions/menus
+        self.setup_widgets()     # Create main widgets
+        self.connect_things()    # Connect signals/slots
+        
+        logger.info("μRASHG extension UI setup complete")
     
     def setup_docks(self):
         """
@@ -319,18 +340,18 @@ class URASHGMicroscopyExtension(CustomApp):
         
         # Primary measurement controls
         self.start_button = QtWidgets.QPushButton('Start μRASHG')
-        self.start_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
+        self.start_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
         self.start_button.clicked.connect(self.start_measurement)
         self.start_button.setMinimumHeight(40)
         
         self.stop_button = QtWidgets.QPushButton('Stop')
-        self.stop_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaStop))
+        self.stop_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaStop))
         self.stop_button.clicked.connect(self.stop_measurement)
         self.stop_button.setEnabled(False)
         self.stop_button.setMinimumHeight(40)
         
         self.pause_button = QtWidgets.QPushButton('Pause')
-        self.pause_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
+        self.pause_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
         self.pause_button.clicked.connect(self.pause_measurement)
         self.pause_button.setEnabled(False)
         self.pause_button.setMinimumHeight(40)
@@ -908,7 +929,7 @@ class URASHGMicroscopyExtension(CustomApp):
             # For multi-axis Elliptec, we need to specify which axis to move
             # Create position array - only set the target axis, others to current positions
             current_positions = self.get_current_elliptec_positions()
-            if current_positions is None:
+            if current_positions is None or not isinstance(current_positions, (list, tuple, np.ndarray)):
                 # If we can't get current positions, create array with target position
                 if axis == 0:
                     target_positions = [target_position, 0.0, 0.0]
@@ -917,7 +938,11 @@ class URASHGMicroscopyExtension(CustomApp):
                 else:  # axis == 2
                     target_positions = [0.0, 0.0, target_position]
             else:
-                target_positions = current_positions.copy()
+                # Ensure current_positions is a list we can modify
+                if isinstance(current_positions, np.ndarray):
+                    target_positions = current_positions.tolist()
+                else:
+                    target_positions = list(current_positions)
                 target_positions[axis] = target_position
             
             # Create DataActuator for multi-axis movement
@@ -1969,12 +1994,25 @@ class URASHGMicroscopyExtension(CustomApp):
     
     # Utility methods
     
+    def get_style(self):
+        """Get style from various sources for icons."""
+        if hasattr(self, 'style') and callable(self.style):
+            return self.style()
+        elif hasattr(self, 'dashboard') and hasattr(self.dashboard, 'style') and callable(self.dashboard.style):
+            return self.dashboard.style()
+        elif hasattr(self.dashboard, 'mainwindow') and hasattr(self.dashboard.mainwindow, 'style') and callable(self.dashboard.mainwindow.style):
+            return self.dashboard.mainwindow.style()
+        else:
+            # Fallback to a default QApplication style
+            from qtpy.QtWidgets import QApplication
+            return QApplication.style()
+    
     def add_action(self, name: str, text: str, callback, icon: str = None):
         """Add an action to the extension."""
         action = QtWidgets.QAction(text, self)
         action.triggered.connect(callback)
         if icon and hasattr(QtWidgets.QStyle, icon):
-            action.setIcon(self.style().standardIcon(getattr(QtWidgets.QStyle, icon)))
+            action.setIcon(self.get_style().standardIcon(getattr(QtWidgets.QStyle, icon)))
         setattr(self, f"{name}_action", action)
     
     def log_message(self, message: str, level: str = 'info'):
