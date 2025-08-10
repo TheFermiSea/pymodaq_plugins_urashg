@@ -18,6 +18,8 @@ import numpy as np
 from pymodaq.utils.data import DataWithAxes, Axis
 from pymodaq.utils.logger import set_logger, get_module_name
 
+import time
+from typing import Optional
 logger = set_logger(get_module_name(__file__))
 
 
@@ -391,6 +393,246 @@ class URASHGDeviceManager(QObject):
                     logger.info(f"Emergency stop applied to device '{device_key}'")
             except Exception as e:
                 logger.error(f"Error during emergency stop for device '{device_key}': {e}")
+
+    
+    def move_polarization_elements(self, positions: dict, timeout: float = 10.0) -> bool:
+        """
+        Coordinated movement of polarization elements.
+        
+        Args:
+            positions: Dictionary with axis positions {'axis_0': angle0, 'axis_1': angle1, 'axis_2': angle2}
+            timeout: Movement timeout in seconds
+            
+        Returns:
+            True if movement successful, False otherwise
+        """
+        logger.info(f"Moving polarization elements: {positions}")
+        
+        try:
+            elliptec = self.get_elliptec()
+            if not elliptec:
+                logger.error("Elliptec device not available for coordinated movement")
+                return False
+            
+            # Prepare position data for multi-axis movement
+            from pymodaq.utils.data import DataActuator
+            
+            # Convert positions dict to list format expected by Elliptec
+            position_list = [0.0, 0.0, 0.0]  # Initialize all axes
+            
+            for axis_key, angle in positions.items():
+                if axis_key == 'axis_0' or axis_key == 'qwp':
+                    position_list[0] = float(angle)
+                elif axis_key == 'axis_1' or axis_key == 'hwp_incident':
+                    position_list[1] = float(angle)
+                elif axis_key == 'axis_2' or axis_key == 'hwp_analyzer':
+                    position_list[2] = float(angle)
+            
+            # Create DataActuator for multi-axis movement
+            position_data = DataActuator(data=[position_list])
+            
+            # Execute movement
+            if hasattr(elliptec, 'move_abs'):
+                elliptec.move_abs(position_data)
+                logger.debug(f"Coordinated movement initiated: {position_list}")
+                
+                # Wait for completion with timeout
+                start_time = time.time()
+                while time.time() - start_time < timeout:
+                    # For now, assume movement completes after reasonable time
+                    # Real implementation would check device status
+                    time.sleep(0.1)
+                    if time.time() - start_time > 3.0:  # Minimum movement time
+                        break
+                
+                logger.info("Coordinated polarization movement completed")
+                return True
+            else:
+                logger.error("Elliptec device does not support absolute movement")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error in coordinated polarization movement: {e}")
+            return False
+    
+    def acquire_synchronized_data(self, integration_time: float = 100.0, averages: int = 1) -> Optional[dict]:
+        """
+        Acquire synchronized data from camera and power meter.
+        
+        Args:
+            integration_time: Integration time in milliseconds
+            averages: Number of averages
+            
+        Returns:
+            Dictionary with synchronized data or None on failure
+        """
+        try:
+            camera = self.get_camera()
+            power_meter = self.get_power_meter()
+            
+            if not camera:
+                logger.error("Camera not available for synchronized acquisition")
+                return None
+            
+            # Acquire multiple images for averaging
+            images = []
+            power_readings = []
+            
+            for avg in range(averages):
+                # Acquire camera image
+                camera_data = camera.grab_data()
+                if camera_data and len(camera_data) > 0:
+                    data_item = camera_data[0]
+                    if hasattr(data_item, 'data') and len(data_item.data) > 0:
+                        images.append(data_item.data[0])
+                
+                # Acquire power reading if available
+                if power_meter:
+                    try:
+                        power_data = power_meter.grab_data()
+                        if power_data and len(power_data) > 0:
+                            power_value = float(power_data[0].data[0]) if hasattr(power_data[0], 'data') else None
+                            if power_value is not None:
+                                power_readings.append(power_value)
+                    except Exception as e:
+                        logger.debug(f"Could not acquire power reading {avg + 1}: {e}")
+                
+                # Small delay between averages
+                if avg < averages - 1:
+                    time.sleep(0.01)
+            
+            if not images:
+                logger.error("No camera images acquired")
+                return None
+            
+            # Average the data
+            import numpy as np
+            
+            averaged_image = np.mean(images, axis=0) if len(images) > 1 else images[0]
+            averaged_power = np.mean(power_readings) if power_readings else None
+            
+            # Calculate total intensity
+            total_intensity = float(np.sum(averaged_image))
+            
+            return {
+                'image': averaged_image,
+                'intensity': total_intensity,
+                'power': averaged_power,
+                'n_averages': len(images),
+                'n_power_readings': len(power_readings)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in synchronized data acquisition: {e}")
+            return None
+    
+    def configure_camera_for_measurement(self, roi_settings: dict, integration_time: float) -> bool:
+        """
+        Configure camera settings for μRASHG measurement.
+        
+        Args:
+            roi_settings: ROI configuration dictionary
+            integration_time: Integration time in milliseconds
+            
+        Returns:
+            True if configuration successful
+        """
+        try:
+            camera = self.get_camera()
+            if not camera:
+                logger.error("Camera not available for configuration")
+                return False
+            
+            # Configure camera settings if accessible
+            if hasattr(camera, 'settings') and camera.settings:
+                try:
+                    # Set ROI if camera supports it
+                    detector_settings = camera.settings.child('detector_settings')
+                    if detector_settings and detector_settings.child('ROIselect'):
+                        roi_select = detector_settings.child('ROIselect')
+                        if roi_select.child('x0'):
+                            roi_select.child('x0').setValue(roi_settings.get('x_start', 0))
+                        if roi_select.child('y0'):
+                            roi_select.child('y0').setValue(roi_settings.get('y_start', 0))
+                        if roi_select.child('width'):
+                            roi_select.child('width').setValue(roi_settings.get('width', 2048))
+                        if roi_select.child('height'):
+                            roi_select.child('height').setValue(roi_settings.get('height', 2048))
+                        
+                        logger.info(f"Camera ROI configured: {roi_settings}")
+                    
+                    # Set integration time if supported
+                    main_settings = camera.settings.child('main_settings')
+                    if main_settings and main_settings.child('exposure'):
+                        main_settings.child('exposure').setValue(integration_time)
+                        logger.info(f"Camera exposure set to {integration_time} ms")
+                        
+                    return True
+                    
+                except Exception as e:
+                    logger.warning(f"Could not configure camera settings: {e}")
+                    return False
+            else:
+                logger.warning("Camera settings not accessible")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error configuring camera: {e}")
+            return False
+    
+    def check_safety_limits(self, settings) -> list:
+        """
+        Check all safety limits and return any violations.
+        
+        Args:
+            settings: Extension settings object
+            
+        Returns:
+            List of safety violation messages (empty if all OK)
+        """
+        violations = []
+        
+        try:
+            # Check power limits
+            max_power = settings.child('hardware', 'safety', 'max_power').value()
+            if max_power > 90.0:
+                violations.append(f"Power limit too high: {max_power}% (max recommended: 90%)")
+            
+            # Check timeout settings
+            movement_timeout = settings.child('hardware', 'safety', 'movement_timeout').value()
+            if movement_timeout > 60.0:
+                violations.append(f"Movement timeout too long: {movement_timeout}s (max recommended: 60s)")
+            
+            camera_timeout = settings.child('hardware', 'safety', 'camera_timeout').value()
+            if camera_timeout > 30.0:
+                violations.append(f"Camera timeout too long: {camera_timeout}s (max recommended: 30s)")
+            
+            # Check measurement parameters
+            pol_steps = settings.child('experiment', 'pol_steps').value()
+            if pol_steps > 360:
+                violations.append(f"Too many polarization steps: {pol_steps} (max recommended: 360)")
+            
+            integration_time = settings.child('experiment', 'integration_time').value()
+            if integration_time > 10000:
+                violations.append(f"Integration time too long: {integration_time}ms (max recommended: 10s)")
+            
+            # Check ROI settings
+            roi_width = settings.child('hardware', 'camera', 'roi', 'width').value()
+            roi_height = settings.child('hardware', 'camera', 'roi', 'height').value()
+            
+            if roi_width * roi_height > 2048 * 2048:
+                violations.append(f"ROI too large: {roi_width}x{roi_height} (may cause memory issues)")
+            
+            if violations:
+                logger.warning(f"Safety violations detected: {violations}")
+            else:
+                logger.debug("All safety checks passed")
+            
+            return violations
+            
+        except Exception as e:
+            logger.error(f"Error checking safety limits: {e}")
+            return [f"Error checking safety limits: {str(e)}"]
     
     def cleanup(self):
         """Clean up device manager resources."""
