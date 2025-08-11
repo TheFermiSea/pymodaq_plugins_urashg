@@ -152,40 +152,52 @@ def main():
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
             logger.info("✅ Extension imported via alternative path")
 
-        # Create PyMoDAQ Dashboard with DockArea
+        # Create main window first
+        from PySide6.QtWidgets import QMainWindow
+        main_window = QMainWindow()
+        main_window.setWindowTitle("μRASHG Microscopy Extension")
+        main_window.setGeometry(100, 100, 1400, 900)
+        
+        # Create PyMoDAQ Dashboard with proper main window
         logger.info("Creating PyMoDAQ Dashboard...")
         dock_area = DockArea()
+        main_window.setCentralWidget(dock_area)
         logger.info("✅ DockArea created")
         
-        # Patch PyMoDAQ Dashboard menubar issue for headless environments
+        # Patch PyMoDAQ Dashboard for proper main window handling
         from pymodaq.dashboard import DashBoard
-        original_setup_menu = DashBoard.setup_menu
+        original_init = DashBoard.__init__
         
-        def patched_setup_menu(self, menubar):
-            """Patched setup_menu to handle None menubar."""
-            if menubar is None:
-                logger.info("Skipping menubar setup (headless environment)")
-                return
-            return original_setup_menu(self, menubar)
+        def patched_init(self, dockarea=None):
+            """Patched Dashboard __init__ to use existing main window."""
+            try:
+                # Store the main window reference
+                self.mainwindow = main_window
+                # Call original init but skip main window creation
+                original_init(self, dockarea)
+            except AttributeError as e:
+                if "'NoneType' object has no attribute 'setVisible'" in str(e):
+                    # Handle the setVisible error
+                    logger.info("Handled dashboard initialization issue")
+                    if hasattr(self, 'mainwindow') and self.mainwindow:
+                        self.mainwindow.setVisible(True)
+                else:
+                    raise
         
-        DashBoard.setup_menu = patched_setup_menu
-        logger.info("✅ Dashboard menubar patch applied")
+        DashBoard.__init__ = patched_init
+        logger.info("✅ Dashboard patch applied")
         
-        # Create dashboard with proper menubar handling
+        # Create dashboard
         dashboard = DashBoard(dock_area)
         logger.info("✅ PyMoDAQ Dashboard created")
 
-        # Create extension instance
-        extension = URASHGMicroscopyExtension(dashboard)
+        # Create extension instance with dock_area as parent
+        extension = URASHGMicroscopyExtension(dock_area)
         logger.info("✅ μRASHG extension instance created")
 
-        # Configure main window
-        dashboard.setWindowTitle("PyMoDAQ Dashboard - μRASHG Microscopy Extension")
-        dashboard.setGeometry(100, 100, 1400, 900)
-
-        # Show dashboard
-        dashboard.show()
-        logger.info("✅ Dashboard displayed")
+        # Show main window
+        main_window.show()
+        logger.info("✅ Main window displayed")
 
         # Initialize extension
         try:
