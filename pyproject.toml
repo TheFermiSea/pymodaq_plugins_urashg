@@ -50,8 +50,6 @@ dependencies = [
     "scipy>=1.7.0",
     "matplotlib>=3.3.0",
     "pyserial>=3.4",
-    "pytest-qt>=4.5.0",
-    "pytest-mock>=3.14.1",
     "pyvcam",
     "elliptec>=0.0.6",
 ]
