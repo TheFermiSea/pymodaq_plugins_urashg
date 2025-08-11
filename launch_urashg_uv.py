@@ -191,8 +191,11 @@ def main():
         dashboard = DashBoard(dock_area)
         logger.info("✅ PyMoDAQ Dashboard created")
 
-        # Create extension instance with dashboard as parent
-        extension = URASHGMicroscopyExtension(dashboard)
+        # Store dashboard in global variable for extension access
+        globals()['dashboard'] = dashboard
+
+        # Create extension instance with dock_area as parent
+        extension = URASHGMicroscopyExtension(dock_area)
         logger.info("✅ μRASHG extension instance created")
 
         # Show main window
