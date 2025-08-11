@@ -157,17 +157,17 @@ def main():
         main_window = QMainWindow()
         main_window.setWindowTitle("μRASHG Microscopy Extension")
         main_window.setGeometry(100, 100, 1400, 900)
-        
+
         # Create PyMoDAQ Dashboard with proper main window
         logger.info("Creating PyMoDAQ Dashboard...")
         dock_area = DockArea()
         main_window.setCentralWidget(dock_area)
         logger.info("✅ DockArea created")
-        
+
         # Patch PyMoDAQ Dashboard for proper main window handling
         from pymodaq.dashboard import DashBoard
         original_init = DashBoard.__init__
-        
+
         def patched_init(self, dockarea=None):
             """Patched Dashboard __init__ to use existing main window."""
             try:
@@ -183,16 +183,16 @@ def main():
                         self.mainwindow.setVisible(True)
                 else:
                     raise
-        
+
         DashBoard.__init__ = patched_init
         logger.info("✅ Dashboard patch applied")
-        
+
         # Create dashboard
         dashboard = DashBoard(dock_area)
         logger.info("✅ PyMoDAQ Dashboard created")
 
-        # Create extension instance with dock_area as parent
-        extension = URASHGMicroscopyExtension(dock_area)
+        # Create extension instance with dashboard as parent
+        extension = URASHGMicroscopyExtension(dashboard)
         logger.info("✅ μRASHG extension instance created")
 
         # Show main window
