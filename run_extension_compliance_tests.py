@@ -374,16 +374,20 @@ class ComplianceTestRunner:
 
         # Check required packages
         required_packages = [
-            'pytest', 'pytest-qt', 'pytest-mock', 'pytest-cov',
-            'numpy', 'qtpy'
+            ('pytest', 'pytest'),
+            ('pytest-qt', 'pytestqt'),
+            ('pytest-mock', 'pytest_mock'),
+            ('pytest-cov', 'pytest_cov'),
+            ('numpy', 'numpy'),
+            ('qtpy', 'qtpy')
         ]
 
         missing_packages = []
-        for package in required_packages:
+        for package_name, module_name in required_packages:
             try:
-                __import__(package.replace('-', '_'))
+                __import__(module_name)
             except ImportError:
-                missing_packages.append(package)
+                missing_packages.append(package_name)
 
         if missing_packages:
             logger.error(f"❌ Missing required packages: {missing_packages}")

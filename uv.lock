@@ -1031,6 +1031,18 @@ wheels = [
 ]
 
 [[package]]
+name = "elliptec"
+version = "0.0.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyserial" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b4/cb/43c03a5d201d08278e4f9ec550a850d97bb57ee248b371ce17b18117bd2a/elliptec-0.0.6.tar.gz", hash = "sha256:6dd46673cb06c67bc88efbb8d787b27e109e89cc8892f675a18b2330ea953903", size = 67109, upload-time = "2025-06-01T22:36:45.592Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/ca/bcd937b3a2cd01678d8aa35457f5740dc87922e33b28ab443514d194c8cf/elliptec-0.0.6-py3-none-any.whl", hash = "sha256:a76f2a49e1c5ecaa4d0f76c7d4e842daca104120bfe19b3c719dd99fa4b7b1ef", size = 41788, upload-time = "2025-06-01T22:36:43.285Z" },
+]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3333,6 +3345,7 @@ name = "pymodaq-plugins-urashg"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "elliptec" },
     { name = "h5py" },
     { name = "matplotlib", version = "3.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "matplotlib", version = "3.10.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -3346,6 +3359,7 @@ dependencies = [
     { name = "pyside6" },
     { name = "pytest-mock" },
     { name = "pytest-qt" },
+    { name = "pyvcam" },
     { name = "scipy", version = "1.13.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "scipy", version = "1.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -3361,6 +3375,9 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pytest-mock" },
+    { name = "pytest-qt" },
+    { name = "pytest-xvfb" },
     { name = "sphinx", version = "7.4.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -3382,6 +3399,14 @@ mock = [
 pyrpl = [
     { name = "pyrpl" },
 ]
+test = [
+    { name = "pytest" },
+    { name = "pytest-benchmark" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+    { name = "pytest-qt" },
+    { name = "pytest-xvfb" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -3402,6 +3427,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=21.0" },
+    { name = "elliptec", specifier = ">=0.0.6" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=3.9" },
     { name = "h5py", specifier = ">=3.0.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.0" },
@@ -3422,15 +3448,25 @@ requires-dist = [
     { name = "pyserial", specifier = ">=3.4" },
     { name = "pyside6", specifier = ">=6.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=6.0" },
+    { name = "pytest-benchmark", marker = "extra == 'test'", specifier = ">=4.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=2.0" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=2.0" },
     { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.0" },
+    { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.0" },
     { name = "pytest-qt", specifier = ">=4.5.0" },
+    { name = "pytest-qt", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "pytest-qt", marker = "extra == 'test'", specifier = ">=4.0" },
+    { name = "pytest-xvfb", marker = "extra == 'dev'", specifier = ">=3.0" },
+    { name = "pytest-xvfb", marker = "extra == 'test'", specifier = ">=3.0" },
+    { name = "pyvcam", git = "https://github.com/Photometrics/PyVCAM.git" },
     { name = "scikit-image", marker = "extra == 'hardware'", specifier = ">=0.18.0" },
     { name = "scipy", specifier = ">=1.7.0" },
     { name = "sphinx", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'", specifier = ">=1.0" },
 ]
-provides-extras = ["dev", "hardware", "pyrpl", "mock", "galvo"]
+provides-extras = ["dev", "test", "hardware", "pyrpl", "mock", "galvo"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -3625,6 +3661,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-benchmark"
+version = "5.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "py-cpuinfo" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/39/d0/a8bd08d641b393db3be3819b03e2d9bb8760ca8479080a26a5f6e540e99c/pytest-benchmark-5.1.0.tar.gz", hash = "sha256:9ea661cdc292e8231f7cd4c10b0319e56a2118e2c09d9f50e1b3d150d2aca105", size = 337810, upload-time = "2024-10-30T11:51:48.521Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/d6/b41653199ea09d5969d4e385df9bbfd9a100f28ca7e824ce7c0a016e3053/pytest_benchmark-5.1.0-py3-none-any.whl", hash = "sha256:922de2dfa3033c227c96da942d1878191afa135a29485fb942e85dff1c592c89", size = 44259, upload-time = "2024-10-30T11:51:45.94Z" },
+]
+
+[[package]]
 name = "pytest-cov"
 version = "6.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3665,6 +3714,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-xvfb"
+version = "3.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+    { name = "pyvirtualdisplay" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b6/ce/b3444c98eab123b7348d55d4705c2f1095a6bdf8dae85bc6a34ab5222845/pytest_xvfb-3.1.1.tar.gz", hash = "sha256:90593634427d974b272e845793e4533f5b827c9d84c051879013624504175e44", size = 9022, upload-time = "2025-03-12T12:35:07.533Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/26/6e/859b1e496671fb236153c2caed519301c53f7cf3dfcaac809caae695b5a4/pytest_xvfb-3.1.1-py3-none-any.whl", hash = "sha256:3270f91417cfa0652b7c5a90e93a676e3a80bec12ccbd20cae3b42511e4aba98", size = 5861, upload-time = "2025-03-12T12:35:06.028Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -3692,6 +3754,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f8/bf/abbd3cdfb8fbc7fb3d4d38d320f2441b1e7cbe29be4f23797b4a2b5d8aac/pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3", size = 320884, upload-time = "2025-03-25T02:25:00.538Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/c4/34e93fe5f5429d7570ec1fa436f1986fb1f00c3e0f43a589fe2bbcd22c3f/pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00", size = 509225, upload-time = "2025-03-25T02:24:58.468Z" },
+]
+
+[[package]]
+name = "pyvcam"
+version = "2.2.3"
+source = { git = "https://github.com/Photometrics/PyVCAM.git#210f728f86d7b436feb5fec859aa3c1b6f1e1403" }
+dependencies = [
+    { name = "numpy" },
+]
+
+[[package]]
+name = "pyvirtualdisplay"
+version = "3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/9f/23e5a82987c26d225139948a224a93318d7a7c8b166d4dbe4de7426dc4e4/PyVirtualDisplay-3.0.tar.gz", hash = "sha256:09755bc3ceb6eb725fb07eca5425f43f2358d3bf08e00d2a9b792a1aedd16159", size = 18560, upload-time = "2022-02-13T07:57:05.783Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/eb/c3b8deb661cb3846db63288c99bbb39f217b7807fc8acb2fd058db41e2e6/PyVirtualDisplay-3.0-py3-none-any.whl", hash = "sha256:40d4b8dfe4b8de8552e28eb367647f311f88a130bf837fe910e7f180d5477f0e", size = 15258, upload-time = "2022-02-13T07:57:04.051Z" },
 ]
 
 [[package]]
