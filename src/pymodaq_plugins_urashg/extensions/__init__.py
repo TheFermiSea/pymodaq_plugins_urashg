@@ -38,5 +38,8 @@ except ImportError as e:
     logger.warning(f"Could not import URASHG microscopy extension: {e}")
     URASHGMicroscopyExtension = None
 
+# Note: device_manager.py was removed due to conflicts with PyMoDAQ architecture
+# Extensions should use PyMoDAQ's dashboard.modules_manager for device coordination
+
 __version__ = "1.0.0"
 __author__ = "PyMoDAQ Plugin Development Team"

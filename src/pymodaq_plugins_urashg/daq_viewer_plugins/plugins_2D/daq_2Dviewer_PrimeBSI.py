@@ -1,5 +1,5 @@
 import numpy as np
-from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
+from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
 
@@ -52,7 +52,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
     - Dynamic ROI selection and on-the-fly intensity integration for 0D data export.
     """
 
-    params = [
+    params = comon_parameters + [
         {
             "title": "Camera Settings",
             "name": "camera_settings",
