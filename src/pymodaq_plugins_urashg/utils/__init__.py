@@ -26,13 +26,14 @@ except ImportError:
 
     class Config:
         """Minimal config fallback for testing environments"""
+
         config_template_path = Path(__file__).parent.parent.joinpath(
             "resources/config_template.toml"
         )
         config_name = "config_urashg"
 
     def get_module_name(name):
-        return name.split('.')[-1] if '.' in name else name
+        return name.split(".")[-1] if "." in name else name
 
     def set_logger(name, level=logging.INFO, add_to_console=True, **kwargs):
         return logging.getLogger(name)
@@ -70,7 +71,9 @@ except ImportError as e:
     from enum import Enum
 
     logger = logging.getLogger(__name__)
-    logger.info(f"PyRPL wrapper not available ({e}), using mock classes for development")
+    logger.info(
+        f"PyRPL wrapper not available ({e}), using mock classes for development"
+    )
 
     PYRPL_WRAPPER_AVAILABLE = False
 

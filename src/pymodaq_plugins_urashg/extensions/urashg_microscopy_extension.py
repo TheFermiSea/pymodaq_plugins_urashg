@@ -41,6 +41,7 @@ try:
     PYMODAQ_AVAILABLE = True
 except ImportError as e:
     import logging
+
     logger = logging.getLogger(__name__)
     logger.warning(f"PyMoDAQ not fully available: {e}")
     PYMODAQ_AVAILABLE = False
@@ -53,8 +54,10 @@ except ImportError as e:
     class Signal:
         def __init__(self, *args):
             pass
+
         def emit(self, *args):
             pass
+
         def connect(self, func):
             pass
 
@@ -231,7 +234,7 @@ class URASHGMicroscopyExtension(CustomApp):
         layout = QtWidgets.QVBoxLayout(self.main_widget)
 
         # Add parameter tree
-        if hasattr(self, 'settings_tree'):
+        if hasattr(self, "settings_tree"):
             layout.addWidget(self.settings_tree)
 
         # Add control buttons
@@ -288,7 +291,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Try to get modules from dashboard
         try:
-            if hasattr(self.dashboard, 'modules_manager'):
+            if hasattr(self.dashboard, "modules_manager"):
                 modules_manager = self.dashboard.modules_manager
                 # Add module detection logic here when PyMoDAQ is fully available
                 logger.info("Module detection completed")
@@ -368,7 +371,7 @@ class URASHGMicroscopyExtension(CustomApp):
         timestamp = time.strftime("%H:%M:%S")
         formatted_message = f"[{timestamp}] {message}"
 
-        if hasattr(self, 'status_text'):
+        if hasattr(self, "status_text"):
             self.status_text.append(formatted_message)
 
         logger.info(message)
@@ -382,7 +385,7 @@ class URASHGMicroscopyExtension(CustomApp):
             self.stop_measurement()
 
         # Clean up UI
-        if PYMODAQ_AVAILABLE and hasattr(self, 'dock'):
+        if PYMODAQ_AVAILABLE and hasattr(self, "dock"):
             self.dock.close()
 
 

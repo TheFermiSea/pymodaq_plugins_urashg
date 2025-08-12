@@ -43,6 +43,7 @@ try:
 except ImportError as e:
     # PyMoDAQ not available - minimal fallback for CI/testing
     import logging
+
     logging.warning(f"PyMoDAQ not available: {e}. Using minimal fallback.")
 
     __version__ = "0.0.0dev"
@@ -51,7 +52,7 @@ except ImportError as e:
 
     # Mock logger functions
     def get_module_name(name):
-        return name.split('.')[-1] if '.' in name else name
+        return name.split(".")[-1] if "." in name else name
 
     def set_logger(name, level=logging.INFO, add_to_console=True, **kwargs):
         return logging.getLogger(name)
