@@ -1,319 +1,384 @@
-# PyMoDAQ URASHG Plugins
+# PyMoDAQ URASHG Plugin Package
 
-[![PyMoDAQ](https://img.shields.io/badge/PyMoDAQ-5.0+-blue.svg)](https://pymodaq.cnrs.fr/)
-[![Python](https://img.shields.io/badge/Python-3.8+-brightgreen.svg)](https://python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Standards](https://img.shields.io/badge/Standards-PyMoDAQ%20Compliant-brightgreen.svg)](#pymodaq-standards-compliance)
-
-**Production-ready PyMoDAQ plugin package for μRASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems.**
+A **PyMoDAQ 5.x compliant** plugin package for **μRASHG (micro Rotational Anisotropy Second Harmonic Generation)** microscopy systems. This package provides complete hardware control and experimental automation for polarimetric SHG measurements following PyMoDAQ standards.
 
 ## Overview
 
-This package provides comprehensive automation and control for polarimetric second harmonic generation measurements, integrating multiple hardware components through PyMoDAQ's standard plugin architecture.
+The URASHG plugin package enables sophisticated polarimetric second harmonic generation measurements through PyMoDAQ's modular framework with full PyMoDAQ 5.x compliance:
 
-### Supported Hardware
+- **Standards-compliant architecture**: Follows PyMoDAQ plugin development guidelines
+- **Multi-device coordination**: Integrated laser control, polarization optics, cameras, and power meters
+- **Real-time data acquisition**: High-speed polarimetric measurements with PyMoDAQ framework integration
+- **Unified extension**: Single comprehensive extension for complete system control
+- **Hardware abstraction**: Works with real hardware or simulation mode
 
-- **🎛️ Newport ESP300**: Multi-axis motion controller (3-axis stages, focusing)
-- **🔄 Thorlabs ELL14**: Rotation mounts for polarization control (QWP, HWP)
-- **🔬 Photometrics Prime BSI**: Scientific camera with PyVCAM integration
-- **📊 Newport 1830-C**: Optical power meter with serial communication
-- **🎯 MaiTai**: Femtosecond laser with wavelength and shutter control
-- **📡 Red Pitaya**: FPGA-based PID control via PyRPL integration
+## PyMoDAQ 5.x Compliance
 
-## PyMoDAQ Standards Compliance
+This plugin package has been designed and tested for full compliance with PyMoDAQ 5.x standards:
 
-This package demonstrates **excellent PyMoDAQ 5.x standards compliance** and serves as a reference implementation:
+### Architecture Standards
+- **Hatchling build system**: Uses PyMoDAQ's standard build backend with dynamic entry point generation
+- **Single primary extension**: `URASHGMicroscopyExtension` provides comprehensive system control
+- **Standard plugin structure**: Proper separation of move plugins, viewer plugins, and hardware abstraction
+- **Configuration management**: Implements PyMoDAQ's Config class pattern with template-based configuration
 
-### ✅ **Framework Integration**
-- **Data Structures**: Proper `DataWithAxes` and `DataActuator` usage
-- **Threading Safety**: Explicit cleanup following PyMoDAQ lifecycle patterns
-- **Plugin Discovery**: All entry points correctly registered and discoverable
-- **Parameter Trees**: Standard PyMoDAQ parameter structure throughout
+### Plugin Discovery
+- **Dynamic entry points**: Automatic plugin discovery via PyMoDAQ's hatchling build hooks
+- **Feature declarations**: Proper `[features]` section in `pyproject.toml`
+- **Version management**: Uses PyMoDAQ's version management utilities
 
-### ✅ **Architecture Standards**
-- **Hardware Abstraction**: Clean separation between plugins and hardware controllers
-- **Multi-axis Support**: Correct implementation of single vs. multi-axis patterns
-- **Signal Patterns**: Modern `dte_signal` for data emission
-- **Qt Integration**: Full PySide6 compatibility with PyMoDAQ 5.x
+### Code Quality
+- **Import standards**: Consistent use of PyMoDAQ import patterns
+- **Error handling**: Proper PyMoDAQ exception handling and status reporting
+- **Type safety**: Modern Python typing with PyMoDAQ data structures
+- **Documentation**: Comprehensive inline documentation following PyMoDAQ conventions
 
-### ✅ **Quality Assurance**
-- **Threading Tests**: Comprehensive test suite preventing QThread crashes
-- **Plugin Validation**: All plugins verified working with PyMoDAQ framework
-- **Standards Verification**: 9/10 compliance rating with PyMoDAQ ecosystem patterns
+## Hardware Support
+
+### **Cameras**
+- **Photometrics Prime BSI** - sCMOS camera with PyVCAM integration
+- Full camera control: exposure, gain, ROI, readout modes
+- Real-time SHG image acquisition
+
+### **Motion Control**
+- **Thorlabs ELL14 Rotation Mounts** - Polarization control (QWP, HWP)
+- **MaiTai Laser** - Wavelength control and EOM power modulation  
+- **Newport ESP300** - Precision positioning stages
+- **Red Pitaya PID** - Laser stabilization (optional)
+
+### **Detection**
+- **Newport 1830-C Power Meter** - Optical power monitoring
+- Real-time power measurements during scans
 
 ## Installation
 
-### Standard Installation
+### Prerequisites
+
+1. **PVCAM SDK** (for camera support):
+   ```bash
+   # Download from Photometrics and install to /opt/pvcam
+   # Ensure the following files exist:
+   ls /opt/pvcam/sdk/include/pvcam.h
+   ls /etc/profile.d/pvcam-sdk.sh
+   ```
+
+2. **Python Environment**:
+   ```bash
+   # Requires Python 3.9+
+   python --version  # Should be 3.9 or higher
+   ```
+
+### Installation Steps
+
+1. **Clone and setup**:
+   ```bash
+   git clone https://github.com/PyMoDAQ/pymodaq_plugins_urashg.git
+   cd pymodaq_plugins_urashg
+   ```
+
+2. **Install with UV** (recommended):
+   ```bash
+   # Install UV package manager if not already installed
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   
+   # Create virtual environment and install
+   uv venv
+   source .venv/bin/activate
+   source /etc/profile.d/pvcam-sdk.sh  # Load PVCAM environment
+   uv pip install -e .
+   ```
+
+3. **Alternative: Install with pip**:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   source /etc/profile.d/pvcam-sdk.sh
+   pip install -e .
+   ```
+
+### Verify Installation
+
 ```bash
-# Clone repository
-git clone <repository-url>
-cd pymodaq_plugins_urashg
+# Test PyVCAM integration
+python -c "
+import pyvcam
+from pyvcam import pvc
+print('✓ PyVCAM available')
+pvc.init_pvcam()
+print(f'✓ PVCAM initialized, {pvc.get_cam_total()} cameras found')
+pvc.uninit_pvcam()
+"
 
-# Install in development mode
-pip install -e .
-```
-
-### With Optional Dependencies
-```bash
-# Hardware drivers
-pip install -e ".[hardware]"
-
-# Development tools
-pip install -e ".[dev]"
-
-# PyRPL integration
-pip install -e ".[pyrpl]"
-
-# All dependencies
-pip install -e ".[hardware,dev,pyrpl]"
+# Test plugin discovery
+python -c "
+from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
+from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import DAQ_Move_Elliptec
+print('✓ All plugins import successfully')
+"
 ```
 
 ## Quick Start
 
-### Plugin Discovery
-After installation, plugins are automatically discovered by PyMoDAQ:
-
-```python
-# Verify plugin availability
-import pymodaq_plugins_urashg
-from pymodaq.daq_utils import find_plugins
-
-plugins = find_plugins()
-# Should show: ESP300, Elliptec, MaiTai, Newport1830C, PrimeBSI
-```
-
-### Basic Usage
-
-#### Using Individual Plugins
-```python
-# Example: ESP300 motion controller
-from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import DAQ_Move_ESP300
-
-# Initialize plugin
-esp300 = DAQ_Move_ESP300()
-esp300.settings.child("connection_group", "mock_mode").setValue(True)
-
-# Connect and control
-result, success = esp300.ini_stage()
-if success:
-    positions = esp300.get_actuator_value()  # Get current positions
-    esp300.move_abs([1.0, 2.0, 3.0])        # Multi-axis move
-    esp300.close()                           # Clean shutdown
-```
-
-#### Using the Comprehensive Extension
-
-**⚠️ PyMoDAQ 5.1.0a0 Extension Discovery Issue**
-
-Due to a parsing bug in PyMoDAQ 5.1.0a0 (alpha), the Extensions menu appears grayed out. Use the provided standalone launcher as a workaround:
+### Option 1: Use Startup Script (Recommended)
 
 ```bash
-# Method 1: Minimal launcher (RECOMMENDED - WORKING SOLUTION)
-python launch_urashg_minimal.py
+./start_pymodaq_urashg.sh
+```
 
-# Method 2: Direct launcher (alternative)
-python launch_urashg_extension.py
+This script automatically:
+- Sets up the PVCAM environment
+- Tests plugin availability  
+- Launches PyMoDAQ dashboard with options
 
-# Method 3: Simple launcher (fallback)
-python launch_urashg_simple.py
+### Option 2: Manual Launch
 
-# Method 4: Standard PyMoDAQ (NOT WORKING due to bug)
+```bash
+# Setup environment
+source .venv/bin/activate
+source /etc/profile.d/pvcam-sdk.sh
+
+# Launch PyMoDAQ Dashboard
 python -m pymodaq.dashboard
-# Extension menu will be grayed out due to PyMoDAQ 5.1.0a0 parsing bug
 ```
 
-**Extension Features:**
-- 🎛️ Direct device controls for laser, shutter, and 3-axis rotators
-- 🔄 Automatic wavelength synchronization between laser and power meter
-- 📊 Multi-wavelength scanning with automated measurement sequences
-- 📈 Advanced RASHG curve fitting and analysis tools
-- ⚙️ Configuration management with JSON persistence
-- 🛡️ Safety interlocks and real-time device monitoring
-- 📁 FAIR-compliant data export with HDF5 format
+Then look for URASHG plugins in:
+- **Move plugins**: `Add Module → Move → DAQ_Move_Elliptec, DAQ_Move_MaiTai, DAQ_Move_ESP300`
+- **Viewer plugins**: `Add Module → Viewer → DAQ_2DViewer_PrimeBSI, DAQ_0DViewer_Newport1830C`
+- **Extensions**: `Extensions → URASHGMicroscopyExtension`
 
-## Available Plugins
+## Plugin Overview
 
-### Move Plugins (Actuators)
-- **`DAQ_Move_ESP300`**: Newport ESP300 multi-axis motion controller
-- **`DAQ_Move_Elliptec`**: Thorlabs ELL14 rotation mount control
-- **`DAQ_Move_MaiTai`**: MaiTai laser wavelength and shutter control
+### 🎥 **Camera Plugin: DAQ_2DViewer_PrimeBSI**
 
-### Viewer Plugins (Detectors)  
-- **`DAQ_2DViewer_PrimeBSI`**: Photometrics Prime BSI camera
-- **`DAQ_0DViewer_Newport1830C`**: Newport 1830-C optical power meter
+**Features:**
+- Real-time SHG imaging with Photometrics Prime BSI
+- Full PyVCAM integration with hardware control
+- Simulation mode for development without hardware
+- ROI selection and binning support
+- Temperature monitoring and control
 
-### Extensions (Complete Applications)
-- **`URASHGMicroscopyExtension`**: **NEW** - Comprehensive multi-device coordination extension
-  - **Launch Method**: `python launch_urashg_minimal.py` (WORKING - bypasses PyMoDAQ 5.1.0a0 extension discovery bug)
-  - 🎛️ Direct device controls for laser, shutter, and 3-axis rotators
-  - 🔄 Automatic wavelength synchronization between laser and power meter
-  - 📊 Multi-wavelength scanning with automated measurement sequences
-  - 📈 Advanced RASHG curve fitting and analysis tools
-  - ⚙️ Configuration management with JSON persistence
-  - 🛡️ Safety interlocks and real-time device monitoring
-  - 📁 FAIR-compliant data export with HDF5 format
+**Key Parameters:**
+- Exposure time: 1-10000 ms
+- Gain settings: 1x, 2x, 4x  
+- Readout ports: Multiple port selection
+- Clear modes: Pre-sequence, Never
+- ROI: Configurable region of interest
 
-### External Integration
-- **PyRPL Plugins**: Red Pitaya control via external `pymodaq_plugins_pyrpl` package
+### 🔄 **Motion Plugins**
 
-## Architecture
+#### **DAQ_Move_Elliptec** - Polarization Control
+- Controls up to 3 Thorlabs ELL14 rotation mounts
+- Axes: HWP Incident, QWP, HWP Analyzer  
+- Serial communication with multi-drop addressing
+- Precision: 0.1° angular resolution
 
-### Plugin Structure
-```
-src/pymodaq_plugins_urashg/
-├── daq_move_plugins/           # Actuator plugins
-├── daq_viewer_plugins/         # Detector plugins
-├── extensions/                 # Complete applications (NEW)
-│   ├── urashg_microscopy_extension.py    # Primary comprehensive extension
-│   └── device_manager.py                 # Centralized device coordination
-├── hardware/urashg/           # Hardware abstraction layer
-├── experiments/               # Experiment frameworks (legacy)
-└── utils/                     # Shared utilities
-```
+#### **DAQ_Move_MaiTai** - Laser Control  
+- Wavelength control: 700-1000 nm
+- EOM power modulation support
+- Serial communication with status monitoring
+- Real-time wavelength feedback
 
-### Hardware Abstraction
+#### **DAQ_Move_ESP300** - Positioning
+- Newport ESP300 motion controller
+- Multiple axis coordination
+- Precision positioning for sample manipulation
+
+### 📊 **Power Meter Plugin: DAQ_0DViewer_Newport1830C**
+
+- Real-time optical power monitoring
+- Multiple wavelength support
+- Integration with measurement sequences
+- Auto-ranging and averaging
+
+### 🔬 **Extension: URASHGMicroscopyExtension**
+
+**Complete experimental control:**
+- Multi-device coordination
+- Automated RASHG measurement sequences  
+- Real-time data analysis and visualization
+- Polarization sweep experiments
+- Multi-wavelength scanning
+- Data export and analysis tools
+
+## Typical Experiment Workflow
+
+### 1. **Hardware Setup**
 ```python
-# PyMoDAQ Plugin Layer
-DAQ_Move_ESP300 → ESP300Controller → Serial Communication
+# Camera initialization
+camera = DAQ_2DViewer_PrimeBSI()
+camera.ini_detector()
 
-# Benefits:
-# - Clean separation of concerns
-# - Reusable hardware drivers
-# - Testable components
-# - PyMoDAQ standard compliance
+# Polarization control
+elliptec = DAQ_Move_Elliptec()
+elliptec.ini_stage()
+
+# Power monitoring  
+power_meter = DAQ_0DViewer_Newport1830C()
+power_meter.ini_detector()
 ```
 
-## Testing
-
-### Comprehensive Test Suite
-```bash
-# Run all tests
-python scripts/run_all_tests.py
-
-# Threading safety tests (critical for PyMoDAQ)
-pytest tests/integration/test_threading_safety_comprehensive.py
-
-# Hardware compatibility tests
-pytest tests/integration/ -m "hardware"
-```
-
-### Test Categories
-- **`tests/unit/`**: Fast, isolated component tests
-- **`tests/integration/`**: Plugin and framework integration tests
-- **`tests/development/`**: GUI and development workflow tests
-
-### Mock Testing
-All plugins support mock mode for development without hardware:
+### 2. **RASHG Measurement**
 ```python
-plugin.settings.child("connection_group", "mock_mode").setValue(True)
+# Set wavelength
+laser.move_abs(800)  # 800 nm
+
+# Polarization sweep
+for angle in range(0, 180, 5):
+    elliptec.move_abs([angle, 0, 0])  # Rotate incident HWP
+    time.sleep(0.1)  # Stabilization
+    
+    # Capture SHG image
+    image = camera.grab_data()
+    
+    # Monitor power
+    power = power_meter.grab_data()
+    
+    # Process and save data
+    process_rashg_data(image, angle, power)
 ```
+
+### 3. **Automated Extension**
+```python
+# Use the complete extension for automated measurements
+extension = URASHGMicroscopyExtension()
+extension.run_rashg_scan(
+    pol_start=0, pol_end=180, pol_steps=36,
+    wavelengths=[780, 800, 820],
+    integration_time=100
+)
+```
+
+## Configuration
+
+### Hardware Configuration
+
+Edit `src/pymodaq_plugins_urashg/hardware/urashg/__init__.py`:
+
+```python
+# Serial port assignments
+ELLIPTEC_PORT = "/dev/ttyUSB1"  # Rotation mounts
+MAITAI_PORT = "/dev/ttyUSB0"    # Laser
+NEWPORT_PORT = "/dev/ttyS0"     # Power meter
+
+# Camera settings
+CAMERA_COOLING_TEMP = -20  # °C
+DEFAULT_EXPOSURE = 100     # ms
+```
+
+### Plugin Parameters
+
+Each plugin supports extensive parameter customization through PyMoDAQ's parameter system. Key settings:
+
+- **Exposure times**: Optimized for SHG signal levels
+- **Polarization ranges**: Configurable angular sweeps  
+- **Integration times**: Balanced speed vs. signal quality
+- **ROI settings**: Focus on sample regions of interest
 
 ## Development
 
-### PyMoDAQ Standards
-This package follows strict PyMoDAQ development standards:
+### Adding New Hardware
 
-- ✅ **Threading Safety**: No `__del__` methods in hardware controllers
-- ✅ **Explicit Cleanup**: Proper resource management via plugin `close()` methods  
-- ✅ **Data Structures**: Correct `DataWithAxes` and `DataActuator` patterns
-- ✅ **Parameter Trees**: Standard PyMoDAQ parameter organization
+1. **Create hardware controller**:
+   ```bash
+   touch src/pymodaq_plugins_urashg/hardware/urashg/new_device.py
+   ```
 
-### Code Quality
+2. **Create PyMoDAQ plugin**:
+   ```bash
+   touch src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_NewDevice.py
+   ```
+
+3. **Register in entry points** (`pyproject.toml`):
+   ```toml
+   [project.entry-points."pymodaq.move_plugins"]
+   "DAQ_Move_NewDevice" = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_NewDevice:DAQ_Move_NewDevice"
+   ```
+
+### Testing
+
 ```bash
-# Format code
-black src/
-isort src/
+# Run plugin tests
+pytest tests/ -v
 
-# Linting
-flake8 src/
-
-# Type checking
-mypy src/
+# Test specific plugin
+python -c "
+from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import DAQ_Move_Elliptec
+plugin = DAQ_Move_Elliptec()
+print('Plugin test successful')
+"
 ```
-
-### Contributing
-1. Follow PyMoDAQ plugin development standards
-2. Add comprehensive tests for new functionality
-3. Ensure threading safety (see `THREADING_SAFETY_GUIDELINES.md`)
-4. Update documentation
-
-## Hardware Setup
-
-### Connection Overview
-```
-PC ──┬── USB/Serial ──── Newport ESP300 (Motion)
-     ├── USB/Serial ──── Thorlabs ELL14 (Rotation)
-     ├── USB ─────────── Photometrics Camera
-     ├── Serial ──────── Newport 1830-C (Power)
-     ├── Serial ──────── MaiTai Laser
-     └── Ethernet ────── Red Pitaya (PyRPL)
-```
-
-### Configuration Examples
-See `examples/` directory for complete hardware setup and measurement examples.
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Extensions Menu Grayed Out (PyMoDAQ 5.1.0a0)**
-- ⚠️ **Root Cause**: PyMoDAQ 5.1.0a0 has a bug in extension discovery - it treats entry point string `module:class` as a module name instead of parsing it correctly
-- ✅ **Solution**: Use the working minimal launcher: `python launch_urashg_minimal.py`
-- 📋 **Error Message**: `WARNING:pymodaq.utils:Impossible to import the pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension package: No module named 'pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension'`
-- 🔮 **Future Fix**: Will be resolved when PyMoDAQ releases a stable version with fixed extension parsing
-- 🔧 **Technical Details**: The minimal launcher creates a `HybridDashboard` class that inherits from `DockArea` (required by CustomApp) while providing dashboard interfaces (required by URASHGDeviceManager)
-
-**PyMoDAQ CustomApp Initialization Pattern Discovered**:
-```python
-# Extension must call setup_ui() explicitly in __init__
-def __init__(self, dashboard):
-    super().__init__(dashboard)
-    # Initialize required attributes BEFORE setup_ui()
-    self.dockarea = dashboard  # CustomApp expects dockarea attribute
-    self.docks = {}           # Dict for individual dock storage
-    self.device_manager = URASHGDeviceManager(dashboard)  # Before UI setup
-    self.setup_ui()           # Manually initialize UI components
-
-def setup_ui(self):
-    self.setup_docks()        # Create dock layout
-    self.setup_actions()      # Create actions/menus  
-    self.setup_widgets()      # Create main widgets
-    self.connect_things()     # Connect signals/slots
-```
-
-**Dashboard Crashes on Plugin Initialization**
-- ✅ Fixed: Threading safety issues resolved in v0.1.0
-- See: `THREADING_SAFETY_GUIDELINES.md`
-
-**Plugin Not Discovered**
-```python
-# Verify entry points
-pip show -v pymodaq-plugins-urashg
-
-# Reinstall in development mode
-pip install -e .
-```
-
-**Hardware Connection Issues**
-- Check serial port permissions: `sudo usermod -a -G dialout $USER`
-- Verify device connections and power
-- Try mock mode first: `mock_mode = True`
-
-**Extension Import Errors**
+#### **PyVCAM Installation**
 ```bash
-# Verify extension can be imported directly
-python -c "from src.pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension; print('Extension OK')"
-
-# Check entry point registration
-python -c "import pkg_resources; print([ep.name for ep in pkg_resources.iter_entry_points('pymodaq.extensions')])"
+# Error: KeyError: 'PVCAM_SDK_PATH'
+export PVCAM_SDK_PATH="/opt/pvcam/sdk"
+source /etc/profile.d/pvcam-sdk.sh
 ```
+
+#### **Plugin Discovery**
+```bash
+# If plugins don't appear in PyMoDAQ:
+rm -rf ~/.pymodaq/cache/  # Clear cache
+uv pip uninstall pymodaq-plugins-urashg
+uv pip install -e .       # Reinstall
+```
+
+#### **Serial Communication**
+```bash
+# Check device permissions
+sudo usermod -a -G dialout $USER  # Add user to dialout group
+sudo chmod 666 /dev/ttyUSB*        # Grant permissions
+```
+
+#### **Camera Issues**
+```bash
+# Test PVCAM directly
+/opt/pvcam/bin/PVCamTest/x86_64/PVCamTest
+
+# Check camera temperature
+python -c "
+from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
+camera = DAQ_2DViewer_PrimeBSI()
+camera.ini_detector()
+print(f'Camera ready, simulation mode: {camera.simulation_mode}')
+"
+```
+
+### Performance Tips
+
+1. **Optimize exposure times** based on SHG signal strength
+2. **Use ROI** to reduce data transfer and increase frame rates  
+3. **Enable hardware binning** for improved signal-to-noise
+4. **Monitor temperature** for stable long-term measurements
+5. **Use appropriate averaging** for noise reduction
 
 ## Documentation
 
-- **`CLAUDE.md`**: Comprehensive project documentation and development guide
-- **`THREADING_SAFETY_GUIDELINES.md`**: Critical threading safety patterns for PyMoDAQ
-- **`docs/MIGRATION_GUIDE.md`**: PyMoDAQ 4.x → 5.x migration details
-- **`tests/README.md`**: Test organization and execution guide
+- **API Documentation**: See `docs/` directory
+- **Example Scripts**: See `examples/` directory  
+- **Hardware Manuals**: Check manufacturer documentation
+- **PyMoDAQ Documentation**: [pymodaq.org](http://pymodaq.org)
+
+## Support
+
+### Getting Help
+
+1. **Check logs**: PyMoDAQ logs provide detailed error information
+2. **Test individual plugins**: Isolate issues to specific components
+3. **Hardware verification**: Test devices with manufacturer software
+4. **GitHub Issues**: Report bugs and feature requests
+
+### Contributing
+
+1. **Fork the repository**
+2. **Create feature branch**: `git checkout -b feature/new-device`
+3. **Follow coding standards**: Use Black formatter and type hints
+4. **Add tests**: Ensure new code is tested
+5. **Submit pull request**: Include clear description of changes
 
 ## License
 
@@ -321,31 +386,28 @@ MIT License - see `LICENSE` file for details.
 
 ## Citation
 
-If you use this package in your research, please cite:
+If you use this plugin package in your research, please cite:
+
 ```bibtex
-@software{pymodaq_plugins_urashg,
-  title={PyMoDAQ URASHG Plugins},
-  author={TheFermiSea},
+@software{pymodaq_urashg_plugin,
+  title={PyMoDAQ URASHG Plugin Package},
+  author={PyMoDAQ Plugin Development Team},
+  year={2025},
   url={https://github.com/PyMoDAQ/pymodaq_plugins_urashg},
-  version={0.1.0},
-  year={2025}
+  version={0.1.0}
 }
 ```
 
-## Support
+## Acknowledgments
 
-- **PyMoDAQ Community**: [https://pymodaq.cnrs.fr/](https://pymodaq.cnrs.fr/)
-- **Issues**: Use GitHub Issues for bug reports and feature requests
-- **Discussions**: PyMoDAQ community forums for usage questions
+- **PyMoDAQ Team** - Framework and architecture
+- **Photometrics** - PyVCAM library and camera support  
+- **Thorlabs** - Elliptec rotation mount hardware
+- **Newport** - Power meter and motion control hardware
+- **μRASHG Research Community** - Scientific guidance and testing
 
 ---
 
-**Status**: Production Ready ✅ | **Extension Status**: **FULLY FUNCTIONAL** ✅ | **PyMoDAQ Version**: 5.0+ | **Python**: 3.8+
+**Ready for your μRASHG measurements!** 🔬✨
 
-**✅ CONFIRMED WORKING**: μRASHG Extension successfully launches with comprehensive UI including:
-- 🎛️ Control panel with measurement controls (Start/Stop/Pause buttons)
-- 🔄 Device control tabs for laser, rotators, and power meter
-- 📊 Live camera preview dock
-- 📈 RASHG analysis dock with polar plots
-- ⚙️ System status monitoring with periodic device health checks
-- 🛡️ Complete safety interlocks and error handling
+For the latest updates and documentation, visit: [GitHub Repository](https://github.com/PyMoDAQ/pymodaq_plugins_urashg)

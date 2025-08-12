@@ -1,23 +1,29 @@
 """
-PyMoDAQ Experiments for μRASHG (micro Rotational Anisotropy Second Harmonic Generation)
+PyMoDAQ URASHG Experiments Module
 
-This module provides a comprehensive suite of PyMoDAQ experiments for advanced 
-polarimetric SHG measurements with precise control over:
-- Laser wavelength and power via EOM control
-- Multi-rotator polarization states (QWP and dual HWP system)
-- 2D camera detection with ROI support
-- Real-time calibration and feedback control
+This module contains specialized scientific experiment workflows for μRASHG
+(micro Rotational Anisotropy Second Harmonic Generation) microscopy measurements.
 
-Available Experiments:
-- EOMCalibrationExperiment: PID-based laser power calibration
-- ElliptecCalibrationExperiment: Rotator alignment and Malus law fitting
-- VariableAttenuatorCalibrationExperiment: Power control calibration
-- PDSHGExperiment: Power-dependent RASHG measurements
-- BasicURASHGExperiment: Full 4D μRASHG data collection
-- WavelengthDependentRASHGExperiment: Spectroscopic measurements
+NOTE: This experiments module is part of the pymodaq_plugins_urashg package and
+provides domain-specific measurement protocols for polarimetric SHG microscopy.
+While PyMoDAQ plugins typically focus on hardware drivers, this package includes
+these experiments due to their tight integration with the URASHG hardware ecosystem.
+
+The experiments are designed to work with the URASHGMicroscopyExtension and provide:
+- Calibration workflows for multi-device polarimetric systems
+- Complex measurement protocols requiring hardware coordination
+- Scientific analysis tools specific to RASHG techniques
+
+Available Experiment Classes:
+- EOMCalibrationExperiment: Laser power control calibration with PID feedback
+- ElliptecCalibrationExperiment: Multi-rotator polarization alignment and Malus law fitting
+- VariableAttenuatorCalibrationExperiment: Continuous power control calibration
+- PDSHGExperiment: Power-dependent RASHG measurements with real-time analysis
+- BasicURASHGExperiment: Complete 4D μRASHG data collection with camera integration
+- WavelengthDependentRASHGExperiment: Spectroscopic RASHG measurements
 
 Author: PyMoDAQ Plugin Development Team
-Created: August 2025
+License: MIT
 """
 
 from .base_experiment import URASHGBaseExperiment
@@ -39,7 +45,7 @@ except NotImplementedError:
 
 __all__ = [
     'URASHGBaseExperiment',
-    'EOMCalibrationExperiment', 
+    'EOMCalibrationExperiment',
     'ElliptecCalibrationExperiment',
     'VariableAttenuatorCalibrationExperiment',
     'PDSHGExperiment',
@@ -51,7 +57,7 @@ __all__ = [
 IMPLEMENTED_EXPERIMENTS = [
     'URASHGBaseExperiment',
     'EOMCalibrationExperiment',
-    'ElliptecCalibrationExperiment', 
+    'ElliptecCalibrationExperiment',
     'VariableAttenuatorCalibrationExperiment',
     'PDSHGExperiment'
 ]
@@ -62,5 +68,15 @@ FUTURE_EXPERIMENTS = [
     'WavelengthDependentRASHGExperiment'
 ]
 
+# Module metadata
 __version__ = "1.0.0"
-__author__ = "PyMoDAQ URASHG Development Team"
+__author__ = "PyMoDAQ Plugin Development Team"
+__license__ = "MIT"
+
+# Package integration note
+INTEGRATION_NOTE = """
+This experiments module is included in the pymodaq_plugins_urashg package due to
+the specialized nature of RASHG measurements which require tight coordination between
+multiple hardware devices and complex measurement protocols. These are not general-purpose
+experiments but domain-specific workflows for polarimetric SHG microscopy.
+"""

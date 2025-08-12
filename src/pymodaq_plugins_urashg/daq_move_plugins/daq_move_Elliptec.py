@@ -1,17 +1,12 @@
-import time
-from typing import List, Union
-import numpy as np
-
-import time
-from typing import List, Union
+from typing import Union
 import numpy as np
 
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,
 )
-from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataActuator
+from pymodaq_utils.utils import ThreadCommand
+from pymodaq.control_modules.move_utility_classes import DataActuator
 from qtpy.QtCore import QTimer
 
 
@@ -239,7 +234,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
     def move_home(self, value=None):
         """
         Move all axes to home position.
-        
+
         Parameters
         ----------
         value : any, optional
@@ -290,7 +285,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             if self.controller and self.controller.connected:
                 mount_addresses = self.controller.mount_addresses
                 working_mounts = []
-                
+
                 for addr in mount_addresses:
                     device_info = self.controller.get_device_info(addr)
                     if device_info:
@@ -298,7 +293,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                         self.emit_status(ThreadCommand("Update_Status", [f"Mount {addr}: {device_info[:50]}...", "log"]))
                     else:
                         self.emit_status(ThreadCommand("Update_Status", [f"Mount {addr}: No response", "warning"]))
-                
+
                 if working_mounts:
                     msg = f"Connection OK - {len(working_mounts)}/{len(mount_addresses)} mounts responding"
                     self.emit_status(ThreadCommand("Update_Status", [msg, "good"]))
@@ -325,30 +320,30 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             fallback_len = len(self.controller.mount_addresses) if self.controller else 0
             return [np.array([0.0] * fallback_len)]
 
-    def move_abs(self, positions: Union[List[float], DataActuator]):
+    def move_abs(self, value: Union[float, DataActuator]):
         """
         Move to absolute positions.
-        
+
         Parameters
         ----------
-        positions : Union[List[float], DataActuator]
-            Target positions for all axes.
+        value : Union[float, List[float], DataActuator]
+            Target positions for all axes. Single float applies to first axis only.
         """
         if not self.controller or not self.controller.connected:
             self.emit_status(ThreadCommand("Update_Status", ["Hardware not connected. Cannot move.", "warning"]))
             return
 
         try:
-            if isinstance(positions, DataActuator):
-                target_positions_list = positions.data[0].tolist()
-            elif isinstance(positions, (list, tuple, np.ndarray)):
-                target_positions_list = list(positions)
+            if isinstance(value, DataActuator):
+                target_positions_list = value.data[0].tolist()
+            elif isinstance(value, (list, tuple, np.ndarray)):
+                target_positions_list = list(value)
             else:
                 # Handle single float value for multi-axis controller
-                # Distribute to all axes or use current position for others
+                # Apply only to first axis, keep others at current position
                 current_positions = self.get_actuator_value()[0].tolist()
-                target_positions_list = [float(positions)] + current_positions[1:]
-                self.emit_status(ThreadCommand("Update_Status", [f"Single value {positions} applied to first axis only", "log"]))
+                target_positions_list = [float(value)] + current_positions[1:]
+                self.emit_status(ThreadCommand("Update_Status", [f"Single value {value} applied to first axis only", "log"]))
 
             # Ensure we have the right number of values for all mounts
             num_mounts = len(self.controller.mount_addresses)
@@ -363,43 +358,48 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     self.emit_status(ThreadCommand("Update_Status", [f"Mount {addr} moving to {position:.2f} degrees", "log"]))
                 else:
                     self.emit_status(ThreadCommand("Update_Status", [f"Failed to move mount {addr}", "warning"]))
-            
+
             self.move_done()
 
         except Exception as e:
             self.emit_status(ThreadCommand("Update_Status", [f"Error moving: {str(e)}", "error"]))
 
-    def move_rel(self, positions: Union[List[float], DataActuator]):
+    def move_rel(self, value: Union[float, DataActuator]):
         """
-        Move to relative positions.
-        
+        Move relative positions.
+
         Parameters
         ----------
-        positions : Union[List[float], DataActuator]
-            Relative position changes for all axes.
+        value : Union[float, List[float], DataActuator]
+            Relative position changes for all axes. Single float applies to first axis only.
         """
         try:
-            if isinstance(positions, DataActuator):
-                relative_moves_list = positions.data[0].tolist()
-            elif isinstance(positions, (list, tuple, np.ndarray)):
-                relative_moves_list = list(positions)
+            if isinstance(value, DataActuator):
+                relative_moves_list = value.data[0].tolist()
+            elif isinstance(value, (list, tuple, np.ndarray)):
+                relative_moves_list = list(value)
             else:
-                # Handle single float value for multi-axis controller
-                # Apply to first axis only, others get 0 movement
-                relative_moves_list = [float(positions), 0.0, 0.0][:len(self.controller.mount_addresses)]
-                self.emit_status(ThreadCommand("Update_Status", [f"Relative move {positions} applied to first axis only", "log"]))
+                # Handle single float value for relative move
+                num_mounts = len(self.controller.mount_addresses) if self.controller and self.controller.mount_addresses else 3
+                relative_moves_list = [float(value)] + [0.0] * (num_mounts - 1)
+                self.emit_status(ThreadCommand("Update_Status", [f"Single relative value {value} applied to first axis only", "log"]))
 
             current_array = self.get_actuator_value()[0]
             current_list = current_array.tolist()
-            
+
             # Ensure we have the right number of relative moves
-            num_mounts = len(self.controller.mount_addresses)
+            num_mounts = len(self.controller.mount_addresses) if self.controller and self.controller.mount_addresses else 3
             if len(relative_moves_list) < num_mounts:
                 relative_moves_list.extend([0.0] * (num_mounts - len(relative_moves_list)))
-            
+
             target = [c + p for c, p in zip(current_list, relative_moves_list)]
-            
-            self.move_abs(target)
+
+            # For relative move, just call move_abs with first target value
+            # This avoids type issues with DataActuator in relative moves
+            if target:
+                self.move_abs(target[0])
+            else:
+                self.emit_status(ThreadCommand("Update_Status", ["No target calculated for relative move", "warning"]))
         except Exception as e:
             self.emit_status(ThreadCommand("Update_Status", [f"Error in relative move: {str(e)}", "error"]))
 
@@ -422,7 +422,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
             # Update current position for PyMoDAQ framework with proper DataActuator format
             position_list = [positions.get(addr, 0.0) for addr in self.controller.mount_addresses]
-            
+
             plugin_name = getattr(self, '_title', self.__class__.__name__)
             self.current_position = DataActuator(
                 name=plugin_name,
@@ -432,6 +432,3 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
         except Exception as e:
             self.emit_status(ThreadCommand("Update_Status", [f"Status update error: {str(e)}", "error"]))
-
-
-

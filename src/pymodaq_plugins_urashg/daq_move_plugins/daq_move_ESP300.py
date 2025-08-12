@@ -16,9 +16,9 @@ from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,
 )
-from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataActuator
+from pymodaq_utils.utils import ThreadCommand
+from pymodaq_gui.parameter import Parameter
+from pymodaq.control_modules.move_utility_classes import DataActuator
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
     AxisConfig,
@@ -603,28 +603,28 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             else:
                 return 0.0
 
-    def move_abs(self, position: Union[float, List[float], DataActuator]):
+    def move_abs(self, value: Union[float, List[float], DataActuator]):
         """
         Move to absolute position(s).
 
         Parameters
         ----------
-        position : Union[float, List[float], DataActuator]
-            Target position(s). For DataActuator objects in multi-axis mode, use position.data[0]
+        value : Union[float, List[float], DataActuator]
+            Target position(s). For DataActuator objects in multi-axis mode, use value.data[0]
             to extract the numpy array (PyMoDAQ 5.x multi-axis pattern).
         """
         try:
             # Handle mock mode - simulate successful move
             if not self.controller:
                 # Extract target positions for mock mode response
-                if isinstance(position, DataActuator):
+                if isinstance(value, DataActuator):
                     if self.is_multiaxes:
-                        target_positions_array = position.data[0]
+                        target_positions_array = value.data[0]
                         target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
                     else:
-                        target_positions_list = float(position.value())
+                        target_positions_list = float(value.value())
                 else:
-                    target_positions_list = position
+                    target_positions_list = value
 
                 self.emit_status(
                     ThreadCommand("Update_Status", ["ESP300 mock move completed"])
@@ -657,17 +657,17 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 return
 
             # Extract numerical value(s) from DataActuator
-            if isinstance(position, DataActuator):
+            if isinstance(value, DataActuator):
                 if self.is_multiaxes:
-                    # Multi-axis: position.data[0] is numpy array with multiple values
-                    target_positions_array = position.data[0]
+                    # Multi-axis: value.data[0] is numpy array with multiple values
+                    target_positions_array = value.data[0]
                     target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
-                    target_positions_list = float(position.value())
+                    target_positions_list = float(value.value())
             else:
                 # Fallback for direct numerical input (backward compatibility)
-                target_positions_list = position
+                target_positions_list = value
 
             if self.is_multiaxes:
                 if not isinstance(target_positions_list, (list, tuple, np.ndarray)):
@@ -729,29 +729,29 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             self.emit_status(ThreadCommand("Update_Status", [f"Move error: {e}"]))
             self.settings.child("status_group", "last_error").setValue(str(e))
 
-    def move_rel(self, position: Union[float, List[float], DataActuator]):
+    def move_rel(self, value: Union[float, List[float], DataActuator]):
         """
         Move by relative distance(s).
 
         Parameters
         ----------
-        position : Union[float, List[float], DataActuator]
-            Relative move distance(s). For DataActuator objects in multi-axis mode, use position.data[0]
+        value : Union[float, List[float], DataActuator]
+            Relative move distance(s). For DataActuator objects in multi-axis mode, use value.data[0]
             to extract the numpy array (PyMoDAQ 5.x multi-axis pattern).
         """
         try:
             # Extract numerical value(s) from DataActuator
-            if isinstance(position, DataActuator):
+            if isinstance(value, DataActuator):
                 if self.is_multiaxes:
-                    # Multi-axis: position.data[0] is numpy array with multiple values
-                    relative_moves_array = position.data[0]
+                    # Multi-axis: value.data[0] is numpy array with multiple values
+                    relative_moves_array = value.data[0]
                     relative_moves_list = relative_moves_array.tolist() if hasattr(relative_moves_array, 'tolist') else list(relative_moves_array)
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
-                    relative_moves_list = float(position.value())
+                    relative_moves_list = float(value.value())
             else:
                 # Fallback for direct numerical input (backward compatibility)
-                relative_moves_list = position
+                relative_moves_list = value
 
             # Get current positions and add relative moves
             current_positions = self.get_actuator_value()
