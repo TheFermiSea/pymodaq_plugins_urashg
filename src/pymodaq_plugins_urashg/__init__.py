@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 PyMoDAQ Plugin Package for URASHG
 (micro Rotational Anisotropy Second Harmonic Generation) Microscopy
@@ -17,15 +18,20 @@ The package follows PyMoDAQ's modular architecture with separate plugins for:
 
 Author: PyMoDAQ Plugin Development Team
 License: MIT
-Version: 0.1.0
 """
 
-__version__ = "0.1.0"
-__author__ = "PyMoDAQ Plugin Development Team"
-__email__ = "contact@pymodaq.org"
-__license__ = "MIT"
+from pathlib import Path
+from .utils import Config
+from pymodaq_utils.utils import get_version, PackageNotFoundError
+from pymodaq_utils.logger import set_logger, get_module_name
+
+config = Config()
+try:
+    __version__ = get_version(__package__)
+except PackageNotFoundError:
+    __version__ = '0.0.0dev'
 
 # Hardware abstraction layers
 from .hardware import urashg
 
-__all__ = ["__version__", "__author__", "__email__", "__license__", "urashg"]
+__all__ = ["__version__", "config", "urashg"]

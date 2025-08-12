@@ -1,0 +1,173 @@
+# Configuration template for PyMoDAQ URASHG Plugin Package
+# This file defines the default configuration values for the μRASHG microscopy plugin
+
+[urashg]
+# Main configuration section for URASHG microscopy
+
+[urashg.hardware]
+# Hardware connection defaults
+
+[urashg.hardware.elliptec]
+# Elliptec rotation mounts configuration
+serial_port = "/dev/ttyUSB1"
+baudrate = 9600
+timeout = 2.0
+
+# Device addresses for different rotators
+hwp_incident_address = 2 # H800 - incident polarization control
+qwp_address = 3          # Q800 - quarter wave plate (optional)
+hwp_analyzer_address = 8 # H400 - analyzer polarization
+
+# Calibration parameters
+position_tolerance = 0.1 # degrees
+home_timeout = 30.0      # seconds
+max_rotation_speed = 100 # degrees/second
+
+[urashg.hardware.camera]
+# Photometrics Prime BSI camera configuration
+simulation_mode = false
+exposure_time = 100     # milliseconds
+gain = 1
+binning = 1
+roi_enabled = false
+roi_x = 0
+roi_y = 0
+roi_width = 2048
+roi_height = 2048
+
+[urashg.hardware.maitai]
+# MaiTai laser configuration
+serial_port = "/dev/ttyUSB0"
+baudrate = 9600
+timeout = 5.0
+wavelength_range_min = 700.0  # nm
+wavelength_range_max = 1000.0 # nm
+power_range_min = 0.0         # watts
+power_range_max = 3.5         # watts
+
+[urashg.hardware.newport]
+# Newport 1830-C power meter configuration
+gpib_address = 1
+timeout = 5.0
+wavelength = 800.0 # nm - default measurement wavelength
+auto_range = true
+range_value = 1.0  # watts - manual range if auto_range = false
+
+[urashg.hardware.esp300]
+# Newport ESP300 motion controller
+serial_port = "/dev/ttyUSB2"
+baudrate = 19200
+timeout = 10.0
+axis_count = 3
+
+[urashg.calibration]
+# Calibration file locations and parameters
+
+[urashg.calibration.paths]
+# Default paths for calibration data
+base_dir = "~/pymodaq_data/urashg_calibrations"
+eom_calibration = "eom_calibration.h5"
+elliptec_calibration = "elliptec_calibration.h5"
+variable_attenuator = "variable_attenuator_calibration.h5"
+
+[urashg.calibration.eom]
+# EOM calibration parameters
+voltage_range_min = 0.0         # volts
+voltage_range_max = 10.0        # volts
+power_control_tolerance = 0.001 # relative error
+pid_kp = 24.0
+pid_ki = 3.0
+pid_kd = 0.0125
+
+[urashg.calibration.elliptec]
+# Elliptec calibration parameters
+angle_range = 360.0    # degrees
+angle_step = 1.0       # degrees
+malus_fit_points = 180 # number of points for Malus law fitting
+
+[urashg.experiments]
+# Experiment configuration defaults
+
+[urashg.experiments.pdshg]
+# Power-dependent SHG experiment
+power_points = 20
+angle_points = 180
+angle_range = 360.0           # degrees
+power_spacing = "logarithmic" # "linear" or "logarithmic"
+integration_time = 1.0        # seconds per point
+background_subtraction = true
+
+[urashg.experiments.wavelength_scan]
+# Wavelength-dependent measurements
+wavelength_step = 5.0        # nm
+integration_time = 2.0       # seconds per wavelength
+auto_power_adjustment = true
+
+[urashg.gui]
+# GUI configuration
+
+[urashg.gui.plots]
+# Plotting preferences
+default_colormap = "viridis"
+auto_scale = true
+grid_enabled = true
+legend_enabled = true
+
+[urashg.gui.layout]
+# Window layout preferences
+dock_size = [1200, 800] # [width, height] in pixels
+remember_layout = true
+
+[urashg.data]
+# Data handling configuration
+
+[urashg.data.storage]
+# Data storage preferences
+base_directory = "~/pymodaq_data/urashg"
+auto_save = true
+compression = "gzip"
+compression_level = 6
+
+[urashg.data.format]
+# Data format preferences
+timestamp_format = "%Y%m%d_%H%M%S"
+filename_template = "urashg_{experiment}_{timestamp}"
+include_metadata = true
+
+[urashg.safety]
+# Safety and protection limits
+
+[urashg.safety.power]
+# Laser power safety limits
+max_average_power = 2.0 # watts
+max_peak_power = 50.0   # watts (for pulsed operation)
+power_ramp_rate = 0.1   # watts/second
+
+[urashg.safety.thermal]
+# Thermal protection
+max_duty_cycle = 0.8     # fraction
+cooling_time = 60.0      # seconds between high-power measurements
+temperature_limit = 50.0 # Celsius (if temperature monitoring available)
+
+[urashg.logging]
+# Logging configuration
+level = "INFO"                 # DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_to_file = true
+log_file = "urashg_plugin.log"
+max_log_size = 10              # MB
+backup_count = 5               # number of backup log files
+
+[urashg.advanced]
+# Advanced configuration options
+
+[urashg.advanced.timing]
+# Timing and synchronization
+measurement_delay = 0.1    # seconds between measurements
+device_settling_time = 0.5 # seconds for device stabilization
+timeout_multiplier = 2.0   # factor for extending timeouts
+
+[urashg.advanced.parallel]
+# Parallel processing options
+max_workers = 4     # number of parallel threads
+enable_async = true # enable asynchronous operations
+queue_size = 100    # maximum queue size for data processing
