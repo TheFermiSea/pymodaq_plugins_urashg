@@ -42,6 +42,7 @@ from pymodaq_utils.config import Config
 
 import json
 from qtpy.QtCore import QThread
+
 logger = set_logger(get_module_name(__file__))
 
 
@@ -54,10 +55,12 @@ class URASHGMicroscopyExtension(CustomApp):
     """
 
     # Extension metadata
-    name = 'μRASHG Microscopy System'
-    description = 'Complete polarimetric SHG measurements with multi-device coordination'
-    author = 'μRASHG Development Team'
-    version = '1.0.0'
+    name = "μRASHG Microscopy System"
+    description = (
+        "Complete polarimetric SHG measurements with multi-device coordination"
+    )
+    author = "μRASHG Development Team"
+    version = "1.0.0"
 
     # Signals for inter-component communication
     measurement_started = Signal()
@@ -68,104 +71,383 @@ class URASHGMicroscopyExtension(CustomApp):
 
     # Parameter tree definition
     params = [
-        {'title': 'Experiment Configuration', 'name': 'experiment', 'type': 'group', 'children': [
-            {'title': 'Measurement Type:', 'name': 'measurement_type', 'type': 'list',
-             'limits': ['Basic RASHG', 'Multi-Wavelength RASHG', 'Full Polarimetric SHG', 'Calibration'],
-             'value': 'Basic RASHG'},
-            {'title': 'Polarization Steps:', 'name': 'pol_steps', 'type': 'int',
-             'value': 36, 'min': 4, 'max': 360, 'step': 1},
-            {'title': 'Integration Time (ms):', 'name': 'integration_time', 'type': 'int',
-             'value': 100, 'min': 1, 'max': 10000, 'step': 1},
-            {'title': 'Number of Averages:', 'name': 'averages', 'type': 'int',
-             'value': 1, 'min': 1, 'max': 100, 'step': 1},
-            {'title': 'Polarization Range', 'name': 'pol_range', 'type': 'group', 'children': [
-                {'title': 'Start Angle (°):', 'name': 'pol_start', 'type': 'float',
-                 'value': 0.0, 'min': 0.0, 'max': 360.0, 'step': 0.1},
-                {'title': 'End Angle (°):', 'name': 'pol_end', 'type': 'float',
-                 'value': 180.0, 'min': 0.0, 'max': 360.0, 'step': 0.1},
-            ]},
-        ]},
-
-        {'title': 'Hardware Settings', 'name': 'hardware', 'type': 'group', 'children': [
-            {'title': 'Device Configuration', 'name': 'devices', 'type': 'group', 'children': [
-                {'title': 'QWP Device:', 'name': 'qwp_device', 'type': 'str',
-                 'value': 'Elliptec', 'readonly': True},
-                {'title': 'QWP Axis Index:', 'name': 'qwp_axis', 'type': 'int',
-                 'value': 0, 'min': 0, 'max': 2, 'readonly': True},
-                {'title': 'HWP Incident Device:', 'name': 'hwp_inc_device', 'type': 'str',
-                 'value': 'Elliptec', 'readonly': True},
-                {'title': 'HWP Incident Axis:', 'name': 'hwp_inc_axis', 'type': 'int',
-                 'value': 1, 'min': 0, 'max': 2, 'readonly': True},
-                {'title': 'HWP Analyzer Device:', 'name': 'hwp_ana_device', 'type': 'str',
-                 'value': 'Elliptec', 'readonly': True},
-                {'title': 'HWP Analyzer Axis:', 'name': 'hwp_ana_axis', 'type': 'int',
-                 'value': 2, 'min': 0, 'max': 2, 'readonly': True},
-                {'title': 'Camera Device:', 'name': 'camera_device', 'type': 'str',
-                 'value': 'PrimeBSI', 'readonly': True},
-                {'title': 'Power Meter Device:', 'name': 'power_device', 'type': 'str',
-                 'value': 'Newport1830C', 'readonly': True},
-                {'title': 'Laser Device:', 'name': 'laser_device', 'type': 'str',
-                 'value': 'MaiTai', 'readonly': True},
-            ]},
-
-            {'title': 'Camera Settings', 'name': 'camera', 'type': 'group', 'children': [
-                {'title': 'ROI Settings', 'name': 'roi', 'type': 'group', 'children': [
-                    {'title': 'X Start:', 'name': 'x_start', 'type': 'int',
-                     'value': 0, 'min': 0, 'max': 2048},
-                    {'title': 'Y Start:', 'name': 'y_start', 'type': 'int',
-                     'value': 0, 'min': 0, 'max': 2048},
-                    {'title': 'Width:', 'name': 'width', 'type': 'int',
-                     'value': 2048, 'min': 1, 'max': 2048},
-                    {'title': 'Height:', 'name': 'height', 'type': 'int',
-                     'value': 2048, 'min': 1, 'max': 2048},
-                ]},
-                {'title': 'Binning:', 'name': 'binning', 'type': 'list',
-                 'limits': ['1x1', '2x2', '4x4'], 'value': '1x1'},
-            ]},
-
-            {'title': 'Safety Limits', 'name': 'safety', 'type': 'group', 'children': [
-                {'title': 'Max Laser Power (%):', 'name': 'max_power', 'type': 'float',
-                 'value': 50.0, 'min': 0.0, 'max': 100.0, 'step': 0.1},
-                {'title': 'Rotation Speed (°/s):', 'name': 'rotation_speed', 'type': 'float',
-                 'value': 30.0, 'min': 1.0, 'max': 100.0, 'step': 1.0},
-                {'title': 'Camera Timeout (s):', 'name': 'camera_timeout', 'type': 'float',
-                 'value': 5.0, 'min': 0.1, 'max': 60.0, 'step': 0.1},
-                {'title': 'Movement Timeout (s):', 'name': 'movement_timeout', 'type': 'float',
-                 'value': 10.0, 'min': 1.0, 'max': 60.0, 'step': 0.1},
-            ]},
-        ]},
-
-        {'title': 'Multi-Wavelength Settings', 'name': 'wavelength', 'type': 'group', 'children': [
-            {'title': 'Enable Wavelength Scan:', 'name': 'enable_scan', 'type': 'bool', 'value': False},
-            {'title': 'Start Wavelength (nm):', 'name': 'wl_start', 'type': 'int',
-             'value': 700, 'min': 700, 'max': 1000, 'step': 1},
-            {'title': 'Stop Wavelength (nm):', 'name': 'wl_stop', 'type': 'int',
-             'value': 900, 'min': 700, 'max': 1000, 'step': 1},
-            {'title': 'Wavelength Steps:', 'name': 'wl_steps', 'type': 'int',
-             'value': 10, 'min': 2, 'max': 100, 'step': 1},
-            {'title': 'Wavelength Stabilization (s):', 'name': 'wl_stabilization', 'type': 'float',
-             'value': 2.0, 'min': 0.1, 'max': 30.0, 'step': 0.1},
-            {'title': 'Auto-sync Power Meter:', 'name': 'auto_sync_pm', 'type': 'bool', 'value': True},
-            {'title': 'Sweep Mode:', 'name': 'sweep_mode', 'type': 'list',
-             'limits': ['Linear', 'Logarithmic', 'Custom'], 'value': 'Linear'},
-        ]},
-
-        {'title': 'Data Management', 'name': 'data', 'type': 'group', 'children': [
-            {'title': 'Save Directory:', 'name': 'save_dir', 'type': 'browsepath',
-             'value': str(Path.home() / 'urashg_data')},
-            {'title': 'Auto Save:', 'name': 'auto_save', 'type': 'bool', 'value': True},
-            {'title': 'File Prefix:', 'name': 'file_prefix', 'type': 'str',
-             'value': 'urashg_measurement'},
-            {'title': 'Save Raw Images:', 'name': 'save_raw', 'type': 'bool', 'value': False},
-            {'title': 'Save Processed Data:', 'name': 'save_processed', 'type': 'bool', 'value': True},
-        ]},
-
-        {'title': 'Advanced Settings', 'name': 'advanced', 'type': 'group', 'children': [
-            {'title': 'Real-time Analysis:', 'name': 'realtime_analysis', 'type': 'bool', 'value': True},
-            {'title': 'Background Subtraction:', 'name': 'bg_subtraction', 'type': 'bool', 'value': False},
-            {'title': 'Stabilization Time (s):', 'name': 'stabilization_time', 'type': 'float',
-             'value': 0.5, 'min': 0.0, 'max': 10.0, 'step': 0.1},
-        ]},
+        {
+            "title": "Experiment Configuration",
+            "name": "experiment",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Measurement Type:",
+                    "name": "measurement_type",
+                    "type": "list",
+                    "limits": [
+                        "Basic RASHG",
+                        "Multi-Wavelength RASHG",
+                        "Full Polarimetric SHG",
+                        "Calibration",
+                    ],
+                    "value": "Basic RASHG",
+                },
+                {
+                    "title": "Polarization Steps:",
+                    "name": "pol_steps",
+                    "type": "int",
+                    "value": 36,
+                    "min": 4,
+                    "max": 360,
+                    "step": 1,
+                },
+                {
+                    "title": "Integration Time (ms):",
+                    "name": "integration_time",
+                    "type": "int",
+                    "value": 100,
+                    "min": 1,
+                    "max": 10000,
+                    "step": 1,
+                },
+                {
+                    "title": "Number of Averages:",
+                    "name": "averages",
+                    "type": "int",
+                    "value": 1,
+                    "min": 1,
+                    "max": 100,
+                    "step": 1,
+                },
+                {
+                    "title": "Polarization Range",
+                    "name": "pol_range",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "Start Angle (°):",
+                            "name": "pol_start",
+                            "type": "float",
+                            "value": 0.0,
+                            "min": 0.0,
+                            "max": 360.0,
+                            "step": 0.1,
+                        },
+                        {
+                            "title": "End Angle (°):",
+                            "name": "pol_end",
+                            "type": "float",
+                            "value": 180.0,
+                            "min": 0.0,
+                            "max": 360.0,
+                            "step": 0.1,
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "title": "Hardware Settings",
+            "name": "hardware",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Device Configuration",
+                    "name": "devices",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "QWP Device:",
+                            "name": "qwp_device",
+                            "type": "str",
+                            "value": "Elliptec",
+                            "readonly": True,
+                        },
+                        {
+                            "title": "QWP Axis Index:",
+                            "name": "qwp_axis",
+                            "type": "int",
+                            "value": 0,
+                            "min": 0,
+                            "max": 2,
+                            "readonly": True,
+                        },
+                        {
+                            "title": "HWP Incident Device:",
+                            "name": "hwp_inc_device",
+                            "type": "str",
+                            "value": "Elliptec",
+                            "readonly": True,
+                        },
+                        {
+                            "title": "HWP Incident Axis:",
+                            "name": "hwp_inc_axis",
+                            "type": "int",
+                            "value": 1,
+                            "min": 0,
+                            "max": 2,
+                            "readonly": True,
+                        },
+                        {
+                            "title": "HWP Analyzer Device:",
+                            "name": "hwp_ana_device",
+                            "type": "str",
+                            "value": "Elliptec",
+                            "readonly": True,
+                        },
+                        {
+                            "title": "HWP Analyzer Axis:",
+                            "name": "hwp_ana_axis",
+                            "type": "int",
+                            "value": 2,
+                            "min": 0,
+                            "max": 2,
+                            "readonly": True,
+                        },
+                        {
+                            "title": "Camera Device:",
+                            "name": "camera_device",
+                            "type": "str",
+                            "value": "PrimeBSI",
+                            "readonly": True,
+                        },
+                        {
+                            "title": "Power Meter Device:",
+                            "name": "power_device",
+                            "type": "str",
+                            "value": "Newport1830C",
+                            "readonly": True,
+                        },
+                        {
+                            "title": "Laser Device:",
+                            "name": "laser_device",
+                            "type": "str",
+                            "value": "MaiTai",
+                            "readonly": True,
+                        },
+                    ],
+                },
+                {
+                    "title": "Camera Settings",
+                    "name": "camera",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "ROI Settings",
+                            "name": "roi",
+                            "type": "group",
+                            "children": [
+                                {
+                                    "title": "X Start:",
+                                    "name": "x_start",
+                                    "type": "int",
+                                    "value": 0,
+                                    "min": 0,
+                                    "max": 2048,
+                                },
+                                {
+                                    "title": "Y Start:",
+                                    "name": "y_start",
+                                    "type": "int",
+                                    "value": 0,
+                                    "min": 0,
+                                    "max": 2048,
+                                },
+                                {
+                                    "title": "Width:",
+                                    "name": "width",
+                                    "type": "int",
+                                    "value": 2048,
+                                    "min": 1,
+                                    "max": 2048,
+                                },
+                                {
+                                    "title": "Height:",
+                                    "name": "height",
+                                    "type": "int",
+                                    "value": 2048,
+                                    "min": 1,
+                                    "max": 2048,
+                                },
+                            ],
+                        },
+                        {
+                            "title": "Binning:",
+                            "name": "binning",
+                            "type": "list",
+                            "limits": ["1x1", "2x2", "4x4"],
+                            "value": "1x1",
+                        },
+                    ],
+                },
+                {
+                    "title": "Safety Limits",
+                    "name": "safety",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "Max Laser Power (%):",
+                            "name": "max_power",
+                            "type": "float",
+                            "value": 50.0,
+                            "min": 0.0,
+                            "max": 100.0,
+                            "step": 0.1,
+                        },
+                        {
+                            "title": "Rotation Speed (°/s):",
+                            "name": "rotation_speed",
+                            "type": "float",
+                            "value": 30.0,
+                            "min": 1.0,
+                            "max": 100.0,
+                            "step": 1.0,
+                        },
+                        {
+                            "title": "Camera Timeout (s):",
+                            "name": "camera_timeout",
+                            "type": "float",
+                            "value": 5.0,
+                            "min": 0.1,
+                            "max": 60.0,
+                            "step": 0.1,
+                        },
+                        {
+                            "title": "Movement Timeout (s):",
+                            "name": "movement_timeout",
+                            "type": "float",
+                            "value": 10.0,
+                            "min": 1.0,
+                            "max": 60.0,
+                            "step": 0.1,
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "title": "Multi-Wavelength Settings",
+            "name": "wavelength",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Enable Wavelength Scan:",
+                    "name": "enable_scan",
+                    "type": "bool",
+                    "value": False,
+                },
+                {
+                    "title": "Start Wavelength (nm):",
+                    "name": "wl_start",
+                    "type": "int",
+                    "value": 700,
+                    "min": 700,
+                    "max": 1000,
+                    "step": 1,
+                },
+                {
+                    "title": "Stop Wavelength (nm):",
+                    "name": "wl_stop",
+                    "type": "int",
+                    "value": 900,
+                    "min": 700,
+                    "max": 1000,
+                    "step": 1,
+                },
+                {
+                    "title": "Wavelength Steps:",
+                    "name": "wl_steps",
+                    "type": "int",
+                    "value": 10,
+                    "min": 2,
+                    "max": 100,
+                    "step": 1,
+                },
+                {
+                    "title": "Wavelength Stabilization (s):",
+                    "name": "wl_stabilization",
+                    "type": "float",
+                    "value": 2.0,
+                    "min": 0.1,
+                    "max": 30.0,
+                    "step": 0.1,
+                },
+                {
+                    "title": "Auto-sync Power Meter:",
+                    "name": "auto_sync_pm",
+                    "type": "bool",
+                    "value": True,
+                },
+                {
+                    "title": "Sweep Mode:",
+                    "name": "sweep_mode",
+                    "type": "list",
+                    "limits": ["Linear", "Logarithmic", "Custom"],
+                    "value": "Linear",
+                },
+            ],
+        },
+        {
+            "title": "Data Management",
+            "name": "data",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Save Directory:",
+                    "name": "save_dir",
+                    "type": "browsepath",
+                    "value": str(Path.home() / "urashg_data"),
+                },
+                {
+                    "title": "Auto Save:",
+                    "name": "auto_save",
+                    "type": "bool",
+                    "value": True,
+                },
+                {
+                    "title": "File Prefix:",
+                    "name": "file_prefix",
+                    "type": "str",
+                    "value": "urashg_measurement",
+                },
+                {
+                    "title": "Save Raw Images:",
+                    "name": "save_raw",
+                    "type": "bool",
+                    "value": False,
+                },
+                {
+                    "title": "Save Processed Data:",
+                    "name": "save_processed",
+                    "type": "bool",
+                    "value": True,
+                },
+            ],
+        },
+        {
+            "title": "Advanced Settings",
+            "name": "advanced",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Real-time Analysis:",
+                    "name": "realtime_analysis",
+                    "type": "bool",
+                    "value": True,
+                },
+                {
+                    "title": "Background Subtraction:",
+                    "name": "bg_subtraction",
+                    "type": "bool",
+                    "value": False,
+                },
+                {
+                    "title": "Stabilization Time (s):",
+                    "name": "stabilization_time",
+                    "type": "float",
+                    "value": 0.5,
+                    "min": 0.0,
+                    "max": 10.0,
+                    "step": 0.1,
+                },
+            ],
+        },
     ]
 
     def __init__(self, parent=None):
@@ -179,29 +461,32 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Get dashboard reference - try to find it in global scope or parent
         self.dashboard = None
-        if hasattr(parent, 'dashboard'):
+        if hasattr(parent, "dashboard"):
             self.dashboard = parent.dashboard
-        elif hasattr(parent, 'modules_manager'):
+        elif hasattr(parent, "modules_manager"):
             self.dashboard = parent
         else:
             # Look for dashboard in global variables from launcher
             import sys
+
             frame = sys._getframe(1)
-            if 'dashboard' in frame.f_locals:
-                self.dashboard = frame.f_locals['dashboard']
-            elif 'dashboard' in frame.f_globals:
-                self.dashboard = frame.f_globals['dashboard']
+            if "dashboard" in frame.f_locals:
+                self.dashboard = frame.f_locals["dashboard"]
+            elif "dashboard" in frame.f_globals:
+                self.dashboard = frame.f_globals["dashboard"]
 
         # Initialize CustomApp attributes that may not be set by parent
-        if not hasattr(self, 'dockarea') or self.dockarea is None:
+        if not hasattr(self, "dockarea") or self.dockarea is None:
             self.dockarea = parent  # Use parent as dockarea
-        if not hasattr(self, 'docks'):
+        if not hasattr(self, "docks"):
             self.docks = {}  # Initialize empty docks dictionary
 
         # PyMoDAQ modules access (standard pattern)
-        self.modules_manager = self.dashboard.modules_manager if self.dashboard else None
+        self.modules_manager = (
+            self.dashboard.modules_manager if self.dashboard else None
+        )
         self.available_modules = {}
-        self.required_modules = ['MaiTai', 'Elliptec', 'PrimeBSI', 'Newport1830C']
+        self.required_modules = ["MaiTai", "Elliptec", "PrimeBSI", "Newport1830C"]
 
         # Note: Using PyMoDAQ's standard plugin management pattern
 
@@ -236,10 +521,10 @@ class URASHGMicroscopyExtension(CustomApp):
         logger.info("Setting up μRASHG extension UI...")
 
         # Initialize UI components in proper order
-        self.setup_docks()       # Create dock layout
-        self.setup_actions()     # Create actions/menus
-        self.setup_widgets()     # Create main widgets
-        self.connect_things()    # Connect signals/slots
+        self.setup_docks()  # Create dock layout
+        self.setup_actions()  # Create actions/menus
+        self.setup_widgets()  # Create main widgets
+        self.connect_things()  # Connect signals/slots
 
         logger.info("μRASHG extension UI setup complete")
 
@@ -255,24 +540,28 @@ class URASHGMicroscopyExtension(CustomApp):
         - Status and progress (bottom)
         """
         # Control Panel Dock (left side)
-        self.docks['control'] = Dock('μRASHG Control', size=(400, 600))
-        self.dockarea.addDock(self.docks['control'], 'left')
+        self.docks["control"] = Dock("μRASHG Control", size=(400, 600))
+        self.dockarea.addDock(self.docks["control"], "left")
 
         # Device Control Dock (left bottom) ⭐ NEW PHASE 3 FEATURE
-        self.docks['device_control'] = Dock('Direct Device Controls', size=(400, 400))
-        self.dockarea.addDock(self.docks['device_control'], 'bottom', self.docks['control'])
+        self.docks["device_control"] = Dock("Direct Device Controls", size=(400, 400))
+        self.dockarea.addDock(
+            self.docks["device_control"], "bottom", self.docks["control"]
+        )
 
         # Live Camera Preview Dock (top right)
-        self.docks['preview'] = Dock('Live Camera Preview', size=(600, 400))
-        self.dockarea.addDock(self.docks['preview'], 'right', self.docks['control'])
+        self.docks["preview"] = Dock("Live Camera Preview", size=(600, 400))
+        self.dockarea.addDock(self.docks["preview"], "right", self.docks["control"])
 
         # RASHG Analysis Dock (middle right)
-        self.docks['analysis'] = Dock('RASHG Analysis', size=(600, 400))
-        self.dockarea.addDock(self.docks['analysis'], 'bottom', self.docks['preview'])
+        self.docks["analysis"] = Dock("RASHG Analysis", size=(600, 400))
+        self.dockarea.addDock(self.docks["analysis"], "bottom", self.docks["preview"])
 
         # System Status and Progress Dock (bottom)
-        self.docks['status'] = Dock('System Status & Progress', size=(1000, 200))
-        self.dockarea.addDock(self.docks['status'], 'bottom', self.docks['device_control'])
+        self.docks["status"] = Dock("System Status & Progress", size=(1000, 200))
+        self.dockarea.addDock(
+            self.docks["status"], "bottom", self.docks["device_control"]
+        )
 
         logger.info("Created dock layout for μRASHG extension")
 
@@ -287,36 +576,81 @@ class URASHGMicroscopyExtension(CustomApp):
         - Emergency stop
         """
         # Measurement control actions
-        self.add_action('start_measurement', 'Start μRASHG Measurement',
-                       self.start_measurement, icon='SP_MediaPlay')
-        self.add_action('stop_measurement', 'Stop Measurement',
-                       self.stop_measurement, icon='SP_MediaStop')
-        self.add_action('pause_measurement', 'Pause Measurement',
-                       self.pause_measurement, icon='SP_MediaPause')
+        self.add_action(
+            "start_measurement",
+            "Start μRASHG Measurement",
+            self.start_measurement,
+            icon="SP_MediaPlay",
+        )
+        self.add_action(
+            "stop_measurement",
+            "Stop Measurement",
+            self.stop_measurement,
+            icon="SP_MediaStop",
+        )
+        self.add_action(
+            "pause_measurement",
+            "Pause Measurement",
+            self.pause_measurement,
+            icon="SP_MediaPause",
+        )
 
         # Device management actions
-        self.add_action('initialize_devices', 'Initialize Devices',
-                       self.initialize_devices, icon='SP_ComputerIcon')
-        self.add_action('check_devices', 'Check Device Status',
-                       self.check_device_status, icon='SP_DialogApplyButton')
-        self.add_action('emergency_stop', 'Emergency Stop',
-                       self.emergency_stop, icon='SP_BrowserStop')
+        self.add_action(
+            "initialize_devices",
+            "Initialize Devices",
+            self.initialize_devices,
+            icon="SP_ComputerIcon",
+        )
+        self.add_action(
+            "check_devices",
+            "Check Device Status",
+            self.check_device_status,
+            icon="SP_DialogApplyButton",
+        )
+        self.add_action(
+            "emergency_stop",
+            "Emergency Stop",
+            self.emergency_stop,
+            icon="SP_BrowserStop",
+        )
 
         # Configuration actions
-        self.add_action('load_config', 'Load Configuration',
-                       self.load_configuration, icon='SP_DialogOpenButton')
-        self.add_action('save_config', 'Save Configuration',
-                       self.save_configuration, icon='SP_DialogSaveButton')
+        self.add_action(
+            "load_config",
+            "Load Configuration",
+            self.load_configuration,
+            icon="SP_DialogOpenButton",
+        )
+        self.add_action(
+            "save_config",
+            "Save Configuration",
+            self.save_configuration,
+            icon="SP_DialogSaveButton",
+        )
 
         # Analysis actions (Enhanced for Phase 3)
-        self.add_action('analyze_data', 'Analyze Current Data',
-                       self.analyze_current_data, icon='SP_FileDialogDetailedView')
-        self.add_action('fit_rashg_curve', 'Fit RASHG Pattern',  # ⭐ NEW
-                       self.fit_rashg_pattern, icon='SP_ComputerIcon')
-        self.add_action('export_data', 'Export Data',
-                       self.export_data, icon='SP_DialogSaveButton')
-        self.add_action('export_analysis', 'Export Analysis Results',  # ⭐ NEW
-                       self.export_analysis_results, icon='SP_DialogSaveButton')
+        self.add_action(
+            "analyze_data",
+            "Analyze Current Data",
+            self.analyze_current_data,
+            icon="SP_FileDialogDetailedView",
+        )
+        self.add_action(
+            "fit_rashg_curve",
+            "Fit RASHG Pattern",  # ⭐ NEW
+            self.fit_rashg_pattern,
+            icon="SP_ComputerIcon",
+        )
+        self.add_action(
+            "export_data", "Export Data", self.export_data, icon="SP_DialogSaveButton"
+        )
+        self.add_action(
+            "export_analysis",
+            "Export Analysis Results",  # ⭐ NEW
+            self.export_analysis_results,
+            icon="SP_DialogSaveButton",
+        )
 
         logger.info("Created actions for μRASHG extension")
 
@@ -351,19 +685,25 @@ class URASHGMicroscopyExtension(CustomApp):
         button_layout = QtWidgets.QGridLayout(button_widget)
 
         # Primary measurement controls
-        self.start_button = QtWidgets.QPushButton('Start μRASHG')
-        self.start_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
+        self.start_button = QtWidgets.QPushButton("Start μRASHG")
+        self.start_button.setIcon(
+            self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPlay)
+        )
         self.start_button.clicked.connect(self.start_measurement)
         self.start_button.setMinimumHeight(40)
 
-        self.stop_button = QtWidgets.QPushButton('Stop')
-        self.stop_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaStop))
+        self.stop_button = QtWidgets.QPushButton("Stop")
+        self.stop_button.setIcon(
+            self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaStop)
+        )
         self.stop_button.clicked.connect(self.stop_measurement)
         self.stop_button.setEnabled(False)
         self.stop_button.setMinimumHeight(40)
 
-        self.pause_button = QtWidgets.QPushButton('Pause')
-        self.pause_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
+        self.pause_button = QtWidgets.QPushButton("Pause")
+        self.pause_button.setIcon(
+            self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPause)
+        )
         self.pause_button.clicked.connect(self.pause_measurement)
         self.pause_button.setEnabled(False)
         self.pause_button.setMinimumHeight(40)
@@ -373,17 +713,17 @@ class URASHGMicroscopyExtension(CustomApp):
         button_layout.addWidget(self.pause_button, 1, 1)
 
         # Device management buttons
-        self.init_devices_button = QtWidgets.QPushButton('Initialize Devices')
+        self.init_devices_button = QtWidgets.QPushButton("Initialize Devices")
         self.init_devices_button.clicked.connect(self.initialize_devices)
 
-        self.check_devices_button = QtWidgets.QPushButton('Check Devices')
+        self.check_devices_button = QtWidgets.QPushButton("Check Devices")
         self.check_devices_button.clicked.connect(self.check_device_status)
 
         button_layout.addWidget(self.init_devices_button, 2, 0)
         button_layout.addWidget(self.check_devices_button, 2, 1)
 
         # Emergency stop button
-        self.emergency_button = QtWidgets.QPushButton('EMERGENCY STOP')
+        self.emergency_button = QtWidgets.QPushButton("EMERGENCY STOP")
         self.emergency_button.setStyleSheet("background-color: red; font-weight: bold;")
         self.emergency_button.clicked.connect(self.emergency_stop)
         self.emergency_button.setMinimumHeight(30)
@@ -398,7 +738,7 @@ class URASHGMicroscopyExtension(CustomApp):
         control_layout.addWidget(self.progress_bar)
 
         # Add to dock
-        self.docks['control'].addWidget(self.control_widget)
+        self.docks["control"].addWidget(self.control_widget)
 
     def setup_device_control_widget(self):
         """Set up the direct device control widget (PHASE 3 FEATURE)."""
@@ -453,7 +793,9 @@ class URASHGMicroscopyExtension(CustomApp):
         # Wavelength set button
         self.set_wavelength_button = QtWidgets.QPushButton("Set Wavelength")
         self.set_wavelength_button.clicked.connect(self.set_laser_wavelength)
-        self.set_wavelength_button.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+        self.set_wavelength_button.setStyleSheet(
+            "background-color: #4CAF50; color: white; font-weight: bold;"
+        )
         wavelength_layout.addWidget(self.set_wavelength_button, 2, 0, 1, 3)
 
         laser_layout.addWidget(wavelength_group)
@@ -467,12 +809,16 @@ class URASHGMicroscopyExtension(CustomApp):
 
         self.shutter_open_button = QtWidgets.QPushButton("Open Shutter")
         self.shutter_open_button.clicked.connect(self.open_laser_shutter)
-        self.shutter_open_button.setStyleSheet("background-color: #2196F3; color: white;")
+        self.shutter_open_button.setStyleSheet(
+            "background-color: #2196F3; color: white;"
+        )
         shutter_layout.addWidget(self.shutter_open_button, 1, 0)
 
         self.shutter_close_button = QtWidgets.QPushButton("Close Shutter")
         self.shutter_close_button.clicked.connect(self.close_laser_shutter)
-        self.shutter_close_button.setStyleSheet("background-color: #FF9800; color: white;")
+        self.shutter_close_button.setStyleSheet(
+            "background-color: #FF9800; color: white;"
+        )
         shutter_layout.addWidget(self.shutter_close_button, 1, 1)
 
         laser_layout.addWidget(shutter_group)
@@ -485,9 +831,11 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Individual rotator controls
         self.rotator_controls = {}
-        rotator_names = [("QWP", "Quarter Wave Plate", 0),
-                        ("HWP Inc", "Half Wave Plate (Incident)", 1),
-                        ("HWP Ana", "Half Wave Plate (Analyzer)", 2)]
+        rotator_names = [
+            ("QWP", "Quarter Wave Plate", 0),
+            ("HWP Inc", "Half Wave Plate (Incident)", 1),
+            ("HWP Ana", "Half Wave Plate (Analyzer)", 2),
+        ]
 
         for short_name, full_name, axis in rotator_names:
             group = QtWidgets.QGroupBox(f"{short_name} - {full_name}")
@@ -521,18 +869,20 @@ class URASHGMicroscopyExtension(CustomApp):
 
             # Store references
             self.rotator_controls[axis] = {
-                'position_label': position_label,
-                'position_spinbox': position_spinbox,
-                'move_button': move_button,
-                'home_button': home_button,
-                'name': short_name
+                "position_label": position_label,
+                "position_spinbox": position_spinbox,
+                "move_button": move_button,
+                "home_button": home_button,
+                "name": short_name,
             }
 
             rotator_layout.addWidget(group)
 
         # Emergency stop for all rotators
         emergency_rotator_button = QtWidgets.QPushButton("EMERGENCY STOP ALL ROTATORS")
-        emergency_rotator_button.setStyleSheet("background-color: red; color: white; font-weight: bold; font-size: 12px;")
+        emergency_rotator_button.setStyleSheet(
+            "background-color: red; color: white; font-weight: bold; font-size: 12px;"
+        )
         emergency_rotator_button.clicked.connect(self.emergency_stop_rotators)
         rotator_layout.addWidget(emergency_rotator_button)
 
@@ -553,7 +903,9 @@ class URASHGMicroscopyExtension(CustomApp):
 
         power_group_layout.addWidget(QtWidgets.QLabel("Wavelength Setting:"), 1, 0)
         self.power_wavelength_display = QtWidgets.QLabel("--- nm")
-        self.power_wavelength_display.setStyleSheet("font-weight: bold; font-size: 12px;")
+        self.power_wavelength_display.setStyleSheet(
+            "font-weight: bold; font-size: 12px;"
+        )
         power_group_layout.addWidget(self.power_wavelength_display, 1, 1)
 
         power_layout.addWidget(power_group)
@@ -573,7 +925,9 @@ class URASHGMicroscopyExtension(CustomApp):
 
         self.manual_sync_button = QtWidgets.QPushButton("Manual Sync Now")
         self.manual_sync_button.clicked.connect(self.manual_sync_wavelength)
-        self.manual_sync_button.setStyleSheet("background-color: #2196F3; color: white;")
+        self.manual_sync_button.setStyleSheet(
+            "background-color: #2196F3; color: white;"
+        )
         sync_layout.addWidget(self.manual_sync_button, 2, 0, 1, 2)
 
         power_layout.addWidget(sync_group)
@@ -589,9 +943,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.device_update_timer.setInterval(1000)  # Update every 1 second
 
         # Add to dock
-        self.docks['device_control'].addWidget(self.device_control_widget)
+        self.docks["device_control"].addWidget(self.device_control_widget)
 
-        logger.info("Created device control widget with laser, rotator, and power meter controls")
+        logger.info(
+            "Created device control widget with laser, rotator, and power meter controls"
+        )
 
     def setup_visualization_widget(self):
         """Set up the camera preview widget."""
@@ -599,7 +955,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.camera_view.setImage(np.zeros((512, 512)))  # Placeholder image
 
         # Add to dock
-        self.docks['preview'].addWidget(self.camera_view)
+        self.docks["preview"].addWidget(self.camera_view)
 
     def setup_analysis_widget(self):
         """Set up the analysis plots widget (Enhanced for Phase 3)."""
@@ -614,9 +970,9 @@ class URASHGMicroscopyExtension(CustomApp):
         polar_layout = QtWidgets.QVBoxLayout(polar_widget)
 
         # Polar plot with enhanced features
-        self.polar_plot = pg.PlotWidget(title='RASHG Polar Response')
-        self.polar_plot.setLabel('left', 'SHG Intensity', 'counts')
-        self.polar_plot.setLabel('bottom', 'Polarization Angle', '°')
+        self.polar_plot = pg.PlotWidget(title="RASHG Polar Response")
+        self.polar_plot.setLabel("left", "SHG Intensity", "counts")
+        self.polar_plot.setLabel("bottom", "Polarization Angle", "°")
         self.polar_plot.showGrid(True, True)
         self.polar_plot.addLegend()
 
@@ -637,21 +993,23 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Fit results display
         self.fit_results_label = QtWidgets.QLabel("Fit Results: No data")
-        self.fit_results_label.setStyleSheet("font-family: monospace; background: #f0f0f0; padding: 5px;")
+        self.fit_results_label.setStyleSheet(
+            "font-family: monospace; background: #f0f0f0; padding: 5px;"
+        )
         fit_layout.addWidget(self.fit_results_label)
 
         polar_layout.addWidget(self.polar_plot)
         polar_layout.addWidget(fit_controls)
 
-        self.analysis_tabs.addTab(polar_widget, 'Polar Analysis')
+        self.analysis_tabs.addTab(polar_widget, "Polar Analysis")
 
         # === SPECTRAL ANALYSIS TAB (NEW) ===
         spectral_widget = QtWidgets.QWidget()
         spectral_layout = QtWidgets.QVBoxLayout(spectral_widget)
 
-        self.spectral_plot = pg.PlotWidget(title='Spectral RASHG Analysis')
-        self.spectral_plot.setLabel('left', 'RASHG Amplitude', 'a.u.')
-        self.spectral_plot.setLabel('bottom', 'Wavelength', 'nm')
+        self.spectral_plot = pg.PlotWidget(title="Spectral RASHG Analysis")
+        self.spectral_plot.setLabel("left", "RASHG Amplitude", "a.u.")
+        self.spectral_plot.setLabel("bottom", "Wavelength", "nm")
         self.spectral_plot.showGrid(True, True)
         self.spectral_plot.addLegend()
 
@@ -662,8 +1020,12 @@ class URASHGMicroscopyExtension(CustomApp):
         spectral_controls_layout.addWidget(QtWidgets.QLabel("Analysis Mode:"))
 
         self.spectral_mode_combo = QtWidgets.QComboBox()
-        self.spectral_mode_combo.addItems(["RASHG Amplitude", "Phase", "Contrast", "All Parameters"])
-        self.spectral_mode_combo.currentTextChanged.connect(self.update_spectral_analysis)
+        self.spectral_mode_combo.addItems(
+            ["RASHG Amplitude", "Phase", "Contrast", "All Parameters"]
+        )
+        self.spectral_mode_combo.currentTextChanged.connect(
+            self.update_spectral_analysis
+        )
         spectral_controls_layout.addWidget(self.spectral_mode_combo)
 
         spectral_controls_layout.addStretch()
@@ -675,19 +1037,19 @@ class URASHGMicroscopyExtension(CustomApp):
         spectral_layout.addWidget(self.spectral_plot)
         spectral_layout.addWidget(spectral_controls)
 
-        self.analysis_tabs.addTab(spectral_widget, 'Spectral Analysis')
+        self.analysis_tabs.addTab(spectral_widget, "Spectral Analysis")
 
         # === POWER MONITORING TAB ===
         power_widget = QtWidgets.QWidget()
         power_layout = QtWidgets.QVBoxLayout(power_widget)
 
-        self.power_plot = pg.PlotWidget(title='Power Stability')
-        self.power_plot.setLabel('left', 'Power', 'mW')
-        self.power_plot.setLabel('bottom', 'Time', 's')
+        self.power_plot = pg.PlotWidget(title="Power Stability")
+        self.power_plot.setLabel("left", "Power", "mW")
+        self.power_plot.setLabel("bottom", "Time", "s")
         self.power_plot.showGrid(True, True)
         power_layout.addWidget(self.power_plot)
 
-        self.analysis_tabs.addTab(power_widget, 'Power Monitor')
+        self.analysis_tabs.addTab(power_widget, "Power Monitor")
 
         # === 3D ANALYSIS TAB (NEW) ===
         if self._check_3d_support():
@@ -710,14 +1072,16 @@ class URASHGMicroscopyExtension(CustomApp):
 
                 self.volume_mode_combo = QtWidgets.QComboBox()
                 self.volume_mode_combo.addItems(["Surface", "Scatter", "Wireframe"])
-                self.volume_mode_combo.currentTextChanged.connect(self.update_3d_visualization)
+                self.volume_mode_combo.currentTextChanged.connect(
+                    self.update_3d_visualization
+                )
                 volume_controls_layout.addWidget(self.volume_mode_combo)
 
                 volume_controls_layout.addStretch()
 
                 volume_layout.addWidget(volume_controls)
 
-                self.analysis_tabs.addTab(volume_widget, '3D Visualization')
+                self.analysis_tabs.addTab(volume_widget, "3D Visualization")
 
             except ImportError:
                 logger.info("OpenGL not available, 3D visualization disabled")
@@ -726,7 +1090,9 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Analysis status bar
         self.analysis_status = QtWidgets.QLabel("Analysis Status: Ready")
-        self.analysis_status.setStyleSheet("background: #e0e0e0; padding: 3px; border: 1px solid #c0c0c0;")
+        self.analysis_status.setStyleSheet(
+            "background: #e0e0e0; padding: 3px; border: 1px solid #c0c0c0;"
+        )
         analysis_layout.addWidget(self.analysis_status)
 
         # Store current fit results
@@ -734,7 +1100,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.spectral_analysis_data = None
 
         # Add to dock
-        self.docks['analysis'].addWidget(analysis_widget)
+        self.docks["analysis"].addWidget(analysis_widget)
 
     def setup_status_widget(self):
         """Set up the status monitoring widget."""
@@ -744,7 +1110,9 @@ class URASHGMicroscopyExtension(CustomApp):
         # Device status table
         self.device_status_table = QtWidgets.QTableWidget()
         self.device_status_table.setColumnCount(3)
-        self.device_status_table.setHorizontalHeaderLabels(['Device', 'Status', 'Details'])
+        self.device_status_table.setHorizontalHeaderLabels(
+            ["Device", "Status", "Details"]
+        )
         self.device_status_table.horizontalHeader().setStretchLastSection(True)
 
         # Log display
@@ -755,19 +1123,19 @@ class URASHGMicroscopyExtension(CustomApp):
         # Layout
         left_widget = QtWidgets.QWidget()
         left_layout = QtWidgets.QVBoxLayout(left_widget)
-        left_layout.addWidget(QtWidgets.QLabel('Device Status:'))
+        left_layout.addWidget(QtWidgets.QLabel("Device Status:"))
         left_layout.addWidget(self.device_status_table)
 
         right_widget = QtWidgets.QWidget()
         right_layout = QtWidgets.QVBoxLayout(right_widget)
-        right_layout.addWidget(QtWidgets.QLabel('Activity Log:'))
+        right_layout.addWidget(QtWidgets.QLabel("Activity Log:"))
         right_layout.addWidget(self.log_display)
 
         status_layout.addWidget(left_widget)
         status_layout.addWidget(right_widget)
 
         # Add to dock
-        self.docks['status'].addWidget(self.status_widget)
+        self.docks["status"].addWidget(self.status_widget)
 
     def connect_things(self):
         """
@@ -786,11 +1154,15 @@ class URASHGMicroscopyExtension(CustomApp):
         self.error_occurred.connect(self.on_error_occurred)
 
         # Connect to PyMoDAQ's modules manager if available
-        if hasattr(self, 'dashboard') and self.dashboard and hasattr(self.dashboard, 'modules_manager'):
+        if (
+            hasattr(self, "dashboard")
+            and self.dashboard
+            and hasattr(self.dashboard, "modules_manager")
+        ):
             self.modules_manager = self.dashboard.modules_manager
 
         # Start device control update timer (PHASE 3 FEATURE)
-        if hasattr(self, 'device_update_timer'):
+        if hasattr(self, "device_update_timer"):
             self.device_update_timer.start()
             logger.info("Started device control update timer")
 
@@ -813,9 +1185,9 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Setting laser wavelength to {target_wavelength} nm")
 
         try:
-            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+            laser = self._get_plugin("laser", ["MaiTai", "Laser"])
             if not laser:
-                self.log_message("ERROR: Laser device not available", level='error')
+                self.log_message("ERROR: Laser device not available", level="error")
                 return
 
             # Use proper DataActuator pattern for wavelength control
@@ -825,20 +1197,27 @@ class URASHGMicroscopyExtension(CustomApp):
             position_data = DataActuator(data=[target_wavelength])
 
             # Move to wavelength - CRITICAL: Use .value() for single-axis controllers
-            if hasattr(laser, 'move_abs'):
+            if hasattr(laser, "move_abs"):
                 laser.move_abs(position_data)
-                self.log_message(f"Laser wavelength command sent: {target_wavelength} nm")
+                self.log_message(
+                    f"Laser wavelength command sent: {target_wavelength} nm"
+                )
 
                 # Trigger automatic wavelength synchronization if enabled
-                if hasattr(self, 'auto_sync_checkbox') and self.auto_sync_checkbox.isChecked():
+                if (
+                    hasattr(self, "auto_sync_checkbox")
+                    and self.auto_sync_checkbox.isChecked()
+                ):
                     self.sync_power_meter_wavelength(target_wavelength)
 
             else:
-                self.log_message("ERROR: Laser does not support absolute movement", level='error')
+                self.log_message(
+                    "ERROR: Laser does not support absolute movement", level="error"
+                )
 
         except Exception as e:
             error_msg = f"Failed to set laser wavelength: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def open_laser_shutter(self):
@@ -847,29 +1226,31 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Opening laser shutter")
 
         try:
-            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+            laser = self._get_plugin("laser", ["MaiTai", "Laser"])
             if not laser:
-                self.log_message("ERROR: Laser device not available", level='error')
+                self.log_message("ERROR: Laser device not available", level="error")
                 return
 
             # Check if laser has shutter control capability
-            if hasattr(laser, 'controller') and laser.controller:
-                if hasattr(laser.controller, 'open_shutter'):
+            if hasattr(laser, "controller") and laser.controller:
+                if hasattr(laser.controller, "open_shutter"):
                     laser.controller.open_shutter()
                     self.log_message("Laser shutter opened")
                     self.update_shutter_status("Open")
-                elif hasattr(laser.controller, 'set_shutter'):
+                elif hasattr(laser.controller, "set_shutter"):
                     laser.controller.set_shutter(True)
                     self.log_message("Laser shutter opened (via set_shutter)")
                     self.update_shutter_status("Open")
                 else:
-                    self.log_message("WARNING: Laser shutter control not available", level='warning')
+                    self.log_message(
+                        "WARNING: Laser shutter control not available", level="warning"
+                    )
             else:
-                self.log_message("ERROR: Laser controller not available", level='error')
+                self.log_message("ERROR: Laser controller not available", level="error")
 
         except Exception as e:
             error_msg = f"Failed to open laser shutter: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def close_laser_shutter(self):
@@ -878,41 +1259,49 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Closing laser shutter")
 
         try:
-            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+            laser = self._get_plugin("laser", ["MaiTai", "Laser"])
             if not laser:
-                self.log_message("ERROR: Laser device not available", level='error')
+                self.log_message("ERROR: Laser device not available", level="error")
                 return
 
             # Check if laser has shutter control capability
-            if hasattr(laser, 'controller') and laser.controller:
-                if hasattr(laser.controller, 'close_shutter'):
+            if hasattr(laser, "controller") and laser.controller:
+                if hasattr(laser.controller, "close_shutter"):
                     laser.controller.close_shutter()
                     self.log_message("Laser shutter closed")
                     self.update_shutter_status("Closed")
-                elif hasattr(laser.controller, 'set_shutter'):
+                elif hasattr(laser.controller, "set_shutter"):
                     laser.controller.set_shutter(False)
                     self.log_message("Laser shutter closed (via set_shutter)")
                     self.update_shutter_status("Closed")
                 else:
-                    self.log_message("WARNING: Laser shutter control not available", level='warning')
+                    self.log_message(
+                        "WARNING: Laser shutter control not available", level="warning"
+                    )
             else:
-                self.log_message("ERROR: Laser controller not available", level='error')
+                self.log_message("ERROR: Laser controller not available", level="error")
 
         except Exception as e:
             error_msg = f"Failed to close laser shutter: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def update_shutter_status(self, status):
         """Update shutter status display."""
-        if hasattr(self, 'shutter_status_label'):
+        if hasattr(self, "shutter_status_label"):
             self.shutter_status_label.setText(f"Status: {status}")
             if status == "Open":
-                self.shutter_status_label.setStyleSheet("color: green; font-weight: bold;")
+                self.shutter_status_label.setStyleSheet(
+                    "color: green; font-weight: bold;"
+                )
             elif status == "Closed":
-                self.shutter_status_label.setStyleSheet("color: orange; font-weight: bold;")
+                self.shutter_status_label.setStyleSheet(
+                    "color: orange; font-weight: bold;"
+                )
             else:
-                self.shutter_status_label.setStyleSheet("color: gray; font-weight: bold;")
+                self.shutter_status_label.setStyleSheet(
+                    "color: gray; font-weight: bold;"
+                )
 
     def move_rotator(self, axis):
         """Move a specific rotator to the set position."""
@@ -921,16 +1310,16 @@ class URASHGMicroscopyExtension(CustomApp):
             return
 
         rotator_control = self.rotator_controls[axis]
-        target_position = rotator_control['position_spinbox'].value()
-        rotator_name = rotator_control['name']
+        target_position = rotator_control["position_spinbox"].value()
+        rotator_name = rotator_control["name"]
 
         logger.info(f"Moving {rotator_name} (axis {axis}) to {target_position}°")
         self.log_message(f"Moving {rotator_name} to {target_position}°")
 
         try:
-            elliptec = self._get_plugin('move', ['Elliptec'])
+            elliptec = self._get_plugin("move", ["Elliptec"])
             if not elliptec:
-                self.log_message("ERROR: Elliptec device not available", level='error')
+                self.log_message("ERROR: Elliptec device not available", level="error")
                 return
 
             # Use proper DataActuator pattern for multi-axis device
@@ -939,7 +1328,9 @@ class URASHGMicroscopyExtension(CustomApp):
             # For multi-axis Elliptec, we need to specify which axis to move
             # Create position array - only set the target axis, others to current positions
             current_positions = self.get_current_elliptec_positions()
-            if current_positions is None or not isinstance(current_positions, (list, tuple, np.ndarray)):
+            if current_positions is None or not isinstance(
+                current_positions, (list, tuple, np.ndarray)
+            ):
                 # If we can't get current positions, create array with target position
                 if axis == 0:
                     target_positions = [target_position, 0.0, 0.0]
@@ -959,15 +1350,18 @@ class URASHGMicroscopyExtension(CustomApp):
             position_data = DataActuator(data=[target_positions])
 
             # Move to position - CRITICAL: Use .data[0] for multi-axis controllers
-            if hasattr(elliptec, 'move_abs'):
+            if hasattr(elliptec, "move_abs"):
                 elliptec.move_abs(position_data)
                 self.log_message(f"{rotator_name} movement command sent")
             else:
-                self.log_message(f"ERROR: {rotator_name} does not support absolute movement", level='error')
+                self.log_message(
+                    f"ERROR: {rotator_name} does not support absolute movement",
+                    level="error",
+                )
 
         except Exception as e:
             error_msg = f"Failed to move {rotator_name}: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def home_rotator(self, axis):
@@ -976,73 +1370,83 @@ class URASHGMicroscopyExtension(CustomApp):
             logger.error(f"Invalid rotator axis: {axis}")
             return
 
-        rotator_name = self.rotator_controls[axis]['name']
+        rotator_name = self.rotator_controls[axis]["name"]
 
         logger.info(f"Homing {rotator_name} (axis {axis})")
         self.log_message(f"Homing {rotator_name}")
 
         try:
-            elliptec = self._get_plugin('move', ['Elliptec'])
+            elliptec = self._get_plugin("move", ["Elliptec"])
             if not elliptec:
-                self.log_message("ERROR: Elliptec device not available", level='error')
+                self.log_message("ERROR: Elliptec device not available", level="error")
                 return
 
             # Check if elliptec has home capability
-            if hasattr(elliptec, 'move_home'):
+            if hasattr(elliptec, "move_home"):
                 elliptec.move_home()
                 self.log_message(f"{rotator_name} homing command sent")
-            elif hasattr(elliptec, 'controller') and elliptec.controller:
-                if hasattr(elliptec.controller, 'move_home'):
+            elif hasattr(elliptec, "controller") and elliptec.controller:
+                if hasattr(elliptec.controller, "move_home"):
                     elliptec.controller.move_home()
                     self.log_message(f"{rotator_name} homing via controller")
                 else:
-                    self.log_message(f"WARNING: {rotator_name} homing not available", level='warning')
+                    self.log_message(
+                        f"WARNING: {rotator_name} homing not available", level="warning"
+                    )
             else:
-                self.log_message(f"ERROR: {rotator_name} controller not available", level='error')
+                self.log_message(
+                    f"ERROR: {rotator_name} controller not available", level="error"
+                )
 
         except Exception as e:
             error_msg = f"Failed to home {rotator_name}: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def emergency_stop_rotators(self):
         """Emergency stop all rotators."""
         logger.warning("EMERGENCY STOP - All rotators")
-        self.log_message("EMERGENCY STOP - All rotators", level='error')
+        self.log_message("EMERGENCY STOP - All rotators", level="error")
 
         try:
-            elliptec = self._get_plugin('move', ['Elliptec'])
+            elliptec = self._get_plugin("move", ["Elliptec"])
             if elliptec:
-                if hasattr(elliptec, 'stop_motion'):
+                if hasattr(elliptec, "stop_motion"):
                     elliptec.stop_motion()
-                elif hasattr(elliptec, 'controller') and elliptec.controller:
-                    if hasattr(elliptec.controller, 'stop_motion'):
+                elif hasattr(elliptec, "controller") and elliptec.controller:
+                    if hasattr(elliptec.controller, "stop_motion"):
                         elliptec.controller.stop_motion()
 
                 self.log_message("Emergency stop applied to all rotators")
             else:
-                self.log_message("ERROR: Elliptec device not available for emergency stop", level='error')
+                self.log_message(
+                    "ERROR: Elliptec device not available for emergency stop",
+                    level="error",
+                )
 
         except Exception as e:
             error_msg = f"Error during rotator emergency stop: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
 
     def get_current_elliptec_positions(self):
         """Get current positions of all Elliptec axes."""
         try:
-            elliptec = self._get_plugin('move', ['Elliptec'])
+            elliptec = self._get_plugin("move", ["Elliptec"])
             if not elliptec:
                 return None
 
             # Try to get current positions
-            if hasattr(elliptec, 'current_position') and elliptec.current_position is not None:
+            if (
+                hasattr(elliptec, "current_position")
+                and elliptec.current_position is not None
+            ):
                 # current_position might be a DataActuator or list
-                if hasattr(elliptec.current_position, 'data'):
+                if hasattr(elliptec.current_position, "data"):
                     return elliptec.current_position.data[0]
                 else:
                     return elliptec.current_position
-            elif hasattr(elliptec, 'controller') and elliptec.controller:
-                if hasattr(elliptec.controller, 'get_actuator_value'):
+            elif hasattr(elliptec, "controller") and elliptec.controller:
+                if hasattr(elliptec.controller, "get_actuator_value"):
                     return elliptec.controller.get_actuator_value()
 
             return None
@@ -1068,7 +1472,9 @@ class URASHGMicroscopyExtension(CustomApp):
             if current_wavelength is None:
                 # Use spinbox value as fallback
                 current_wavelength = self.wavelength_spinbox.value()
-                self.log_message(f"Using set wavelength: {current_wavelength} nm", level='warning')
+                self.log_message(
+                    f"Using set wavelength: {current_wavelength} nm", level="warning"
+                )
 
             # Sync power meter
             success = self.sync_power_meter_wavelength(current_wavelength)
@@ -1076,38 +1482,47 @@ class URASHGMicroscopyExtension(CustomApp):
             if success:
                 self.log_message(f"Wavelength sync completed: {current_wavelength} nm")
             else:
-                self.log_message("Wavelength sync failed", level='error')
+                self.log_message("Wavelength sync failed", level="error")
 
         except Exception as e:
             error_msg = f"Manual wavelength sync failed: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def sync_power_meter_wavelength(self, wavelength):
         """Sync power meter wavelength setting."""
         try:
-            power_meter = self._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+            power_meter = self._get_plugin(
+                "viewer", ["Newport1830C", "PowerMeter", "Newport"]
+            )
             if not power_meter:
-                self.log_message("WARNING: Power meter not available for wavelength sync", level='warning')
+                self.log_message(
+                    "WARNING: Power meter not available for wavelength sync",
+                    level="warning",
+                )
                 return False
 
             # Check if power meter supports wavelength setting
-            if hasattr(power_meter, 'controller') and power_meter.controller:
-                if hasattr(power_meter.controller, 'set_wavelength'):
+            if hasattr(power_meter, "controller") and power_meter.controller:
+                if hasattr(power_meter.controller, "set_wavelength"):
                     power_meter.controller.set_wavelength(wavelength)
                     self.update_sync_status("Synced", "green")
                     logger.info(f"Power meter wavelength synced to {wavelength} nm")
                     return True
-                elif hasattr(power_meter, 'settings'):
+                elif hasattr(power_meter, "settings"):
                     # Try to find wavelength setting in parameter tree
-                    wavelength_param = power_meter.settings.child_frompath('wavelength')
+                    wavelength_param = power_meter.settings.child_frompath("wavelength")
                     if wavelength_param:
                         wavelength_param.setValue(wavelength)
                         self.update_sync_status("Synced", "green")
-                        logger.info(f"Power meter wavelength setting updated to {wavelength} nm")
+                        logger.info(
+                            f"Power meter wavelength setting updated to {wavelength} nm"
+                        )
                         return True
 
-            self.log_message("WARNING: Power meter wavelength sync not supported", level='warning')
+            self.log_message(
+                "WARNING: Power meter wavelength sync not supported", level="warning"
+            )
             self.update_sync_status("Not Supported", "orange")
             return False
 
@@ -1119,20 +1534,23 @@ class URASHGMicroscopyExtension(CustomApp):
     def get_current_laser_wavelength(self):
         """Get current laser wavelength."""
         try:
-            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+            laser = self._get_plugin("laser", ["MaiTai", "Laser"])
             if not laser:
                 return None
 
             # Try to get current wavelength
-            if hasattr(laser, 'current_position') and laser.current_position is not None:
-                if hasattr(laser.current_position, 'value'):
+            if (
+                hasattr(laser, "current_position")
+                and laser.current_position is not None
+            ):
+                if hasattr(laser.current_position, "value"):
                     return laser.current_position.value()
-                elif hasattr(laser.current_position, 'data'):
+                elif hasattr(laser.current_position, "data"):
                     return laser.current_position.data[0][0]
                 else:
                     return float(laser.current_position)
-            elif hasattr(laser, 'controller') and laser.controller:
-                if hasattr(laser.controller, 'get_wavelength'):
+            elif hasattr(laser, "controller") and laser.controller:
+                if hasattr(laser.controller, "get_wavelength"):
                     return laser.controller.get_wavelength()
 
             return None
@@ -1143,7 +1561,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
     def update_sync_status(self, status, color):
         """Update wavelength sync status display."""
-        if hasattr(self, 'sync_status_label'):
+        if hasattr(self, "sync_status_label"):
             self.sync_status_label.setText(f"Sync Status: {status}")
             self.sync_status_label.setStyleSheet(f"color: {color}; font-weight: bold;")
 
@@ -1165,22 +1583,31 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_laser_display(self):
         """Update laser status and wavelength displays."""
         try:
-            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+            laser = self._get_plugin("laser", ["MaiTai", "Laser"])
 
-            if hasattr(self, 'laser_status_label'):
-                if laser and hasattr(laser, 'controller') and laser.controller:
-                    if hasattr(laser.controller, 'connected') and laser.controller.connected:
+            if hasattr(self, "laser_status_label"):
+                if laser and hasattr(laser, "controller") and laser.controller:
+                    if (
+                        hasattr(laser.controller, "connected")
+                        and laser.controller.connected
+                    ):
                         self.laser_status_label.setText("Status: Connected")
-                        self.laser_status_label.setStyleSheet("color: green; font-weight: bold;")
+                        self.laser_status_label.setStyleSheet(
+                            "color: green; font-weight: bold;"
+                        )
                     else:
                         self.laser_status_label.setText("Status: Disconnected")
-                        self.laser_status_label.setStyleSheet("color: red; font-weight: bold;")
+                        self.laser_status_label.setStyleSheet(
+                            "color: red; font-weight: bold;"
+                        )
                 else:
                     self.laser_status_label.setText("Status: Not Available")
-                    self.laser_status_label.setStyleSheet("color: gray; font-weight: bold;")
+                    self.laser_status_label.setStyleSheet(
+                        "color: gray; font-weight: bold;"
+                    )
 
             # Update wavelength display
-            if hasattr(self, 'wavelength_display'):
+            if hasattr(self, "wavelength_display"):
                 current_wavelength = self.get_current_laser_wavelength()
                 if current_wavelength is not None:
                     self.wavelength_display.setText(f"{current_wavelength:.0f} nm")
@@ -1198,9 +1625,9 @@ class URASHGMicroscopyExtension(CustomApp):
             for axis, controls in self.rotator_controls.items():
                 if current_positions is not None and axis < len(current_positions):
                     position = current_positions[axis]
-                    controls['position_label'].setText(f"{position:.2f} °")
+                    controls["position_label"].setText(f"{position:.2f} °")
                 else:
-                    controls['position_label'].setText("--- °")
+                    controls["position_label"].setText("--- °")
 
         except Exception as e:
             logger.debug(f"Error updating rotator displays: {e}")
@@ -1208,15 +1635,21 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_power_meter_display(self):
         """Update power meter displays."""
         try:
-            power_meter = self._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+            power_meter = self._get_plugin(
+                "viewer", ["Newport1830C", "PowerMeter", "Newport"]
+            )
 
             # Update power reading
-            if hasattr(self, 'power_display'):
-                if power_meter and hasattr(power_meter, 'grab_data'):
+            if hasattr(self, "power_display"):
+                if power_meter and hasattr(power_meter, "grab_data"):
                     try:
                         power_data = power_meter.grab_data()
                         if power_data and len(power_data) > 0:
-                            power_value = float(power_data[0].data[0]) if hasattr(power_data[0], 'data') else 0.0
+                            power_value = (
+                                float(power_data[0].data[0])
+                                if hasattr(power_data[0], "data")
+                                else 0.0
+                            )
                             self.power_display.setText(f"{power_value:.3f} mW")
                         else:
                             self.power_display.setText("--- mW")
@@ -1227,12 +1660,18 @@ class URASHGMicroscopyExtension(CustomApp):
                     self.power_display.setText("--- mW")
 
             # Update power meter wavelength display (if available)
-            if hasattr(self, 'power_wavelength_display'):
-                if power_meter and hasattr(power_meter, 'controller') and power_meter.controller:
+            if hasattr(self, "power_wavelength_display"):
+                if (
+                    power_meter
+                    and hasattr(power_meter, "controller")
+                    and power_meter.controller
+                ):
                     try:
-                        if hasattr(power_meter.controller, 'get_wavelength'):
+                        if hasattr(power_meter.controller, "get_wavelength"):
                             pm_wavelength = power_meter.controller.get_wavelength()
-                            self.power_wavelength_display.setText(f"{pm_wavelength:.0f} nm")
+                            self.power_wavelength_display.setText(
+                                f"{pm_wavelength:.0f} nm"
+                            )
                         else:
                             self.power_wavelength_display.setText("--- nm")
                     except Exception as e:
@@ -1259,7 +1698,9 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Checking available PyMoDAQ modules...")
 
         if not self.modules_manager:
-            self.log_message("ERROR: No modules manager available (no dashboard)", level='error')
+            self.log_message(
+                "ERROR: No modules manager available (no dashboard)", level="error"
+            )
             return False
 
         try:
@@ -1294,11 +1735,16 @@ class URASHGMicroscopyExtension(CustomApp):
 
             # Report results
             if self.available_modules:
-                self.log_message(f"Found modules: {list(self.available_modules.keys())}")
+                self.log_message(
+                    f"Found modules: {list(self.available_modules.keys())}"
+                )
 
             if missing_modules:
-                self.log_message(f"Missing modules: {missing_modules}", level='warning')
-                self.log_message("Please load required plugins in PyMoDAQ dashboard first", level='warning')
+                self.log_message(f"Missing modules: {missing_modules}", level="warning")
+                self.log_message(
+                    "Please load required plugins in PyMoDAQ dashboard first",
+                    level="warning",
+                )
 
             success = len(self.available_modules) > 0
 
@@ -1306,12 +1752,12 @@ class URASHGMicroscopyExtension(CustomApp):
                 self.log_message("Module detection completed successfully")
                 return True
             else:
-                self.log_message("No required modules found", level='error')
+                self.log_message("No required modules found", level="error")
                 return False
 
         except Exception as e:
             error_msg = f"Module detection failed: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
             return False
 
@@ -1321,7 +1767,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Checking module status...")
 
         if not self.modules_manager:
-            self.log_message("ERROR: No modules manager available", level='error')
+            self.log_message("ERROR: No modules manager available", level="error")
             return
 
         try:
@@ -1333,28 +1779,31 @@ class URASHGMicroscopyExtension(CustomApp):
                 if module_name in self.available_modules:
                     module = self.available_modules[module_name]
                     # Check if module is connected/initialized
-                    if hasattr(module, 'controller') and module.controller:
+                    if hasattr(module, "controller") and module.controller:
                         status_msg = f"Module '{module_name}': Connected"
-                        self.log_message(status_msg, level='info')
+                        self.log_message(status_msg, level="info")
                         connected_count += 1
                     else:
                         status_msg = f"Module '{module_name}': Not initialized"
-                        self.log_message(status_msg, level='warning')
+                        self.log_message(status_msg, level="warning")
                 else:
                     status_msg = f"Module '{module_name}': Not found"
-                    self.log_message(status_msg, level='warning')
+                    self.log_message(status_msg, level="warning")
 
             # Summary
             ready_msg = f"Modules ready: {connected_count}/{total_count}"
-            level = 'info' if connected_count == total_count else 'warning'
+            level = "info" if connected_count == total_count else "warning"
             self.log_message(ready_msg, level=level)
 
             if connected_count == 0:
-                self.log_message("No modules connected. Load plugins in PyMoDAQ dashboard first.", level='error')
+                self.log_message(
+                    "No modules connected. Load plugins in PyMoDAQ dashboard first.",
+                    level="error",
+                )
 
         except Exception as e:
             error_msg = f"Module status check failed: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def start_measurement(self):
@@ -1376,7 +1825,9 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Connect worker signals
         self.measurement_worker.progress_updated.connect(self.measurement_progress)
-        self.measurement_worker.measurement_completed.connect(self._on_measurement_completed)
+        self.measurement_worker.measurement_completed.connect(
+            self._on_measurement_completed
+        )
         self.measurement_worker.measurement_failed.connect(self._on_measurement_failed)
         self.measurement_worker.data_acquired.connect(self._on_data_acquired)
 
@@ -1394,35 +1845,42 @@ class URASHGMicroscopyExtension(CustomApp):
         # Check device availability
         missing_devices = self._check_required_devices()
         if missing_devices:
-            self.log_message(f"Cannot start: Missing devices: {missing_devices}", level='error')
+            self.log_message(
+                f"Cannot start: Missing devices: {missing_devices}", level="error"
+            )
             self.error_occurred.emit(f"Missing required devices: {missing_devices}")
             return False
 
         # Check safety parameters
-        max_power = self.settings.child('hardware', 'safety', 'max_power').value()
+        max_power = self.settings.child("hardware", "safety", "max_power").value()
         if max_power > 80.0:
-            self.log_message(f"WARNING: High power limit set ({max_power}%)", level='warning')
+            self.log_message(
+                f"WARNING: High power limit set ({max_power}%)", level="warning"
+            )
             reply = QtWidgets.QMessageBox.question(
-                self.control_widget, 'High Power Warning',
-                f'Power limit is set to {max_power}%. Continue?',
+                self.control_widget,
+                "High Power Warning",
+                f"Power limit is set to {max_power}%. Continue?",
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No
+                QtWidgets.QMessageBox.No,
             )
             if reply == QtWidgets.QMessageBox.No:
                 return False
 
         # Check measurement parameters
-        pol_steps = self.settings.child('experiment', 'pol_steps').value()
+        pol_steps = self.settings.child("experiment", "pol_steps").value()
         if pol_steps < 4:
-            self.log_message("ERROR: Minimum 4 polarization steps required", level='error')
+            self.log_message(
+                "ERROR: Minimum 4 polarization steps required", level="error"
+            )
             self.error_occurred.emit("Insufficient polarization steps (minimum 4)")
             return False
 
         # Check camera ROI
-        roi_width = self.settings.child('hardware', 'camera', 'roi', 'width').value()
-        roi_height = self.settings.child('hardware', 'camera', 'roi', 'height').value()
+        roi_width = self.settings.child("hardware", "camera", "roi", "width").value()
+        roi_height = self.settings.child("hardware", "camera", "roi", "height").value()
         if roi_width < 1 or roi_height < 1:
-            self.log_message("ERROR: Invalid camera ROI settings", level='error')
+            self.log_message("ERROR: Invalid camera ROI settings", level="error")
             self.error_occurred.emit("Invalid camera ROI configuration")
             return False
 
@@ -1440,15 +1898,15 @@ class URASHGMicroscopyExtension(CustomApp):
 
         try:
             # Signal worker to stop
-            if hasattr(self, 'measurement_worker') and self.measurement_worker:
+            if hasattr(self, "measurement_worker") and self.measurement_worker:
                 self.measurement_worker.stop_measurement()
 
             # Stop measurement thread
-            if hasattr(self, 'measurement_thread') and self.measurement_thread:
+            if hasattr(self, "measurement_thread") and self.measurement_thread:
                 if self.measurement_thread.isRunning():
                     self.measurement_thread.quit()
                     if not self.measurement_thread.wait(5000):  # Wait up to 5 seconds
-                        self.log_message("Forcing thread termination", level='warning')
+                        self.log_message("Forcing thread termination", level="warning")
                         self.measurement_thread.terminate()
                         self.measurement_thread.wait()
 
@@ -1464,7 +1922,7 @@ class URASHGMicroscopyExtension(CustomApp):
         except Exception as e:
             error_msg = f"Error stopping measurement: {str(e)}"
             logger.error(error_msg)
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def pause_measurement(self):
@@ -1478,22 +1936,24 @@ class URASHGMicroscopyExtension(CustomApp):
 
         try:
             # Signal worker to pause
-            if hasattr(self, 'measurement_worker') and self.measurement_worker:
+            if hasattr(self, "measurement_worker") and self.measurement_worker:
                 self.measurement_worker.pause_measurement()
                 self.log_message("Measurement paused")
             else:
-                self.log_message("Cannot pause: No active measurement worker", level='warning')
+                self.log_message(
+                    "Cannot pause: No active measurement worker", level="warning"
+                )
 
         except Exception as e:
             error_msg = f"Error pausing measurement: {str(e)}"
             logger.error(error_msg)
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def emergency_stop(self):
         """Emergency stop all devices and measurements."""
         logger.warning("EMERGENCY STOP activated!")
-        self.log_message("EMERGENCY STOP activated!", level='error')
+        self.log_message("EMERGENCY STOP activated!", level="error")
 
         try:
             # Stop any ongoing measurements
@@ -1515,7 +1975,7 @@ class URASHGMicroscopyExtension(CustomApp):
         except Exception as e:
             error_msg = f"Error during emergency stop: {str(e)}"
             logger.error(error_msg)
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
 
     def analyze_current_data(self):
         """Analyze the current measurement data (Enhanced for Phase 3)."""
@@ -1523,18 +1983,23 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Analyzing current data...")
 
         if not self.current_measurement_data:
-            self.log_message("No measurement data available for analysis", level='warning')
+            self.log_message(
+                "No measurement data available for analysis", level="warning"
+            )
             return
 
         try:
             self.update_analysis_status("Analyzing data...")
 
             # Update polar plot with fitting
-            if 'angles' in self.current_measurement_data and 'intensities' in self.current_measurement_data:
+            if (
+                "angles" in self.current_measurement_data
+                and "intensities" in self.current_measurement_data
+            ):
                 self._update_polar_plot(self.current_measurement_data)
 
             # Update spectral analysis if multi-wavelength data
-            if self.current_measurement_data.get('multi_wavelength', False):
+            if self.current_measurement_data.get("multi_wavelength", False):
                 self.update_spectral_analysis()
                 self.update_3d_visualization()
 
@@ -1543,7 +2008,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
         except Exception as e:
             error_msg = f"Data analysis failed: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.update_analysis_status("Analysis failed")
 
     def fit_rashg_pattern(self):
@@ -1552,17 +2017,22 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Fitting RASHG pattern...")
 
         if not self.current_measurement_data:
-            self.log_message("No measurement data available for fitting", level='warning')
+            self.log_message(
+                "No measurement data available for fitting", level="warning"
+            )
             return
 
         try:
             self.update_analysis_status("Fitting RASHG pattern...")
 
-            angles = self.current_measurement_data.get('angles', [])
-            intensities = self.current_measurement_data.get('intensities', [])
+            angles = self.current_measurement_data.get("angles", [])
+            intensities = self.current_measurement_data.get("intensities", [])
 
             if len(angles) < 4 or len(intensities) < 4:
-                self.log_message("Insufficient data points for fitting (minimum 4 required)", level='warning')
+                self.log_message(
+                    "Insufficient data points for fitting (minimum 4 required)",
+                    level="warning",
+                )
                 return
 
             # Perform RASHG fitting
@@ -1573,15 +2043,17 @@ class URASHGMicroscopyExtension(CustomApp):
                 self._display_fit_results(fit_results)
                 self._plot_fit_curve(angles, intensities, fit_results)
 
-                self.log_message(f"RASHG fit completed: A={fit_results['A']:.2f}, B={fit_results['B']:.2f}, φ={fit_results['phi_deg']:.1f}°")
+                self.log_message(
+                    f"RASHG fit completed: A={fit_results['A']:.2f}, B={fit_results['B']:.2f}, φ={fit_results['phi_deg']:.1f}°"
+                )
                 self.update_analysis_status("RASHG pattern fitted successfully")
             else:
-                self.log_message("RASHG fitting failed", level='error')
+                self.log_message("RASHG fitting failed", level="error")
                 self.update_analysis_status("RASHG fitting failed")
 
         except Exception as e:
             error_msg = f"RASHG fitting failed: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.update_analysis_status("RASHG fitting failed")
 
     def export_analysis_results(self):
@@ -1590,27 +2062,29 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Exporting analysis results...")
 
         if not self.current_fit_results and not self.spectral_analysis_data:
-            self.log_message("No analysis results available for export", level='warning')
+            self.log_message(
+                "No analysis results available for export", level="warning"
+            )
             return
 
         try:
             # Get save directory
-            save_dir = Path(self.settings.child('data', 'save_dir').value())
+            save_dir = Path(self.settings.child("data", "save_dir").value())
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
 
             # Export fit results
             if self.current_fit_results:
                 fit_filename = save_dir / f"rashg_fit_results_{timestamp}.json"
-                with open(fit_filename, 'w') as f:
+                with open(fit_filename, "w") as f:
                     json.dump(self.current_fit_results, f, indent=2)
                 self.log_message(f"Fit results exported to {fit_filename}")
 
             # Export spectral analysis
             if self.spectral_analysis_data:
                 spectral_filename = save_dir / f"spectral_analysis_{timestamp}.json"
-                with open(spectral_filename, 'w') as f:
+                with open(spectral_filename, "w") as f:
                     json.dump(self.spectral_analysis_data, f, indent=2)
                 self.log_message(f"Spectral analysis exported to {spectral_filename}")
 
@@ -1618,7 +2092,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
         except Exception as e:
             error_msg = f"Export analysis results failed: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
 
     def export_data(self):
         """Export measurement data to file."""
@@ -1626,15 +2100,17 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Exporting data...")
 
         if not self.current_measurement_data:
-            self.log_message("No measurement data available for export", level='warning')
+            self.log_message(
+                "No measurement data available for export", level="warning"
+            )
             return
 
         try:
             # Use existing data export functionality but add analysis results
-            save_dir = Path(self.settings.child('data', 'save_dir').value())
+            save_dir = Path(self.settings.child("data", "save_dir").value())
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
             filename = save_dir / f"urashg_data_export_{timestamp}.json"
 
             # Prepare comprehensive export data
@@ -1642,21 +2118,22 @@ class URASHGMicroscopyExtension(CustomApp):
 
             # Add analysis results if available
             if self.current_fit_results:
-                export_data['fit_results'] = self.current_fit_results
+                export_data["fit_results"] = self.current_fit_results
 
             if self.spectral_analysis_data:
-                export_data['spectral_analysis'] = self.spectral_analysis_data
+                export_data["spectral_analysis"] = self.spectral_analysis_data
 
             # Save to JSON
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 import json
+
                 json.dump(export_data, f, indent=2)
 
             self.log_message(f"Data exported to {filename}")
 
         except Exception as e:
             error_msg = f"Data export failed: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
 
     def load_configuration(self):
         """Load measurement configuration from file (PHASE 3 FEATURE)."""
@@ -1668,15 +2145,17 @@ class URASHGMicroscopyExtension(CustomApp):
             from qtpy.QtWidgets import QFileDialog
 
             # Get default config directory
-            config_dir = Path(self.settings.child('data', 'save_dir').value()) / "configs"
+            config_dir = (
+                Path(self.settings.child("data", "save_dir").value()) / "configs"
+            )
             config_dir.mkdir(parents=True, exist_ok=True)
 
             # Open file dialog
             filename, _ = QFileDialog.getOpenFileName(
                 self.control_widget,
-                'Load μRASHG Configuration',
+                "Load μRASHG Configuration",
                 str(config_dir),
-                'JSON Configuration Files (*.json);;All Files (*.*)'
+                "JSON Configuration Files (*.json);;All Files (*.*)",
             )
 
             if not filename:
@@ -1684,8 +2163,9 @@ class URASHGMicroscopyExtension(CustomApp):
                 return
 
             # Load and apply configuration
-            with open(filename, 'r') as f:
+            with open(filename, "r") as f:
                 import json
+
                 config_data = json.load(f)
 
             self._apply_configuration(config_data)
@@ -1694,7 +2174,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
         except Exception as e:
             error_msg = f"Failed to load configuration: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def save_configuration(self):
@@ -1710,19 +2190,21 @@ class URASHGMicroscopyExtension(CustomApp):
             from qtpy.QtWidgets import QFileDialog
 
             # Get default config directory
-            config_dir = Path(self.settings.child('data', 'save_dir').value()) / "configs"
+            config_dir = (
+                Path(self.settings.child("data", "save_dir").value()) / "configs"
+            )
             config_dir.mkdir(parents=True, exist_ok=True)
 
             # Generate default filename
-            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
             default_name = f"urashg_config_{timestamp}.json"
 
             # Open file dialog
             filename, _ = QFileDialog.getSaveFileName(
                 self.control_widget,
-                'Save μRASHG Configuration',
+                "Save μRASHG Configuration",
                 str(config_dir / default_name),
-                'JSON Configuration Files (*.json);;All Files (*.*)'
+                "JSON Configuration Files (*.json);;All Files (*.*)",
             )
 
             if not filename:
@@ -1730,48 +2212,68 @@ class URASHGMicroscopyExtension(CustomApp):
                 return
 
             # Save configuration
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 import json
+
                 json.dump(config_data, f, indent=2)
 
             self.log_message(f"Configuration saved to {filename}")
 
         except Exception as e:
             error_msg = f"Failed to save configuration: {str(e)}"
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
             self.error_occurred.emit(error_msg)
 
     def _get_current_configuration(self):
         """Get current system configuration for saving."""
         try:
             config_data = {
-                'metadata': {
-                    'timestamp': time.time(),
-                    'date': time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'extension_version': self.version,
-                    'config_type': 'urashg_measurement_config'
+                "metadata": {
+                    "timestamp": time.time(),
+                    "date": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "extension_version": self.version,
+                    "config_type": "urashg_measurement_config",
                 },
-
                 # Parameter tree settings
-                'parameter_settings': self._extract_parameter_settings(),
-
+                "parameter_settings": self._extract_parameter_settings(),
                 # Device positions
-                'device_positions': self._get_current_device_positions(),
-
+                "device_positions": self._get_current_device_positions(),
                 # Device control settings
-                'device_control_settings': self._get_device_control_settings(),
-
+                "device_control_settings": self._get_device_control_settings(),
                 # Analysis settings
-                'analysis_settings': self._get_analysis_settings(),
-
+                "analysis_settings": self._get_analysis_settings(),
                 # UI settings
-                'ui_settings': {
-                    'auto_fit_enabled': getattr(self.auto_fit_checkbox, 'isChecked', lambda: False)() if hasattr(self, 'auto_fit_checkbox') else False,
-                    'auto_sync_enabled': getattr(self.auto_sync_checkbox, 'isChecked', lambda: True)() if hasattr(self, 'auto_sync_checkbox') else True,
-                    'spectral_mode': getattr(self.spectral_mode_combo, 'currentText', lambda: 'RASHG Amplitude')() if hasattr(self, 'spectral_mode_combo') else 'RASHG Amplitude',
-                    'active_analysis_tab': getattr(self.analysis_tabs, 'currentIndex', lambda: 0)() if hasattr(self, 'analysis_tabs') else 0,
-                    'active_device_tab': getattr(self.device_tabs, 'currentIndex', lambda: 0)() if hasattr(self, 'device_tabs') else 0,
-                }
+                "ui_settings": {
+                    "auto_fit_enabled": (
+                        getattr(self.auto_fit_checkbox, "isChecked", lambda: False)()
+                        if hasattr(self, "auto_fit_checkbox")
+                        else False
+                    ),
+                    "auto_sync_enabled": (
+                        getattr(self.auto_sync_checkbox, "isChecked", lambda: True)()
+                        if hasattr(self, "auto_sync_checkbox")
+                        else True
+                    ),
+                    "spectral_mode": (
+                        getattr(
+                            self.spectral_mode_combo,
+                            "currentText",
+                            lambda: "RASHG Amplitude",
+                        )()
+                        if hasattr(self, "spectral_mode_combo")
+                        else "RASHG Amplitude"
+                    ),
+                    "active_analysis_tab": (
+                        getattr(self.analysis_tabs, "currentIndex", lambda: 0)()
+                        if hasattr(self, "analysis_tabs")
+                        else 0
+                    ),
+                    "active_device_tab": (
+                        getattr(self.device_tabs, "currentIndex", lambda: 0)()
+                        if hasattr(self, "device_tabs")
+                        else 0
+                    ),
+                },
             }
 
             return config_data
@@ -1786,9 +2288,17 @@ class URASHGMicroscopyExtension(CustomApp):
             parameter_settings = {}
 
             # Extract all parameter values
-            for param_name in ['experiment', 'hardware', 'wavelength', 'data', 'advanced']:
+            for param_name in [
+                "experiment",
+                "hardware",
+                "wavelength",
+                "data",
+                "advanced",
+            ]:
                 if self.settings.child(param_name):
-                    parameter_settings[param_name] = self._extract_parameter_group(self.settings.child(param_name))
+                    parameter_settings[param_name] = self._extract_parameter_group(
+                        self.settings.child(param_name)
+                    )
 
             return parameter_settings
 
@@ -1825,21 +2335,21 @@ class URASHGMicroscopyExtension(CustomApp):
             device_positions = {}
 
             # Get laser wavelength
-            if hasattr(self, 'wavelength_spinbox'):
-                device_positions['laser_wavelength'] = self.wavelength_spinbox.value()
+            if hasattr(self, "wavelength_spinbox"):
+                device_positions["laser_wavelength"] = self.wavelength_spinbox.value()
 
             # Get elliptec positions
             elliptec_positions = self.get_current_elliptec_positions()
             if elliptec_positions:
-                device_positions['elliptec_positions'] = elliptec_positions
+                device_positions["elliptec_positions"] = elliptec_positions
 
             # Get rotator control spinbox values
-            if hasattr(self, 'rotator_controls'):
+            if hasattr(self, "rotator_controls"):
                 rotator_setpoints = {}
                 for axis, controls in self.rotator_controls.items():
-                    if 'position_spinbox' in controls:
-                        rotator_setpoints[axis] = controls['position_spinbox'].value()
-                device_positions['rotator_setpoints'] = rotator_setpoints
+                    if "position_spinbox" in controls:
+                        rotator_setpoints[axis] = controls["position_spinbox"].value()
+                device_positions["rotator_setpoints"] = rotator_setpoints
 
             return device_positions
 
@@ -1853,16 +2363,18 @@ class URASHGMicroscopyExtension(CustomApp):
             device_control_settings = {}
 
             # Wavelength control settings
-            if hasattr(self, 'wavelength_slider') and hasattr(self, 'wavelength_spinbox'):
-                device_control_settings['wavelength_control'] = {
-                    'slider_value': self.wavelength_slider.value(),
-                    'spinbox_value': self.wavelength_spinbox.value()
+            if hasattr(self, "wavelength_slider") and hasattr(
+                self, "wavelength_spinbox"
+            ):
+                device_control_settings["wavelength_control"] = {
+                    "slider_value": self.wavelength_slider.value(),
+                    "spinbox_value": self.wavelength_spinbox.value(),
                 }
 
             # Power meter sync settings
-            if hasattr(self, 'auto_sync_checkbox'):
-                device_control_settings['power_sync'] = {
-                    'auto_sync_enabled': self.auto_sync_checkbox.isChecked()
+            if hasattr(self, "auto_sync_checkbox"):
+                device_control_settings["power_sync"] = {
+                    "auto_sync_enabled": self.auto_sync_checkbox.isChecked()
                 }
 
             return device_control_settings
@@ -1877,16 +2389,16 @@ class URASHGMicroscopyExtension(CustomApp):
             analysis_settings = {}
 
             # Fit settings
-            if hasattr(self, 'auto_fit_checkbox'):
-                analysis_settings['fitting'] = {
-                    'auto_fit_enabled': self.auto_fit_checkbox.isChecked()
+            if hasattr(self, "auto_fit_checkbox"):
+                analysis_settings["fitting"] = {
+                    "auto_fit_enabled": self.auto_fit_checkbox.isChecked()
                 }
 
             # Spectral analysis settings
-            if hasattr(self, 'spectral_mode_combo'):
-                analysis_settings['spectral'] = {
-                    'mode': self.spectral_mode_combo.currentText(),
-                    'index': self.spectral_mode_combo.currentIndex()
+            if hasattr(self, "spectral_mode_combo"):
+                analysis_settings["spectral"] = {
+                    "mode": self.spectral_mode_combo.currentText(),
+                    "index": self.spectral_mode_combo.currentIndex(),
                 }
 
             return analysis_settings
@@ -1901,38 +2413,42 @@ class URASHGMicroscopyExtension(CustomApp):
             self.log_message("Applying configuration...")
 
             # Apply parameter settings
-            if 'parameter_settings' in config_data:
-                self._apply_parameter_settings(config_data['parameter_settings'])
+            if "parameter_settings" in config_data:
+                self._apply_parameter_settings(config_data["parameter_settings"])
 
             # Apply device positions
-            if 'device_positions' in config_data:
-                self._apply_device_positions(config_data['device_positions'])
+            if "device_positions" in config_data:
+                self._apply_device_positions(config_data["device_positions"])
 
             # Apply device control settings
-            if 'device_control_settings' in config_data:
-                self._apply_device_control_settings(config_data['device_control_settings'])
+            if "device_control_settings" in config_data:
+                self._apply_device_control_settings(
+                    config_data["device_control_settings"]
+                )
 
             # Apply analysis settings
-            if 'analysis_settings' in config_data:
-                self._apply_analysis_settings(config_data['analysis_settings'])
+            if "analysis_settings" in config_data:
+                self._apply_analysis_settings(config_data["analysis_settings"])
 
             # Apply UI settings
-            if 'ui_settings' in config_data:
-                self._apply_ui_settings(config_data['ui_settings'])
+            if "ui_settings" in config_data:
+                self._apply_ui_settings(config_data["ui_settings"])
 
             self.log_message("Configuration applied successfully")
 
         except Exception as e:
             error_msg = f"Error applying configuration: {str(e)}"
             logger.error(error_msg)
-            self.log_message(error_msg, level='error')
+            self.log_message(error_msg, level="error")
 
     def _apply_parameter_settings(self, parameter_settings):
         """Apply parameter tree settings."""
         try:
             for param_name, param_values in parameter_settings.items():
                 if self.settings.child(param_name):
-                    self._apply_parameter_group(self.settings.child(param_name), param_values)
+                    self._apply_parameter_group(
+                        self.settings.child(param_name), param_values
+                    )
 
         except Exception as e:
             logger.debug(f"Error applying parameter settings: {e}")
@@ -1960,21 +2476,23 @@ class URASHGMicroscopyExtension(CustomApp):
         """Apply device positions from configuration."""
         try:
             # Apply laser wavelength
-            if 'laser_wavelength' in device_positions:
-                wl = device_positions['laser_wavelength']
-                if hasattr(self, 'wavelength_spinbox'):
+            if "laser_wavelength" in device_positions:
+                wl = device_positions["laser_wavelength"]
+                if hasattr(self, "wavelength_spinbox"):
                     self.wavelength_spinbox.setValue(wl)
-                if hasattr(self, 'wavelength_slider'):
+                if hasattr(self, "wavelength_slider"):
                     self.wavelength_slider.setValue(int(wl))
 
             # Apply rotator setpoints
-            if 'rotator_setpoints' in device_positions and hasattr(self, 'rotator_controls'):
-                setpoints = device_positions['rotator_setpoints']
+            if "rotator_setpoints" in device_positions and hasattr(
+                self, "rotator_controls"
+            ):
+                setpoints = device_positions["rotator_setpoints"]
                 for axis, position in setpoints.items():
                     if int(axis) in self.rotator_controls:
                         controls = self.rotator_controls[int(axis)]
-                        if 'position_spinbox' in controls:
-                            controls['position_spinbox'].setValue(position)
+                        if "position_spinbox" in controls:
+                            controls["position_spinbox"].setValue(position)
 
         except Exception as e:
             logger.debug(f"Error applying device positions: {e}")
@@ -1983,18 +2501,24 @@ class URASHGMicroscopyExtension(CustomApp):
         """Apply device control widget settings."""
         try:
             # Apply wavelength control settings
-            if 'wavelength_control' in device_control_settings:
-                wl_settings = device_control_settings['wavelength_control']
-                if 'spinbox_value' in wl_settings and hasattr(self, 'wavelength_spinbox'):
-                    self.wavelength_spinbox.setValue(wl_settings['spinbox_value'])
-                if 'slider_value' in wl_settings and hasattr(self, 'wavelength_slider'):
-                    self.wavelength_slider.setValue(wl_settings['slider_value'])
+            if "wavelength_control" in device_control_settings:
+                wl_settings = device_control_settings["wavelength_control"]
+                if "spinbox_value" in wl_settings and hasattr(
+                    self, "wavelength_spinbox"
+                ):
+                    self.wavelength_spinbox.setValue(wl_settings["spinbox_value"])
+                if "slider_value" in wl_settings and hasattr(self, "wavelength_slider"):
+                    self.wavelength_slider.setValue(wl_settings["slider_value"])
 
             # Apply power sync settings
-            if 'power_sync' in device_control_settings:
-                sync_settings = device_control_settings['power_sync']
-                if 'auto_sync_enabled' in sync_settings and hasattr(self, 'auto_sync_checkbox'):
-                    self.auto_sync_checkbox.setChecked(sync_settings['auto_sync_enabled'])
+            if "power_sync" in device_control_settings:
+                sync_settings = device_control_settings["power_sync"]
+                if "auto_sync_enabled" in sync_settings and hasattr(
+                    self, "auto_sync_checkbox"
+                ):
+                    self.auto_sync_checkbox.setChecked(
+                        sync_settings["auto_sync_enabled"]
+                    )
 
         except Exception as e:
             logger.debug(f"Error applying device control settings: {e}")
@@ -2003,16 +2527,20 @@ class URASHGMicroscopyExtension(CustomApp):
         """Apply analysis widget settings."""
         try:
             # Apply fitting settings
-            if 'fitting' in analysis_settings:
-                fit_settings = analysis_settings['fitting']
-                if 'auto_fit_enabled' in fit_settings and hasattr(self, 'auto_fit_checkbox'):
-                    self.auto_fit_checkbox.setChecked(fit_settings['auto_fit_enabled'])
+            if "fitting" in analysis_settings:
+                fit_settings = analysis_settings["fitting"]
+                if "auto_fit_enabled" in fit_settings and hasattr(
+                    self, "auto_fit_checkbox"
+                ):
+                    self.auto_fit_checkbox.setChecked(fit_settings["auto_fit_enabled"])
 
             # Apply spectral analysis settings
-            if 'spectral' in analysis_settings:
-                spectral_settings = analysis_settings['spectral']
-                if 'index' in spectral_settings and hasattr(self, 'spectral_mode_combo'):
-                    self.spectral_mode_combo.setCurrentIndex(spectral_settings['index'])
+            if "spectral" in analysis_settings:
+                spectral_settings = analysis_settings["spectral"]
+                if "index" in spectral_settings and hasattr(
+                    self, "spectral_mode_combo"
+                ):
+                    self.spectral_mode_combo.setCurrentIndex(spectral_settings["index"])
 
         except Exception as e:
             logger.debug(f"Error applying analysis settings: {e}")
@@ -2021,11 +2549,11 @@ class URASHGMicroscopyExtension(CustomApp):
         """Apply UI widget settings."""
         try:
             # Apply tab selections
-            if 'active_analysis_tab' in ui_settings and hasattr(self, 'analysis_tabs'):
-                self.analysis_tabs.setCurrentIndex(ui_settings['active_analysis_tab'])
+            if "active_analysis_tab" in ui_settings and hasattr(self, "analysis_tabs"):
+                self.analysis_tabs.setCurrentIndex(ui_settings["active_analysis_tab"])
 
-            if 'active_device_tab' in ui_settings and hasattr(self, 'device_tabs'):
-                self.device_tabs.setCurrentIndex(ui_settings['active_device_tab'])
+            if "active_device_tab" in ui_settings and hasattr(self, "device_tabs"):
+                self.device_tabs.setCurrentIndex(ui_settings["active_device_tab"])
 
         except Exception as e:
             logger.debug(f"Error applying UI settings: {e}")
@@ -2034,15 +2562,24 @@ class URASHGMicroscopyExtension(CustomApp):
 
     def get_style(self):
         """Get style from various sources for icons."""
-        if hasattr(self, 'style') and callable(self.style):
+        if hasattr(self, "style") and callable(self.style):
             return self.style()
-        elif hasattr(self, 'dashboard') and hasattr(self.dashboard, 'style') and callable(self.dashboard.style):
+        elif (
+            hasattr(self, "dashboard")
+            and hasattr(self.dashboard, "style")
+            and callable(self.dashboard.style)
+        ):
             return self.dashboard.style()
-        elif hasattr(self.dashboard, 'mainwindow') and hasattr(self.dashboard.mainwindow, 'style') and callable(self.dashboard.mainwindow.style):
+        elif (
+            hasattr(self.dashboard, "mainwindow")
+            and hasattr(self.dashboard.mainwindow, "style")
+            and callable(self.dashboard.mainwindow.style)
+        ):
             return self.dashboard.mainwindow.style()
         else:
             # Fallback to a default QApplication style
             from qtpy.QtWidgets import QApplication
+
             return QApplication.style()
 
     def add_action(self, name: str, text: str, callback, icon: str = None):
@@ -2050,22 +2587,24 @@ class URASHGMicroscopyExtension(CustomApp):
         action = QtWidgets.QAction(text, self)
         action.triggered.connect(callback)
         if icon and hasattr(QtWidgets.QStyle, icon):
-            action.setIcon(self.get_style().standardIcon(getattr(QtWidgets.QStyle, icon)))
+            action.setIcon(
+                self.get_style().standardIcon(getattr(QtWidgets.QStyle, icon))
+            )
         setattr(self, f"{name}_action", action)
 
-    def log_message(self, message: str, level: str = 'info'):
+    def log_message(self, message: str, level: str = "info"):
         """Add a message to the activity log."""
-        timestamp = time.strftime('%H:%M:%S')
+        timestamp = time.strftime("%H:%M:%S")
         formatted_message = f"[{timestamp}] {message}"
 
-        if hasattr(self, 'log_display'):
+        if hasattr(self, "log_display"):
             self.log_display.append(formatted_message)
             # Auto-scroll to bottom
             self.log_display.moveCursor(QtGui.QTextCursor.End)
 
     def update_device_status(self):
         """Update module status display (periodic)."""
-        if not self.modules_manager or not hasattr(self, 'device_status_table'):
+        if not self.modules_manager or not hasattr(self, "device_status_table"):
             return
 
         try:
@@ -2081,7 +2620,7 @@ class URASHGMicroscopyExtension(CustomApp):
                 # Status with color coding
                 if module_name in self.available_modules:
                     module = self.available_modules[module_name]
-                    if hasattr(module, 'controller') and module.controller:
+                    if hasattr(module, "controller") and module.controller:
                         status_text = "Connected"
                         color = QtGui.QColor(144, 238, 144)  # Light green
                         details = f"Module: {module.__class__.__name__}"
@@ -2091,7 +2630,7 @@ class URASHGMicroscopyExtension(CustomApp):
                         details = "Controller not available"
                 else:
                     status_text = "Not Found"
-                    color = QtGui.QColor(255, 99, 71)   # Tomato red
+                    color = QtGui.QColor(255, 99, 71)  # Tomato red
                     details = "Load plugin in dashboard"
 
                 status_item = QtWidgets.QTableWidgetItem(status_text)
@@ -2111,23 +2650,25 @@ class URASHGMicroscopyExtension(CustomApp):
         """Update live data from available modules (simplified for PyMoDAQ integration)."""
         try:
             # Update power meter reading if available
-            if 'Newport1830C' in self.available_modules:
-                power_module = self.available_modules['Newport1830C']
+            if "Newport1830C" in self.available_modules:
+                power_module = self.available_modules["Newport1830C"]
                 try:
                     # For now, just log that the module is available
                     # Full data acquisition will be implemented once Qt signal issues are resolved
-                    logger.debug(f"Power meter module available: {power_module.__class__.__name__}")
+                    logger.debug(
+                        f"Power meter module available: {power_module.__class__.__name__}"
+                    )
                 except Exception as e:
                     logger.debug(f"Could not update power meter data: {e}")
 
             # Update other modules as needed
             # Note: This is simplified to avoid Qt signal/threading issues
             # Real data acquisition should use PyMoDAQ's standard patterns
-            camera = self._get_plugin('viewer', ['PrimeBSI', 'Camera'])
-            if camera and hasattr(camera, 'controller') and camera.controller:
+            camera = self._get_plugin("viewer", ["PrimeBSI", "Camera"])
+            if camera and hasattr(camera, "controller") and camera.controller:
                 try:
                     # Check if camera has temperature monitoring
-                    if hasattr(camera.controller, 'get_temperature'):
+                    if hasattr(camera.controller, "get_temperature"):
                         temp = camera.controller.get_temperature()
                         # Could add temperature display to status or plots here
                         logger.debug(f"Camera temperature: {temp}°C")
@@ -2169,16 +2710,21 @@ class URASHGMicroscopyExtension(CustomApp):
     def on_error_occurred(self, error_message: str):
         """Handle error occurrence."""
         logger.error(f"Extension error: {error_message}")
-        self.log_message(f"ERROR: {error_message}", level='error')
+        self.log_message(f"ERROR: {error_message}", level="error")
 
         # Show error dialog
-        QtWidgets.QMessageBox.critical(self.control_widget, 'μRASHG Extension Error',
-                                     f"An error occurred:\n\n{error_message}")
+        QtWidgets.QMessageBox.critical(
+            self.control_widget,
+            "μRASHG Extension Error",
+            f"An error occurred:\n\n{error_message}",
+        )
 
     def on_device_error(self, device_name: str, error_message: str):
         """Handle device-specific error."""
         logger.error(f"Device '{device_name}' error: {error_message}")
-        self.log_message(f"DEVICE ERROR - {device_name}: {error_message}", level='error')
+        self.log_message(
+            f"DEVICE ERROR - {device_name}: {error_message}", level="error"
+        )
 
     def on_all_devices_ready(self, ready: bool):
         """Handle all devices ready status change."""
@@ -2188,9 +2734,8 @@ class URASHGMicroscopyExtension(CustomApp):
             self.start_button.setEnabled(True)
         else:
             logger.warning("Not all required devices are ready")
-            self.log_message("Some required devices are not ready", level='warning')
+            self.log_message("Some required devices are not ready", level="warning")
             self.start_button.setEnabled(False)
-
 
     def _on_measurement_completed(self, measurement_data):
         """Handle measurement completion from worker thread."""
@@ -2201,21 +2746,21 @@ class URASHGMicroscopyExtension(CustomApp):
         self.current_measurement_data = measurement_data
 
         # Update plots with final data
-        if measurement_data and hasattr(self, 'polar_plot'):
+        if measurement_data and hasattr(self, "polar_plot"):
             self._update_polar_plot(measurement_data)
 
         # Emit completion signal
         self.measurement_finished.emit()
 
         # Clean up thread
-        if hasattr(self, 'measurement_thread'):
+        if hasattr(self, "measurement_thread"):
             self.measurement_thread.quit()
             self.measurement_thread.wait()
 
     def _on_measurement_failed(self, error_message):
         """Handle measurement failure from worker thread."""
         logger.error(f"Measurement failed: {error_message}")
-        self.log_message(f"Measurement failed: {error_message}", level='error')
+        self.log_message(f"Measurement failed: {error_message}", level="error")
 
         # Emit error signal
         self.error_occurred.emit(f"Measurement failed: {error_message}")
@@ -2224,7 +2769,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.measurement_finished.emit()
 
         # Clean up thread
-        if hasattr(self, 'measurement_thread'):
+        if hasattr(self, "measurement_thread"):
             self.measurement_thread.quit()
             self.measurement_thread.wait()
 
@@ -2232,24 +2777,31 @@ class URASHGMicroscopyExtension(CustomApp):
         """Handle individual data acquisition from worker thread."""
         try:
             # Update live camera view if available
-            if 'camera_data' in step_data and hasattr(self, 'camera_view'):
-                image_data = step_data['camera_data']
+            if "camera_data" in step_data and hasattr(self, "camera_view"):
+                image_data = step_data["camera_data"]
                 self.camera_view.setImage(image_data)
 
             # Update polar plot with current data
-            if hasattr(self, 'polar_plot') and 'angle' in step_data and 'intensity' in step_data:
+            if (
+                hasattr(self, "polar_plot")
+                and "angle" in step_data
+                and "intensity" in step_data
+            ):
                 # Store for real-time plotting
-                if not hasattr(self, '_live_polar_data'):
-                    self._live_polar_data = {'angles': [], 'intensities': []}
+                if not hasattr(self, "_live_polar_data"):
+                    self._live_polar_data = {"angles": [], "intensities": []}
 
-                self._live_polar_data['angles'].append(step_data['angle'])
-                self._live_polar_data['intensities'].append(step_data['intensity'])
+                self._live_polar_data["angles"].append(step_data["angle"])
+                self._live_polar_data["intensities"].append(step_data["intensity"])
 
                 # Update plot
                 self.polar_plot.clear()
-                self.polar_plot.plot(self._live_polar_data['angles'],
-                                   self._live_polar_data['intensities'],
-                                   pen='r', symbol='o')
+                self.polar_plot.plot(
+                    self._live_polar_data["angles"],
+                    self._live_polar_data["intensities"],
+                    pen="r",
+                    symbol="o",
+                )
 
         except Exception as e:
             logger.warning(f"Error updating live data display: {e}")
@@ -2257,21 +2809,23 @@ class URASHGMicroscopyExtension(CustomApp):
     def _update_polar_plot(self, measurement_data):
         """Update polar plot with complete measurement data."""
         try:
-            if not measurement_data or not hasattr(self, 'polar_plot'):
+            if not measurement_data or not hasattr(self, "polar_plot"):
                 return
 
             # Extract angle and intensity data
-            angles = measurement_data.get('angles', [])
-            intensities = measurement_data.get('intensities', [])
+            angles = measurement_data.get("angles", [])
+            intensities = measurement_data.get("intensities", [])
 
             if len(angles) > 0 and len(intensities) > 0:
                 # Clear and plot final data
                 self.polar_plot.clear()
-                self.polar_plot.plot(angles, intensities, pen='b', symbol='o', symbolBrush='b')
-                self.polar_plot.setTitle('μRASHG Polar Response')
+                self.polar_plot.plot(
+                    angles, intensities, pen="b", symbol="o", symbolBrush="b"
+                )
+                self.polar_plot.setTitle("μRASHG Polar Response")
 
                 # Fit data if requested
-                if self.settings.child('advanced', 'realtime_analysis').value():
+                if self.settings.child("advanced", "realtime_analysis").value():
                     self._fit_and_plot_rashg_pattern(angles, intensities)
 
         except Exception as e:
@@ -2283,7 +2837,11 @@ class URASHGMicroscopyExtension(CustomApp):
             # Use the new comprehensive fitting method
             fit_results = self._fit_rashg_data(angles, intensities)
 
-            if fit_results and hasattr(self, 'auto_fit_checkbox') and self.auto_fit_checkbox.isChecked():
+            if (
+                fit_results
+                and hasattr(self, "auto_fit_checkbox")
+                and self.auto_fit_checkbox.isChecked()
+            ):
                 # Plot the fit curve
                 self._plot_fit_curve(angles, intensities, fit_results)
 
@@ -2294,7 +2852,9 @@ class URASHGMicroscopyExtension(CustomApp):
                 self.current_fit_results = fit_results
 
                 # Log fit parameters
-                self.log_message(f"RASHG Fit: A={fit_results['A']:.2f}, B={fit_results['B']:.2f}, φ={fit_results['phi_deg']:.1f}°")
+                self.log_message(
+                    f"RASHG Fit: A={fit_results['A']:.2f}, B={fit_results['B']:.2f}, φ={fit_results['phi_deg']:.1f}°"
+                )
 
         except Exception as e:
             logger.warning(f"Could not fit RASHG pattern: {e}")
@@ -2322,19 +2882,26 @@ class URASHGMicroscopyExtension(CustomApp):
 
             # Perform fit with error handling
             try:
-                popt, pcov = curve_fit(rashg_func, angles_np, intensities_np,
-                                     p0=[A_init, B_init, phi_init],
-                                     bounds=([-np.inf, 0, -np.pi], [np.inf, np.inf, np.pi]))
+                popt, pcov = curve_fit(
+                    rashg_func,
+                    angles_np,
+                    intensities_np,
+                    p0=[A_init, B_init, phi_init],
+                    bounds=([-np.inf, 0, -np.pi], [np.inf, np.inf, np.pi]),
+                )
             except Exception as e:
                 logger.warning(f"Constrained fit failed, trying unconstrained: {e}")
-                popt, pcov = curve_fit(rashg_func, angles_np, intensities_np,
-                                     p0=[A_init, B_init, phi_init])
+                popt, pcov = curve_fit(
+                    rashg_func, angles_np, intensities_np, p0=[A_init, B_init, phi_init]
+                )
 
             # Extract fit parameters
             A, B, phi = popt
 
             # Calculate fit quality metrics
-            fit_angles = np.linspace(angles_np.min(), angles_np.max(), len(angles_np) * 4)
+            fit_angles = np.linspace(
+                angles_np.min(), angles_np.max(), len(angles_np) * 4
+            )
             fit_intensities = rashg_func(fit_angles, *popt)
             predicted_intensities = rashg_func(angles_np, *popt)
 
@@ -2352,22 +2919,22 @@ class URASHGMicroscopyExtension(CustomApp):
 
             # Comprehensive fit results
             fit_results = {
-                'A': float(A),                    # Background/offset
-                'B': float(B),                    # Modulation amplitude
-                'phi': float(phi),                # Phase (radians)
-                'phi_deg': float(np.degrees(phi)), # Phase (degrees)
-                'A_error': float(param_errors[0]),
-                'B_error': float(param_errors[1]),
-                'phi_error': float(param_errors[2]),
-                'phi_deg_error': float(np.degrees(param_errors[2])),
-                'r_squared': float(r_squared),
-                'contrast': float(contrast),
-                'modulation_depth': float(modulation_depth),
-                'fit_angles': fit_angles.tolist(),
-                'fit_intensities': fit_intensities.tolist(),
-                'residuals': (intensities_np - predicted_intensities).tolist(),
-                'fit_function': 'I = A + B*cos(4θ + φ)',
-                'timestamp': time.time()
+                "A": float(A),  # Background/offset
+                "B": float(B),  # Modulation amplitude
+                "phi": float(phi),  # Phase (radians)
+                "phi_deg": float(np.degrees(phi)),  # Phase (degrees)
+                "A_error": float(param_errors[0]),
+                "B_error": float(param_errors[1]),
+                "phi_error": float(param_errors[2]),
+                "phi_deg_error": float(np.degrees(param_errors[2])),
+                "r_squared": float(r_squared),
+                "contrast": float(contrast),
+                "modulation_depth": float(modulation_depth),
+                "fit_angles": fit_angles.tolist(),
+                "fit_intensities": fit_intensities.tolist(),
+                "residuals": (intensities_np - predicted_intensities).tolist(),
+                "fit_function": "I = A + B*cos(4θ + φ)",
+                "timestamp": time.time(),
             }
 
             return fit_results
@@ -2379,39 +2946,49 @@ class URASHGMicroscopyExtension(CustomApp):
     def _plot_fit_curve(self, angles, intensities, fit_results):
         """Plot RASHG fit curve overlay."""
         try:
-            if not hasattr(self, 'polar_plot') or not fit_results:
+            if not hasattr(self, "polar_plot") or not fit_results:
                 return
 
             # Clear previous fit curves
             items_to_remove = []
             for item in self.polar_plot.getPlotItem().listDataItems():
-                if hasattr(item, 'name') and 'Fit' in str(item.name):
+                if hasattr(item, "name") and "Fit" in str(item.name):
                     items_to_remove.append(item)
 
             for item in items_to_remove:
                 self.polar_plot.removeItem(item)
 
             # Plot new fit curve
-            fit_angles = np.array(fit_results['fit_angles'])
-            fit_intensities = np.array(fit_results['fit_intensities'])
+            fit_angles = np.array(fit_results["fit_angles"])
+            fit_intensities = np.array(fit_results["fit_intensities"])
 
-            self.polar_plot.plot(fit_angles, fit_intensities,
-                               pen=pg.mkPen('g', width=2),
-                               name='RASHG Fit')
+            self.polar_plot.plot(
+                fit_angles,
+                fit_intensities,
+                pen=pg.mkPen("g", width=2),
+                name="RASHG Fit",
+            )
 
             # Plot residuals (optional, scaled for visibility)
-            if len(fit_results['residuals']) == len(angles):
-                residuals = np.array(fit_results['residuals'])
+            if len(fit_results["residuals"]) == len(angles):
+                residuals = np.array(fit_results["residuals"])
                 angles_np = np.array(angles)
 
                 # Scale residuals for visibility
                 residual_scale = np.max(intensities) * 0.1
-                scaled_residuals = residuals * residual_scale / np.max(np.abs(residuals)) if np.max(np.abs(residuals)) > 0 else residuals
+                scaled_residuals = (
+                    residuals * residual_scale / np.max(np.abs(residuals))
+                    if np.max(np.abs(residuals)) > 0
+                    else residuals
+                )
                 baseline = np.min(intensities) - np.max(np.abs(scaled_residuals)) * 1.5
 
-                self.polar_plot.plot(angles_np, baseline + scaled_residuals,
-                                   pen=pg.mkPen('r', style=QtCore.Qt.PenStyle.DashLine),
-                                   name='Residuals (scaled)')
+                self.polar_plot.plot(
+                    angles_np,
+                    baseline + scaled_residuals,
+                    pen=pg.mkPen("r", style=QtCore.Qt.PenStyle.DashLine),
+                    name="Residuals (scaled)",
+                )
 
         except Exception as e:
             logger.error(f"Error plotting fit curve: {e}")
@@ -2419,7 +2996,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def _display_fit_results(self, fit_results):
         """Display fit results in the UI."""
         try:
-            if not hasattr(self, 'fit_results_label') or not fit_results:
+            if not hasattr(self, "fit_results_label") or not fit_results:
                 return
 
             # Format results display
@@ -2448,39 +3025,50 @@ class URASHGMicroscopyExtension(CustomApp):
         """Handle auto-fit checkbox state change."""
         enabled = state == QtCore.Qt.Checked
         logger.info(f"Real-time RASHG fitting {'enabled' if enabled else 'disabled'}")
-        self.log_message(f"Real-time RASHG fitting {'enabled' if enabled else 'disabled'}")
+        self.log_message(
+            f"Real-time RASHG fitting {'enabled' if enabled else 'disabled'}"
+        )
 
     def update_spectral_analysis(self):
         """Update spectral analysis display (PHASE 3 FEATURE)."""
         try:
-            if not self.current_measurement_data or not self.current_measurement_data.get('multi_wavelength', False):
-                if hasattr(self, 'spectral_plot'):
+            if (
+                not self.current_measurement_data
+                or not self.current_measurement_data.get("multi_wavelength", False)
+            ):
+                if hasattr(self, "spectral_plot"):
                     self.spectral_plot.clear()
                 return
 
             self.update_analysis_status("Updating spectral analysis...")
 
             # Get wavelength and intensity data
-            wavelengths = self.current_measurement_data.get('wavelengths', [])
-            intensities = self.current_measurement_data.get('intensities', [])
-            angles = self.current_measurement_data.get('angles', [])
+            wavelengths = self.current_measurement_data.get("wavelengths", [])
+            intensities = self.current_measurement_data.get("intensities", [])
+            angles = self.current_measurement_data.get("angles", [])
 
             if not wavelengths or not intensities:
                 return
 
             # Organize data by wavelength
-            spectral_data = self._organize_spectral_data(wavelengths, intensities, angles)
+            spectral_data = self._organize_spectral_data(
+                wavelengths, intensities, angles
+            )
 
             # Perform spectral analysis based on mode
-            mode = self.spectral_mode_combo.currentText() if hasattr(self, 'spectral_mode_combo') else 'RASHG Amplitude'
+            mode = (
+                self.spectral_mode_combo.currentText()
+                if hasattr(self, "spectral_mode_combo")
+                else "RASHG Amplitude"
+            )
 
-            if mode == 'RASHG Amplitude':
+            if mode == "RASHG Amplitude":
                 self._plot_spectral_amplitude(spectral_data)
-            elif mode == 'Phase':
+            elif mode == "Phase":
                 self._plot_spectral_phase(spectral_data)
-            elif mode == 'Contrast':
+            elif mode == "Contrast":
                 self._plot_spectral_contrast(spectral_data)
-            elif mode == 'All Parameters':
+            elif mode == "All Parameters":
                 self._plot_all_spectral_parameters(spectral_data)
 
             # Store spectral analysis data
@@ -2501,28 +3089,30 @@ class URASHGMicroscopyExtension(CustomApp):
             unique_wavelengths = sorted(list(set(wavelengths)))
 
             spectral_data = {
-                'wavelengths': unique_wavelengths,
-                'rashg_amplitudes': [],
-                'phases': [],
-                'contrasts': [],
-                'backgrounds': [],
-                'r_squared_values': [],
-                'fit_errors': []
+                "wavelengths": unique_wavelengths,
+                "rashg_amplitudes": [],
+                "phases": [],
+                "contrasts": [],
+                "backgrounds": [],
+                "r_squared_values": [],
+                "fit_errors": [],
             }
 
             # Process each wavelength
             for wl in unique_wavelengths:
                 # Get data for this wavelength
-                wl_indices = [i for i, w in enumerate(wavelengths) if abs(w - wl) < 0.5]  # 0.5 nm tolerance
+                wl_indices = [
+                    i for i, w in enumerate(wavelengths) if abs(w - wl) < 0.5
+                ]  # 0.5 nm tolerance
 
                 if len(wl_indices) < 4:  # Need at least 4 points for fitting
                     # Fill with None for missing data
-                    spectral_data['rashg_amplitudes'].append(None)
-                    spectral_data['phases'].append(None)
-                    spectral_data['contrasts'].append(None)
-                    spectral_data['backgrounds'].append(None)
-                    spectral_data['r_squared_values'].append(None)
-                    spectral_data['fit_errors'].append(None)
+                    spectral_data["rashg_amplitudes"].append(None)
+                    spectral_data["phases"].append(None)
+                    spectral_data["contrasts"].append(None)
+                    spectral_data["backgrounds"].append(None)
+                    spectral_data["r_squared_values"].append(None)
+                    spectral_data["fit_errors"].append(None)
                     continue
 
                 wl_angles = [angles[i] for i in wl_indices]
@@ -2532,24 +3122,26 @@ class URASHGMicroscopyExtension(CustomApp):
                 fit_results = self._fit_rashg_data(wl_angles, wl_intensities)
 
                 if fit_results:
-                    spectral_data['rashg_amplitudes'].append(abs(fit_results['B']))
-                    spectral_data['phases'].append(fit_results['phi_deg'])
-                    spectral_data['contrasts'].append(fit_results['contrast'])
-                    spectral_data['backgrounds'].append(fit_results['A'])
-                    spectral_data['r_squared_values'].append(fit_results['r_squared'])
-                    spectral_data['fit_errors'].append({
-                        'A_error': fit_results['A_error'],
-                        'B_error': fit_results['B_error'],
-                        'phi_error': fit_results['phi_deg_error']
-                    })
+                    spectral_data["rashg_amplitudes"].append(abs(fit_results["B"]))
+                    spectral_data["phases"].append(fit_results["phi_deg"])
+                    spectral_data["contrasts"].append(fit_results["contrast"])
+                    spectral_data["backgrounds"].append(fit_results["A"])
+                    spectral_data["r_squared_values"].append(fit_results["r_squared"])
+                    spectral_data["fit_errors"].append(
+                        {
+                            "A_error": fit_results["A_error"],
+                            "B_error": fit_results["B_error"],
+                            "phi_error": fit_results["phi_deg_error"],
+                        }
+                    )
                 else:
                     # Fill with None for failed fits
-                    spectral_data['rashg_amplitudes'].append(None)
-                    spectral_data['phases'].append(None)
-                    spectral_data['contrasts'].append(None)
-                    spectral_data['backgrounds'].append(None)
-                    spectral_data['r_squared_values'].append(None)
-                    spectral_data['fit_errors'].append(None)
+                    spectral_data["rashg_amplitudes"].append(None)
+                    spectral_data["phases"].append(None)
+                    spectral_data["contrasts"].append(None)
+                    spectral_data["backgrounds"].append(None)
+                    spectral_data["r_squared_values"].append(None)
+                    spectral_data["fit_errors"].append(None)
 
             return spectral_data
 
@@ -2560,26 +3152,32 @@ class URASHGMicroscopyExtension(CustomApp):
     def _plot_spectral_amplitude(self, spectral_data):
         """Plot spectral RASHG amplitude."""
         try:
-            if not hasattr(self, 'spectral_plot') or not spectral_data:
+            if not hasattr(self, "spectral_plot") or not spectral_data:
                 return
 
             self.spectral_plot.clear()
 
-            wavelengths = spectral_data['wavelengths']
-            amplitudes = spectral_data['rashg_amplitudes']
+            wavelengths = spectral_data["wavelengths"]
+            amplitudes = spectral_data["rashg_amplitudes"]
 
             # Filter out None values
-            valid_data = [(w, a) for w, a in zip(wavelengths, amplitudes) if a is not None]
+            valid_data = [
+                (w, a) for w, a in zip(wavelengths, amplitudes) if a is not None
+            ]
 
             if valid_data:
                 wl, amp = zip(*valid_data)
-                self.spectral_plot.plot(wl, amp,
-                                      pen=pg.mkPen('b', width=2),
-                                      symbol='o', symbolBrush='b',
-                                      name='RASHG Amplitude')
+                self.spectral_plot.plot(
+                    wl,
+                    amp,
+                    pen=pg.mkPen("b", width=2),
+                    symbol="o",
+                    symbolBrush="b",
+                    name="RASHG Amplitude",
+                )
 
-            self.spectral_plot.setTitle('Spectral RASHG Amplitude')
-            self.spectral_plot.setLabel('left', 'RASHG Amplitude', 'counts')
+            self.spectral_plot.setTitle("Spectral RASHG Amplitude")
+            self.spectral_plot.setLabel("left", "RASHG Amplitude", "counts")
 
         except Exception as e:
             logger.error(f"Error plotting spectral amplitude: {e}")
@@ -2587,26 +3185,30 @@ class URASHGMicroscopyExtension(CustomApp):
     def _plot_spectral_phase(self, spectral_data):
         """Plot spectral RASHG phase."""
         try:
-            if not hasattr(self, 'spectral_plot') or not spectral_data:
+            if not hasattr(self, "spectral_plot") or not spectral_data:
                 return
 
             self.spectral_plot.clear()
 
-            wavelengths = spectral_data['wavelengths']
-            phases = spectral_data['phases']
+            wavelengths = spectral_data["wavelengths"]
+            phases = spectral_data["phases"]
 
             # Filter out None values
             valid_data = [(w, p) for w, p in zip(wavelengths, phases) if p is not None]
 
             if valid_data:
                 wl, phase = zip(*valid_data)
-                self.spectral_plot.plot(wl, phase,
-                                      pen=pg.mkPen('r', width=2),
-                                      symbol='s', symbolBrush='r',
-                                      name='RASHG Phase')
+                self.spectral_plot.plot(
+                    wl,
+                    phase,
+                    pen=pg.mkPen("r", width=2),
+                    symbol="s",
+                    symbolBrush="r",
+                    name="RASHG Phase",
+                )
 
-            self.spectral_plot.setTitle('Spectral RASHG Phase')
-            self.spectral_plot.setLabel('left', 'Phase', '°')
+            self.spectral_plot.setTitle("Spectral RASHG Phase")
+            self.spectral_plot.setLabel("left", "Phase", "°")
 
         except Exception as e:
             logger.error(f"Error plotting spectral phase: {e}")
@@ -2614,26 +3216,32 @@ class URASHGMicroscopyExtension(CustomApp):
     def _plot_spectral_contrast(self, spectral_data):
         """Plot spectral RASHG contrast."""
         try:
-            if not hasattr(self, 'spectral_plot') or not spectral_data:
+            if not hasattr(self, "spectral_plot") or not spectral_data:
                 return
 
             self.spectral_plot.clear()
 
-            wavelengths = spectral_data['wavelengths']
-            contrasts = spectral_data['contrasts']
+            wavelengths = spectral_data["wavelengths"]
+            contrasts = spectral_data["contrasts"]
 
             # Filter out None values
-            valid_data = [(w, c) for w, c in zip(wavelengths, contrasts) if c is not None]
+            valid_data = [
+                (w, c) for w, c in zip(wavelengths, contrasts) if c is not None
+            ]
 
             if valid_data:
                 wl, cont = zip(*valid_data)
-                self.spectral_plot.plot(wl, cont,
-                                      pen=pg.mkPen('g', width=2),
-                                      symbol='^', symbolBrush='g',
-                                      name='RASHG Contrast')
+                self.spectral_plot.plot(
+                    wl,
+                    cont,
+                    pen=pg.mkPen("g", width=2),
+                    symbol="^",
+                    symbolBrush="g",
+                    name="RASHG Contrast",
+                )
 
-            self.spectral_plot.setTitle('Spectral RASHG Contrast')
-            self.spectral_plot.setLabel('left', 'Contrast', 'ratio')
+            self.spectral_plot.setTitle("Spectral RASHG Contrast")
+            self.spectral_plot.setLabel("left", "Contrast", "ratio")
 
         except Exception as e:
             logger.error(f"Error plotting spectral contrast: {e}")
@@ -2641,7 +3249,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def _plot_all_spectral_parameters(self, spectral_data):
         """Plot all spectral RASHG parameters in subplots."""
         try:
-            if not hasattr(self, 'spectral_plot') or not spectral_data:
+            if not hasattr(self, "spectral_plot") or not spectral_data:
                 return
 
             self.spectral_plot.clear()
@@ -2656,10 +3264,10 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_3d_visualization(self):
         """Update 3D visualization for multi-wavelength data (PHASE 3 FEATURE)."""
         try:
-            if not hasattr(self, 'volume_view') or not self.current_measurement_data:
+            if not hasattr(self, "volume_view") or not self.current_measurement_data:
                 return
 
-            if not self.current_measurement_data.get('multi_wavelength', False):
+            if not self.current_measurement_data.get("multi_wavelength", False):
                 return
 
             self.update_analysis_status("Updating 3D visualization...")
@@ -2668,9 +3276,9 @@ class URASHGMicroscopyExtension(CustomApp):
             self.volume_view.clear()
 
             # Get data
-            wavelengths = self.current_measurement_data.get('wavelengths', [])
-            angles = self.current_measurement_data.get('angles', [])
-            intensities = self.current_measurement_data.get('intensities', [])
+            wavelengths = self.current_measurement_data.get("wavelengths", [])
+            angles = self.current_measurement_data.get("angles", [])
+            intensities = self.current_measurement_data.get("intensities", [])
 
             if not wavelengths or not angles or not intensities:
                 return
@@ -2688,9 +3296,7 @@ class URASHGMicroscopyExtension(CustomApp):
             pos = np.column_stack([wl_norm * 50, angle_norm * 50, int_norm * 20])
 
             # Create scatter plot
-            scatter = gl.GLScatterPlotItem(pos=pos,
-                                         color=(1.0, 1.0, 1.0, 0.8),
-                                         size=3)
+            scatter = gl.GLScatterPlotItem(pos=pos, color=(1.0, 1.0, 1.0, 0.8), size=3)
             self.volume_view.addItem(scatter)
 
             # Add axis labels (simplified)
@@ -2706,6 +3312,7 @@ class URASHGMicroscopyExtension(CustomApp):
         """Check if 3D visualization is supported."""
         try:
             import pyqtgraph.opengl as gl
+
             return True
         except ImportError:
             return False
@@ -2713,7 +3320,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_analysis_status(self, status):
         """Update analysis status display."""
         try:
-            if hasattr(self, 'analysis_status'):
+            if hasattr(self, "analysis_status"):
                 self.analysis_status.setText(f"Analysis Status: {status}")
         except Exception:
             pass
@@ -2724,10 +3331,11 @@ class URASHGMicroscopyExtension(CustomApp):
         """Handle extension close event."""
         if self.is_measuring:
             reply = QtWidgets.QMessageBox.question(
-                self.control_widget, 'Confirm Close',
-                'A measurement is in progress. Stop measurement and close?',
+                self.control_widget,
+                "Confirm Close",
+                "A measurement is in progress. Stop measurement and close?",
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No
+                QtWidgets.QMessageBox.No,
             )
 
             if reply == QtWidgets.QMessageBox.Yes:
@@ -2740,7 +3348,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.status_timer.stop()
 
         # Stop device control update timer (PHASE 3 FEATURE)
-        if hasattr(self, 'device_update_timer'):
+        if hasattr(self, "device_update_timer"):
             self.device_update_timer.stop()
             logger.info("Stopped device control update timer")
 
@@ -2767,7 +3375,7 @@ class URASHGMicroscopyExtension(CustomApp):
         for module_name, module_info in self.modules_manager.modules.items():
             for pattern in name_patterns:
                 if pattern.lower() in module_name.lower():
-                    return module_info.get('module')
+                    return module_info.get("module")
         return None
 
     def _check_required_devices(self):
@@ -2778,17 +3386,20 @@ class URASHGMicroscopyExtension(CustomApp):
             List of missing device names
         """
         required_devices = {
-            'camera': ['PrimeBSI', 'Camera'],
-            'power_meter': ['Newport1830C', 'PowerMeter', 'Newport'],
-            'elliptec': ['Elliptec'],
-            'laser': ['MaiTai', 'Laser']  # Optional
+            "camera": ["PrimeBSI", "Camera"],
+            "power_meter": ["Newport1830C", "PowerMeter", "Newport"],
+            "elliptec": ["Elliptec"],
+            "laser": ["MaiTai", "Laser"],  # Optional
         }
 
         missing = []
         for device_type, patterns in required_devices.items():
-            if device_type == 'laser':
+            if device_type == "laser":
                 continue  # Laser is optional
-            if not self._get_plugin('viewer' if device_type in ['camera', 'power_meter'] else 'move', patterns):
+            if not self._get_plugin(
+                "viewer" if device_type in ["camera", "power_meter"] else "move",
+                patterns,
+            ):
                 missing.append(device_type)
 
         return missing
@@ -2801,10 +3412,10 @@ class URASHGMicroscopyExtension(CustomApp):
         # Stop all move modules
         for module_name, module_info in self.modules_manager.modules.items():
             try:
-                module = module_info.get('module')
-                if module and hasattr(module, 'stop_motion'):
+                module = module_info.get("module")
+                if module and hasattr(module, "stop_motion"):
                     module.stop_motion()
-                elif module and hasattr(module, 'stop_acquisition'):
+                elif module and hasattr(module, "stop_acquisition"):
                     module.stop_acquisition()
             except Exception as e:
                 logger.error(f"Error stopping module {module_name}: {e}")
@@ -2847,15 +3458,15 @@ class MeasurementWorker(QObject):
 
         # Measurement data storage (Enhanced for multi-wavelength - PHASE 3)
         self.measurement_data = {
-            'angles': [],
-            'intensities': [],
-            'images': [],
-            'power_readings': [],
-            'timestamps': [],
-            'wavelengths': [],  # ⭐ NEW: Store wavelength for each measurement point
-            'wavelength_sequence': [],  # ⭐ NEW: Store wavelength scan sequence
-            'multi_wavelength': False,  # ⭐ NEW: Flag for multi-wavelength measurement
-            'measurement_type': 'Basic RASHG'  # ⭐ NEW: Store measurement type
+            "angles": [],
+            "intensities": [],
+            "images": [],
+            "power_readings": [],
+            "timestamps": [],
+            "wavelengths": [],  # ⭐ NEW: Store wavelength for each measurement point
+            "wavelength_sequence": [],  # ⭐ NEW: Store wavelength scan sequence
+            "multi_wavelength": False,  # ⭐ NEW: Flag for multi-wavelength measurement
+            "measurement_type": "Basic RASHG",  # ⭐ NEW: Store measurement type
         }
 
         logger.info("MeasurementWorker initialized")
@@ -2871,27 +3482,37 @@ class MeasurementWorker(QObject):
                 return
 
             # Get measurement parameters
-            measurement_type = self.settings.child('experiment', 'measurement_type').value()
-            pol_steps = self.settings.child('experiment', 'pol_steps').value()
-            pol_start = self.settings.child('experiment', 'pol_range', 'pol_start').value()
-            pol_end = self.settings.child('experiment', 'pol_range', 'pol_end').value()
-            integration_time = self.settings.child('experiment', 'integration_time').value()
-            averages = self.settings.child('experiment', 'averages').value()
+            measurement_type = self.settings.child(
+                "experiment", "measurement_type"
+            ).value()
+            pol_steps = self.settings.child("experiment", "pol_steps").value()
+            pol_start = self.settings.child(
+                "experiment", "pol_range", "pol_start"
+            ).value()
+            pol_end = self.settings.child("experiment", "pol_range", "pol_end").value()
+            integration_time = self.settings.child(
+                "experiment", "integration_time"
+            ).value()
+            averages = self.settings.child("experiment", "averages").value()
 
             # Store measurement type
-            self.measurement_data['measurement_type'] = measurement_type
+            self.measurement_data["measurement_type"] = measurement_type
 
             # Check if multi-wavelength scanning is enabled
-            enable_wavelength_scan = self.settings.child('wavelength', 'enable_scan').value()
+            enable_wavelength_scan = self.settings.child(
+                "wavelength", "enable_scan"
+            ).value()
 
             if enable_wavelength_scan:
                 logger.info("Multi-wavelength scanning enabled")
-                self._run_multi_wavelength_measurement(pol_steps, pol_start, pol_end,
-                                                     integration_time, averages)
+                self._run_multi_wavelength_measurement(
+                    pol_steps, pol_start, pol_end, integration_time, averages
+                )
             else:
                 logger.info("Single wavelength measurement")
-                self._run_single_wavelength_measurement(pol_steps, pol_start, pol_end,
-                                                      integration_time, averages)
+                self._run_single_wavelength_measurement(
+                    pol_steps, pol_start, pol_end, integration_time, averages
+                )
 
             # Finalize measurement
             self._finalize_measurement()
@@ -2905,14 +3526,17 @@ class MeasurementWorker(QObject):
             logger.error(error_msg)
             self.measurement_failed.emit(error_msg)
 
-    def _run_single_wavelength_measurement(self, pol_steps, pol_start, pol_end,
-                                         integration_time, averages):
+    def _run_single_wavelength_measurement(
+        self, pol_steps, pol_start, pol_end, integration_time, averages
+    ):
         """Run single wavelength polarization measurement."""
         # Create angle sequence
         angle_step = (pol_end - pol_start) / pol_steps if pol_steps > 1 else 0
         angles = [pol_start + i * angle_step for i in range(pol_steps)]
 
-        logger.info(f"Single wavelength measurement: {pol_steps} angles from {pol_start}° to {pol_end}°")
+        logger.info(
+            f"Single wavelength measurement: {pol_steps} angles from {pol_start}° to {pol_end}°"
+        )
 
         # Get current wavelength (if available)
         current_wavelength = self._get_current_laser_wavelength()
@@ -2930,10 +3554,14 @@ class MeasurementWorker(QObject):
                 return
 
             # Perform measurement step
-            step_data = self._measure_at_angle(angle, integration_time, averages, current_wavelength)
+            step_data = self._measure_at_angle(
+                angle, integration_time, averages, current_wavelength
+            )
 
             if step_data is None:
-                self.measurement_failed.emit(f"Failed to acquire data at angle {angle}°")
+                self.measurement_failed.emit(
+                    f"Failed to acquire data at angle {angle}°"
+                )
                 return
 
             # Store data
@@ -2944,24 +3572,29 @@ class MeasurementWorker(QObject):
             self.progress_updated.emit(progress)
             self._emit_step_data(step_data, step + 1, pol_steps)
 
-            logger.debug(f"Completed step {step + 1}/{pol_steps} at {angle}°: intensity={step_data['intensity']:.2f}")
+            logger.debug(
+                f"Completed step {step + 1}/{pol_steps} at {angle}°: intensity={step_data['intensity']:.2f}"
+            )
 
-    def _run_multi_wavelength_measurement(self, pol_steps, pol_start, pol_end,
-                                        integration_time, averages):
+    def _run_multi_wavelength_measurement(
+        self, pol_steps, pol_start, pol_end, integration_time, averages
+    ):
         """Run multi-wavelength polarization measurement (PHASE 3 FEATURE)."""
-        self.measurement_data['multi_wavelength'] = True
+        self.measurement_data["multi_wavelength"] = True
 
         # Get wavelength scan parameters
-        wl_start = self.settings.child('wavelength', 'wl_start').value()
-        wl_stop = self.settings.child('wavelength', 'wl_stop').value()
-        wl_steps = self.settings.child('wavelength', 'wl_steps').value()
-        wl_stabilization = self.settings.child('wavelength', 'wl_stabilization').value()
-        auto_sync_pm = self.settings.child('wavelength', 'auto_sync_pm').value()
-        sweep_mode = self.settings.child('wavelength', 'sweep_mode').value()
+        wl_start = self.settings.child("wavelength", "wl_start").value()
+        wl_stop = self.settings.child("wavelength", "wl_stop").value()
+        wl_steps = self.settings.child("wavelength", "wl_steps").value()
+        wl_stabilization = self.settings.child("wavelength", "wl_stabilization").value()
+        auto_sync_pm = self.settings.child("wavelength", "auto_sync_pm").value()
+        sweep_mode = self.settings.child("wavelength", "sweep_mode").value()
 
         # Generate wavelength sequence
-        wavelengths = self._generate_wavelength_sequence(wl_start, wl_stop, wl_steps, sweep_mode)
-        self.measurement_data['wavelength_sequence'] = wavelengths
+        wavelengths = self._generate_wavelength_sequence(
+            wl_start, wl_stop, wl_steps, sweep_mode
+        )
+        self.measurement_data["wavelength_sequence"] = wavelengths
 
         # Create angle sequence
         angle_step = (pol_end - pol_start) / pol_steps if pol_steps > 1 else 0
@@ -2971,7 +3604,9 @@ class MeasurementWorker(QObject):
         total_steps = len(wavelengths) * pol_steps
         current_step = 0
 
-        logger.info(f"Multi-wavelength measurement: {len(wavelengths)} wavelengths × {pol_steps} angles = {total_steps} total measurements")
+        logger.info(
+            f"Multi-wavelength measurement: {len(wavelengths)} wavelengths × {pol_steps} angles = {total_steps} total measurements"
+        )
 
         # Multi-wavelength measurement loop
         for wl_index, wavelength in enumerate(wavelengths):
@@ -2979,7 +3614,9 @@ class MeasurementWorker(QObject):
                 logger.info("Multi-wavelength measurement stopped by user request")
                 return
 
-            logger.info(f"Setting wavelength to {wavelength:.0f} nm ({wl_index + 1}/{len(wavelengths)})")
+            logger.info(
+                f"Setting wavelength to {wavelength:.0f} nm ({wl_index + 1}/{len(wavelengths)})"
+            )
 
             # Set laser wavelength
             if not self._set_laser_wavelength(wavelength):
@@ -2993,7 +3630,9 @@ class MeasurementWorker(QObject):
 
             # Wait for wavelength stabilization
             if wl_stabilization > 0:
-                logger.info(f"Waiting {wl_stabilization}s for wavelength stabilization...")
+                logger.info(
+                    f"Waiting {wl_stabilization}s for wavelength stabilization..."
+                )
                 time.sleep(wl_stabilization)
 
             # Polarization measurement loop at current wavelength
@@ -3006,10 +3645,14 @@ class MeasurementWorker(QObject):
                     return
 
                 # Perform measurement step
-                step_data = self._measure_at_angle(angle, integration_time, averages, wavelength)
+                step_data = self._measure_at_angle(
+                    angle, integration_time, averages, wavelength
+                )
 
                 if step_data is None:
-                    logger.warning(f"Failed to acquire data at wavelength {wavelength} nm, angle {angle}°")
+                    logger.warning(
+                        f"Failed to acquire data at wavelength {wavelength} nm, angle {angle}°"
+                    )
                     continue  # Skip this measurement point
 
                 # Store data
@@ -3023,17 +3666,19 @@ class MeasurementWorker(QObject):
                 # Emit step data with wavelength info
                 self._emit_step_data(step_data, current_step, total_steps, wavelength)
 
-                logger.debug(f"Completed step {current_step}/{total_steps} at {wavelength:.0f}nm, {angle}°: intensity={step_data['intensity']:.2f}")
+                logger.debug(
+                    f"Completed step {current_step}/{total_steps} at {wavelength:.0f}nm, {angle}°: intensity={step_data['intensity']:.2f}"
+                )
 
     def _generate_wavelength_sequence(self, wl_start, wl_stop, wl_steps, sweep_mode):
         """Generate wavelength sequence based on sweep mode."""
         import numpy as np
 
-        if sweep_mode == 'Linear':
+        if sweep_mode == "Linear":
             return np.linspace(wl_start, wl_stop, wl_steps).tolist()
-        elif sweep_mode == 'Logarithmic':
+        elif sweep_mode == "Logarithmic":
             return np.logspace(np.log10(wl_start), np.log10(wl_stop), wl_steps).tolist()
-        elif sweep_mode == 'Custom':
+        elif sweep_mode == "Custom":
             # For now, use linear - could be extended for user-defined sequences
             logger.info("Custom wavelength sequence not implemented, using linear")
             return np.linspace(wl_start, wl_stop, wl_steps).tolist()
@@ -3044,7 +3689,7 @@ class MeasurementWorker(QObject):
         """Set laser wavelength and verify."""
         try:
             # Get laser device
-            laser_device = self.extension._get_plugin('laser', ['MaiTai', 'Laser'])
+            laser_device = self.extension._get_plugin("laser", ["MaiTai", "Laser"])
 
             if not laser_device:
                 logger.error("Laser device not available for wavelength setting")
@@ -3052,10 +3697,11 @@ class MeasurementWorker(QObject):
 
             # Use proper DataActuator pattern
             from pymodaq.control_modules.move_utility_classes import DataActuator
+
             position_data = DataActuator(data=[wavelength])
 
             # Set wavelength
-            if hasattr(laser_device, 'move_abs'):
+            if hasattr(laser_device, "move_abs"):
                 laser_device.move_abs(position_data)
 
                 # Wait a moment for the command to be processed
@@ -3066,7 +3712,9 @@ class MeasurementWorker(QObject):
                 if actual_wavelength is not None:
                     wavelength_error = abs(actual_wavelength - wavelength)
                     if wavelength_error > 5.0:  # Tolerance of 5 nm
-                        logger.warning(f"Wavelength setting error: target={wavelength}, actual={actual_wavelength}")
+                        logger.warning(
+                            f"Wavelength setting error: target={wavelength}, actual={actual_wavelength}"
+                        )
 
                 logger.info(f"Laser wavelength set to {wavelength:.0f} nm")
                 return True
@@ -3081,22 +3729,26 @@ class MeasurementWorker(QObject):
     def _sync_power_meter_wavelength(self, wavelength):
         """Sync power meter wavelength setting."""
         try:
-            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+            power_meter = self.extension._get_plugin(
+                "viewer", ["Newport1830C", "PowerMeter", "Newport"]
+            )
 
             if not power_meter:
                 return False
 
             # Try to sync wavelength
-            if hasattr(power_meter, 'controller') and power_meter.controller:
-                if hasattr(power_meter.controller, 'set_wavelength'):
+            if hasattr(power_meter, "controller") and power_meter.controller:
+                if hasattr(power_meter.controller, "set_wavelength"):
                     power_meter.controller.set_wavelength(wavelength)
                     logger.info(f"Power meter wavelength synced to {wavelength:.0f} nm")
                     return True
-                elif hasattr(power_meter, 'settings'):
-                    wavelength_param = power_meter.settings.child_frompath('wavelength')
+                elif hasattr(power_meter, "settings"):
+                    wavelength_param = power_meter.settings.child_frompath("wavelength")
                     if wavelength_param:
                         wavelength_param.setValue(wavelength)
-                        logger.info(f"Power meter wavelength parameter updated to {wavelength:.0f} nm")
+                        logger.info(
+                            f"Power meter wavelength parameter updated to {wavelength:.0f} nm"
+                        )
                         return True
 
             return False
@@ -3124,43 +3776,48 @@ class MeasurementWorker(QObject):
 
     def _store_measurement_data(self, step_data, angle, wavelength):
         """Store measurement data point."""
-        self.measurement_data['angles'].append(angle)
-        self.measurement_data['intensities'].append(step_data['intensity'])
-        self.measurement_data['images'].append(step_data.get('image'))
-        self.measurement_data['power_readings'].append(step_data.get('power'))
-        self.measurement_data['wavelengths'].append(wavelength)
-        self.measurement_data['timestamps'].append(time.time())
+        self.measurement_data["angles"].append(angle)
+        self.measurement_data["intensities"].append(step_data["intensity"])
+        self.measurement_data["images"].append(step_data.get("image"))
+        self.measurement_data["power_readings"].append(step_data.get("power"))
+        self.measurement_data["wavelengths"].append(wavelength)
+        self.measurement_data["timestamps"].append(time.time())
 
     def _emit_step_data(self, step_data, current_step, total_steps, wavelength=None):
         """Emit step data for real-time updates."""
-        self.data_acquired.emit({
-            'angle': step_data['angle'],
-            'intensity': step_data['intensity'],
-            'camera_data': step_data.get('image'),
-            'power': step_data.get('power'),
-            'wavelength': wavelength,
-            'step': current_step,
-            'total_steps': total_steps
-        })
+        self.data_acquired.emit(
+            {
+                "angle": step_data["angle"],
+                "intensity": step_data["intensity"],
+                "camera_data": step_data.get("image"),
+                "power": step_data.get("power"),
+                "wavelength": wavelength,
+                "step": current_step,
+                "total_steps": total_steps,
+            }
+        )
 
     def _get_current_laser_wavelength(self):
         """Get current laser wavelength."""
         try:
-            laser_device = self.extension._get_plugin('laser', ['MaiTai', 'Laser'])
+            laser_device = self.extension._get_plugin("laser", ["MaiTai", "Laser"])
 
             if not laser_device:
                 return None
 
             # Try to get current wavelength
-            if hasattr(laser_device, 'current_position') and laser_device.current_position is not None:
-                if hasattr(laser_device.current_position, 'value'):
+            if (
+                hasattr(laser_device, "current_position")
+                and laser_device.current_position is not None
+            ):
+                if hasattr(laser_device.current_position, "value"):
                     return laser_device.current_position.value()
-                elif hasattr(laser_device.current_position, 'data'):
+                elif hasattr(laser_device.current_position, "data"):
                     return laser_device.current_position.data[0][0]
                 else:
                     return float(laser_device.current_position)
-            elif hasattr(laser_device, 'controller') and laser_device.controller:
-                if hasattr(laser_device.controller, 'get_wavelength'):
+            elif hasattr(laser_device, "controller") and laser_device.controller:
+                if hasattr(laser_device.controller, "get_wavelength"):
                     return laser_device.controller.get_wavelength()
 
             return None
@@ -3181,9 +3838,11 @@ class MeasurementWorker(QObject):
                 return False
 
             # Get devices
-            camera = self.extension._get_plugin('viewer', ['PrimeBSI', 'Camera'])
-            elliptec = self.extension._get_plugin('move', ['Elliptec'])
-            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+            camera = self.extension._get_plugin("viewer", ["PrimeBSI", "Camera"])
+            elliptec = self.extension._get_plugin("move", ["Elliptec"])
+            power_meter = self.extension._get_plugin(
+                "viewer", ["Newport1830C", "PowerMeter", "Newport"]
+            )
 
             if not camera or not elliptec:
                 logger.error("Missing critical devices (camera or elliptec)")
@@ -3191,34 +3850,56 @@ class MeasurementWorker(QObject):
 
             # Configure camera settings
             roi_settings = {
-                'x_start': self.settings.child('hardware', 'camera', 'roi', 'x_start').value(),
-                'y_start': self.settings.child('hardware', 'camera', 'roi', 'y_start').value(),
-                'width': self.settings.child('hardware', 'camera', 'roi', 'width').value(),
-                'height': self.settings.child('hardware', 'camera', 'roi', 'height').value(),
+                "x_start": self.settings.child(
+                    "hardware", "camera", "roi", "x_start"
+                ).value(),
+                "y_start": self.settings.child(
+                    "hardware", "camera", "roi", "y_start"
+                ).value(),
+                "width": self.settings.child(
+                    "hardware", "camera", "roi", "width"
+                ).value(),
+                "height": self.settings.child(
+                    "hardware", "camera", "roi", "height"
+                ).value(),
             }
 
             # Configure camera if possible
-            if hasattr(camera, 'settings') and camera.settings:
+            if hasattr(camera, "settings") and camera.settings:
                 try:
                     # Set ROI if camera supports it
-                    if camera.settings.child_frompath('detector_settings'):
-                        detector_settings = camera.settings.child('detector_settings')
-                        if detector_settings.child('ROIselect'):
-                            detector_settings.child('ROIselect', 'x0').setValue(roi_settings['x_start'])
-                            detector_settings.child('ROIselect', 'y0').setValue(roi_settings['y_start'])
-                            detector_settings.child('ROIselect', 'width').setValue(roi_settings['width'])
-                            detector_settings.child('ROIselect', 'height').setValue(roi_settings['height'])
+                    if camera.settings.child_frompath("detector_settings"):
+                        detector_settings = camera.settings.child("detector_settings")
+                        if detector_settings.child("ROIselect"):
+                            detector_settings.child("ROIselect", "x0").setValue(
+                                roi_settings["x_start"]
+                            )
+                            detector_settings.child("ROIselect", "y0").setValue(
+                                roi_settings["y_start"]
+                            )
+                            detector_settings.child("ROIselect", "width").setValue(
+                                roi_settings["width"]
+                            )
+                            detector_settings.child("ROIselect", "height").setValue(
+                                roi_settings["height"]
+                            )
 
                     # Set integration time if supported
-                    if camera.settings.child_frompath('main_settings/exposure'):
-                        exposure = self.settings.child('experiment', 'integration_time').value()
-                        camera.settings.child('main_settings', 'exposure').setValue(exposure)
+                    if camera.settings.child_frompath("main_settings/exposure"):
+                        exposure = self.settings.child(
+                            "experiment", "integration_time"
+                        ).value()
+                        camera.settings.child("main_settings", "exposure").setValue(
+                            exposure
+                        )
 
                 except Exception as e:
                     logger.warning(f"Could not configure camera settings: {e}")
 
             # Initialize stabilization if requested
-            stabilization_time = self.settings.child('advanced', 'stabilization_time').value()
+            stabilization_time = self.settings.child(
+                "advanced", "stabilization_time"
+            ).value()
             if stabilization_time > 0:
                 logger.info(f"Stabilization period: {stabilization_time}s")
                 time.sleep(stabilization_time)
@@ -3230,8 +3911,13 @@ class MeasurementWorker(QObject):
             logger.error(f"Error initializing measurement: {e}")
             return False
 
-    def _measure_at_angle(self, angle: float, integration_time: float, averages: int,
-                         wavelength: float = None) -> Optional[dict]:
+    def _measure_at_angle(
+        self,
+        angle: float,
+        integration_time: float,
+        averages: int,
+        wavelength: float = None,
+    ) -> Optional[dict]:
         """
         Perform measurement at a specific angle.
 
@@ -3245,13 +3931,19 @@ class MeasurementWorker(QObject):
         """
         try:
             # Get devices
-            camera = self.extension._get_plugin('viewer', ['PrimeBSI', 'Camera'])
-            elliptec = self.extension._get_plugin('move', ['Elliptec'])
-            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+            camera = self.extension._get_plugin("viewer", ["PrimeBSI", "Camera"])
+            elliptec = self.extension._get_plugin("move", ["Elliptec"])
+            power_meter = self.extension._get_plugin(
+                "viewer", ["Newport1830C", "PowerMeter", "Newport"]
+            )
 
             # Safety timeout
-            movement_timeout = self.settings.child('hardware', 'safety', 'movement_timeout').value()
-            camera_timeout = self.settings.child('hardware', 'safety', 'camera_timeout').value()
+            movement_timeout = self.settings.child(
+                "hardware", "safety", "movement_timeout"
+            ).value()
+            camera_timeout = self.settings.child(
+                "hardware", "safety", "camera_timeout"
+            ).value()
 
             # Move polarization elements to target angle
             logger.debug(f"Moving to angle {angle}°")
@@ -3269,7 +3961,11 @@ class MeasurementWorker(QObject):
                 try:
                     power_data = power_meter.grab_data()
                     if power_data and len(power_data) > 0:
-                        power_reading = float(power_data[0].data[0]) if hasattr(power_data[0], 'data') else None
+                        power_reading = (
+                            float(power_data[0].data[0])
+                            if hasattr(power_data[0], "data")
+                            else None
+                        )
                 except Exception as e:
                     logger.debug(f"Could not read power meter: {e}")
 
@@ -3281,7 +3977,9 @@ class MeasurementWorker(QObject):
 
                 try:
                     # Trigger camera acquisition with timeout
-                    image_data = self._acquire_camera_image(camera, timeout=camera_timeout)
+                    image_data = self._acquire_camera_image(
+                        camera, timeout=camera_timeout
+                    )
                     if image_data is not None:
                         images.append(image_data)
                     else:
@@ -3299,18 +3997,19 @@ class MeasurementWorker(QObject):
                 averaged_image = images[0]
             else:
                 import numpy as np
+
                 averaged_image = np.mean(images, axis=0)
 
             # Calculate total intensity (sum of all pixels)
             total_intensity = float(np.sum(averaged_image))
 
             return {
-                'intensity': total_intensity,
-                'image': averaged_image,
-                'power': power_reading,
-                'angle': angle,
-                'wavelength': wavelength,  # ⭐ NEW: Include wavelength in step data
-                'n_averages': len(images)
+                "intensity": total_intensity,
+                "image": averaged_image,
+                "power": power_reading,
+                "angle": angle,
+                "wavelength": wavelength,  # ⭐ NEW: Include wavelength in step data
+                "n_averages": len(images),
             }
 
         except Exception as e:
@@ -3325,17 +4024,19 @@ class MeasurementWorker(QObject):
         while others remain fixed, but this method supports coordinated movement.
         """
         try:
-            elliptec = self.extension._get_plugin('move', ['Elliptec'])
+            elliptec = self.extension._get_plugin("move", ["Elliptec"])
             if not elliptec:
                 logger.error("Elliptec device not available")
                 return False
 
             # Get axis configuration
-            measurement_type = self.settings.child('experiment', 'measurement_type').value()
+            measurement_type = self.settings.child(
+                "experiment", "measurement_type"
+            ).value()
 
             # For basic RASHG, typically rotate the analyzer (HWP)
             # This can be configured based on measurement type
-            if measurement_type == 'Basic RASHG':
+            if measurement_type == "Basic RASHG":
                 # Rotate HWP analyzer (axis 2) while keeping others fixed
                 target_positions = [None, None, angle]  # [QWP, HWP_inc, HWP_ana]
                 axis_to_move = 2
@@ -3356,7 +4057,7 @@ class MeasurementWorker(QObject):
                 logger.debug(f"Moving elliptec axis {axis_to_move} to {target_angle}°")
 
                 # Use move_abs method - CRITICAL: Use .value() for single axis
-                if hasattr(elliptec, 'move_abs'):
+                if hasattr(elliptec, "move_abs"):
                     elliptec.move_abs(position_data)
                 else:
                     logger.error("Elliptec device does not support absolute movement")
@@ -3385,20 +4086,22 @@ class MeasurementWorker(QObject):
             logger.error(f"Error moving polarization elements: {e}")
             return False
 
-    def _acquire_camera_image(self, camera, timeout: float = 5.0) -> Optional[np.ndarray]:
+    def _acquire_camera_image(
+        self, camera, timeout: float = 5.0
+    ) -> Optional[np.ndarray]:
         """Acquire a single image from camera with timeout."""
         try:
             if not camera:
                 return None
 
             # Trigger single acquisition
-            if hasattr(camera, 'grab_data'):
+            if hasattr(camera, "grab_data"):
                 camera_data = camera.grab_data()
 
                 if camera_data and len(camera_data) > 0:
                     # Extract image data from PyMoDAQ data structure
                     data_item = camera_data[0]
-                    if hasattr(data_item, 'data') and len(data_item.data) > 0:
+                    if hasattr(data_item, "data") and len(data_item.data) > 0:
                         return data_item.data[0]  # First (and typically only) image
 
             logger.warning("No camera data acquired")
@@ -3417,7 +4120,7 @@ class MeasurementWorker(QObject):
             # This could include returning polarization elements to home positions
 
             # Save data if auto-save is enabled
-            if self.settings.child('data', 'auto_save').value():
+            if self.settings.child("data", "auto_save").value():
                 self._save_measurement_data()
 
             logger.info("Measurement finalized")
@@ -3431,45 +4134,74 @@ class MeasurementWorker(QObject):
             import json
             from pathlib import Path
 
-            save_dir = Path(self.settings.child('data', 'save_dir').value())
-            file_prefix = self.settings.child('data', 'file_prefix').value()
+            save_dir = Path(self.settings.child("data", "save_dir").value())
+            file_prefix = self.settings.child("data", "file_prefix").value()
 
             # Create save directory if it doesn't exist
             save_dir.mkdir(parents=True, exist_ok=True)
 
             # Generate filename with timestamp
-            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
             filename = save_dir / f"{file_prefix}_{timestamp}.json"
 
             # Prepare data for saving (excluding images for JSON) - Enhanced for multi-wavelength
             save_data = {
-                'angles': self.measurement_data['angles'],
-                'intensities': self.measurement_data['intensities'],
-                'power_readings': self.measurement_data['power_readings'],
-                'timestamps': self.measurement_data['timestamps'],
-                'wavelengths': self.measurement_data['wavelengths'],  # ⭐ NEW: Wavelength data
-                'wavelength_sequence': self.measurement_data['wavelength_sequence'],  # ⭐ NEW: Wavelength scan sequence
-                'multi_wavelength': self.measurement_data['multi_wavelength'],  # ⭐ NEW: Multi-wavelength flag
-                'measurement_type': self.measurement_data['measurement_type'],  # ⭐ NEW: Measurement type
-                'settings': self._get_settings_dict(),
-                'measurement_info': {
-                    'start_time': self.measurement_data['timestamps'][0] if self.measurement_data['timestamps'] else None,
-                    'end_time': self.measurement_data['timestamps'][-1] if self.measurement_data['timestamps'] else None,
-                    'duration': (self.measurement_data['timestamps'][-1] - self.measurement_data['timestamps'][0]) if len(self.measurement_data['timestamps']) > 1 else 0,
-                    'n_points': len(self.measurement_data['angles']),
-                    'n_wavelengths': len(set(self.measurement_data['wavelengths'])) if self.measurement_data['wavelengths'] else 1,  # ⭐ NEW: Number of unique wavelengths
-                    'multi_wavelength': self.measurement_data['multi_wavelength']  # ⭐ NEW: Multi-wavelength info
-                }
+                "angles": self.measurement_data["angles"],
+                "intensities": self.measurement_data["intensities"],
+                "power_readings": self.measurement_data["power_readings"],
+                "timestamps": self.measurement_data["timestamps"],
+                "wavelengths": self.measurement_data[
+                    "wavelengths"
+                ],  # ⭐ NEW: Wavelength data
+                "wavelength_sequence": self.measurement_data[
+                    "wavelength_sequence"
+                ],  # ⭐ NEW: Wavelength scan sequence
+                "multi_wavelength": self.measurement_data[
+                    "multi_wavelength"
+                ],  # ⭐ NEW: Multi-wavelength flag
+                "measurement_type": self.measurement_data[
+                    "measurement_type"
+                ],  # ⭐ NEW: Measurement type
+                "settings": self._get_settings_dict(),
+                "measurement_info": {
+                    "start_time": (
+                        self.measurement_data["timestamps"][0]
+                        if self.measurement_data["timestamps"]
+                        else None
+                    ),
+                    "end_time": (
+                        self.measurement_data["timestamps"][-1]
+                        if self.measurement_data["timestamps"]
+                        else None
+                    ),
+                    "duration": (
+                        (
+                            self.measurement_data["timestamps"][-1]
+                            - self.measurement_data["timestamps"][0]
+                        )
+                        if len(self.measurement_data["timestamps"]) > 1
+                        else 0
+                    ),
+                    "n_points": len(self.measurement_data["angles"]),
+                    "n_wavelengths": (
+                        len(set(self.measurement_data["wavelengths"]))
+                        if self.measurement_data["wavelengths"]
+                        else 1
+                    ),  # ⭐ NEW: Number of unique wavelengths
+                    "multi_wavelength": self.measurement_data[
+                        "multi_wavelength"
+                    ],  # ⭐ NEW: Multi-wavelength info
+                },
             }
 
             # Save JSON data
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 json.dump(save_data, f, indent=2)
 
             logger.info(f"Measurement data saved to {filename}")
 
             # Save images separately if requested
-            if self.settings.child('data', 'save_raw').value():
+            if self.settings.child("data", "save_raw").value():
                 self._save_raw_images(save_dir, file_prefix, timestamp)
 
         except Exception as e:
@@ -3483,7 +4215,9 @@ class MeasurementWorker(QObject):
             images_dir = save_dir / f"{file_prefix}_{timestamp}_images"
             images_dir.mkdir(exist_ok=True)
 
-            for i, (angle, image) in enumerate(zip(self.measurement_data['angles'], self.measurement_data['images'])):
+            for i, (angle, image) in enumerate(
+                zip(self.measurement_data["angles"], self.measurement_data["images"])
+            ):
                 if image is not None:
                     image_filename = images_dir / f"angle_{angle:06.2f}_deg_{i:03d}.npy"
                     np.save(image_filename, image)
@@ -3498,31 +4232,55 @@ class MeasurementWorker(QObject):
         try:
             # Extract key settings for metadata
             settings_dict = {
-                'experiment': {
-                    'measurement_type': self.settings.child('experiment', 'measurement_type').value(),
-                    'pol_steps': self.settings.child('experiment', 'pol_steps').value(),
-                    'integration_time': self.settings.child('experiment', 'integration_time').value(),
-                    'averages': self.settings.child('experiment', 'averages').value(),
-                    'pol_start': self.settings.child('experiment', 'pol_range', 'pol_start').value(),
-                    'pol_end': self.settings.child('experiment', 'pol_range', 'pol_end').value(),
+                "experiment": {
+                    "measurement_type": self.settings.child(
+                        "experiment", "measurement_type"
+                    ).value(),
+                    "pol_steps": self.settings.child("experiment", "pol_steps").value(),
+                    "integration_time": self.settings.child(
+                        "experiment", "integration_time"
+                    ).value(),
+                    "averages": self.settings.child("experiment", "averages").value(),
+                    "pol_start": self.settings.child(
+                        "experiment", "pol_range", "pol_start"
+                    ).value(),
+                    "pol_end": self.settings.child(
+                        "experiment", "pol_range", "pol_end"
+                    ).value(),
                 },
-                'hardware': {
-                    'camera_roi': {
-                        'x_start': self.settings.child('hardware', 'camera', 'roi', 'x_start').value(),
-                        'y_start': self.settings.child('hardware', 'camera', 'roi', 'y_start').value(),
-                        'width': self.settings.child('hardware', 'camera', 'roi', 'width').value(),
-                        'height': self.settings.child('hardware', 'camera', 'roi', 'height').value(),
+                "hardware": {
+                    "camera_roi": {
+                        "x_start": self.settings.child(
+                            "hardware", "camera", "roi", "x_start"
+                        ).value(),
+                        "y_start": self.settings.child(
+                            "hardware", "camera", "roi", "y_start"
+                        ).value(),
+                        "width": self.settings.child(
+                            "hardware", "camera", "roi", "width"
+                        ).value(),
+                        "height": self.settings.child(
+                            "hardware", "camera", "roi", "height"
+                        ).value(),
                     }
                 },
-                'wavelength': {  # ⭐ NEW: Wavelength scan settings
-                    'enable_scan': self.settings.child('wavelength', 'enable_scan').value(),
-                    'wl_start': self.settings.child('wavelength', 'wl_start').value(),
-                    'wl_stop': self.settings.child('wavelength', 'wl_stop').value(),
-                    'wl_steps': self.settings.child('wavelength', 'wl_steps').value(),
-                    'wl_stabilization': self.settings.child('wavelength', 'wl_stabilization').value(),
-                    'auto_sync_pm': self.settings.child('wavelength', 'auto_sync_pm').value(),
-                    'sweep_mode': self.settings.child('wavelength', 'sweep_mode').value(),
-                }
+                "wavelength": {  # ⭐ NEW: Wavelength scan settings
+                    "enable_scan": self.settings.child(
+                        "wavelength", "enable_scan"
+                    ).value(),
+                    "wl_start": self.settings.child("wavelength", "wl_start").value(),
+                    "wl_stop": self.settings.child("wavelength", "wl_stop").value(),
+                    "wl_steps": self.settings.child("wavelength", "wl_steps").value(),
+                    "wl_stabilization": self.settings.child(
+                        "wavelength", "wl_stabilization"
+                    ).value(),
+                    "auto_sync_pm": self.settings.child(
+                        "wavelength", "auto_sync_pm"
+                    ).value(),
+                    "sweep_mode": self.settings.child(
+                        "wavelength", "sweep_mode"
+                    ).value(),
+                },
             }
 
             return settings_dict
@@ -3548,4 +4306,4 @@ class MeasurementWorker(QObject):
 
 
 # Export for PyMoDAQ discovery
-__all__ = ['URASHGMicroscopyExtension']
+__all__ = ["URASHGMicroscopyExtension"]

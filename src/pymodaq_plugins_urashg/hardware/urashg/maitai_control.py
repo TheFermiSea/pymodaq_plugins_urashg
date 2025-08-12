@@ -140,7 +140,7 @@ class MaiTaiController:
             # Try multiple commands for better communication test
             # Some MaiTai units respond better to different commands
             test_commands = ["WAVELENGTH?", "*IDN?", "READ:POW?"]
-            
+
             for cmd in test_commands:
                 try:
                     time.sleep(0.2)  # Longer delay between tests
@@ -151,7 +151,7 @@ class MaiTaiController:
                 except Exception as e:
                     self.logger.debug(f"Command {cmd} failed: {e}")
                     continue
-            
+
             self.logger.warning("MaiTai not responding to any test commands")
             return False
         except Exception:
@@ -286,10 +286,10 @@ class MaiTaiController:
                 # MaiTai expects decimal format: "WAVELENGTH 801.0"
                 wavelength_rounded = round(wavelength, 1)
                 command = f"WAVELENGTH {wavelength_rounded}"
-                
+
                 self.logger.info(f"Sending command: {command}")
                 response = self._send_command(command, expect_response=False)
-                
+
                 if response is not None:
                     self.logger.info(f"Wavelength set command sent successfully")
                     # Note: MaiTai laser may take several seconds to tune to new wavelength
@@ -298,7 +298,7 @@ class MaiTaiController:
                 else:
                     self.logger.error("Failed to send wavelength command")
                     return False
-                    
+
             except Exception as e:
                 self.logger.error(f"Error setting wavelength: {e}")
                 return False
@@ -374,10 +374,10 @@ class MaiTaiController:
             try:
                 command = "SHUTTER 1" if open_shutter else "SHUTTER 0"
                 action = "open" if open_shutter else "close"
-                
+
                 self.logger.info(f"Sending command: {command} (to {action} shutter)")
                 response = self._send_command(command, expect_response=False)
-                
+
                 if response is not None:
                     self.logger.info(f"Shutter {action} command sent successfully")
                     # Return success immediately since command was sent successfully
@@ -386,7 +386,7 @@ class MaiTaiController:
                 else:
                     self.logger.error(f"Failed to send shutter {action} command")
                     return False
-                    
+
             except Exception as e:
                 self.logger.error(f"Error setting shutter: {e}")
                 return False
@@ -394,18 +394,18 @@ class MaiTaiController:
     def open_shutter(self) -> bool:
         """
         Open shutter (convenience method).
-        
+
         Returns
         -------
         bool
             True if command sent successfully, False otherwise
         """
         return self.set_shutter(True)
-    
+
     def close_shutter(self) -> bool:
         """
         Close shutter (convenience method).
-        
+
         Returns
         -------
         bool
@@ -416,12 +416,12 @@ class MaiTaiController:
     def check_system_errors(self, quick_check: bool = False) -> tuple[bool, list[str]]:
         """
         Check for system errors using SYSTem:ERR command.
-        
+
         Parameters
         ----------
         quick_check : bool
             If True, only check once instead of emptying full buffer
-        
+
         Returns
         -------
         tuple[bool, list[str]]
@@ -433,19 +433,25 @@ class MaiTaiController:
 
             errors = []
             has_errors = False
-            
+
             try:
                 # Query system errors - limit iterations for quick check
-                max_iterations = 1 if quick_check else 5  # Reduced from 10 to prevent blocking
-                
+                max_iterations = (
+                    1 if quick_check else 5
+                )  # Reduced from 10 to prevent blocking
+
                 for _ in range(max_iterations):
                     response = self._send_command("SYSTem:ERR?")
                     if response and response.strip():
                         # Parse error code and message
-                        parts = response.split(',', 1) if ',' in response else [response]
+                        parts = (
+                            response.split(",", 1) if "," in response else [response]
+                        )
                         error_code = parts[0].strip()
-                        error_msg = parts[1].strip() if len(parts) > 1 else "Unknown error"
-                        
+                        error_msg = (
+                            parts[1].strip() if len(parts) > 1 else "Unknown error"
+                        )
+
                         # Check if this is a real error (non-zero error code)
                         try:
                             code_num = int(error_code)
@@ -453,8 +459,12 @@ class MaiTaiController:
                                 has_errors = True
                                 # Decode error based on Table 6-1
                                 error_desc = self._decode_error_code(code_num)
-                                errors.append(f"Error {code_num}: {error_desc} - {error_msg}")
-                                if quick_check:  # For quick check, stop after first error
+                                errors.append(
+                                    f"Error {code_num}: {error_desc} - {error_msg}"
+                                )
+                                if (
+                                    quick_check
+                                ):  # For quick check, stop after first error
                                     break
                             else:
                                 # Error code 0 means no more errors
@@ -468,33 +478,33 @@ class MaiTaiController:
                                     break
                     else:
                         break
-                        
+
             except Exception as e:
                 self.logger.error(f"Error checking system errors: {e}")
                 return True, [f"Error checking failed: {e}"]
-                
+
             return has_errors, errors
 
     def _decode_error_code(self, error_code: int) -> str:
         """
         Decode MaiTai error codes based on Table 6-1.
-        
+
         Parameters
         ----------
         error_code : int
             Binary error code from MaiTai
-            
+
         Returns
         -------
         str
             Human-readable error description
         """
         error_descriptions = []
-        
+
         # Check individual error bits
         if error_code & 1:  # Bit 0
             error_descriptions.append("CMD_ERR: Command format error")
-        if error_code & 2:  # Bit 1  
+        if error_code & 2:  # Bit 1
             error_descriptions.append("EXE_ERR: Command execution error")
         if error_code & 32:  # Bit 5
             error_descriptions.append("SYS_ERR: System error (interlock/diagnostic)")
@@ -502,13 +512,17 @@ class MaiTaiController:
             error_descriptions.append("LASER_ON: Laser emission possible")
         if error_code & 128:  # Bit 7
             error_descriptions.append("ANY_ERR: Error condition present")
-            
-        return "; ".join(error_descriptions) if error_descriptions else f"Unknown error code: {error_code}"
+
+        return (
+            "; ".join(error_descriptions)
+            if error_descriptions
+            else f"Unknown error code: {error_code}"
+        )
 
     def get_status_byte(self) -> tuple[int, dict]:
         """
         Get product status byte using *STB? command.
-        
+
         Returns
         -------
         tuple[int, dict]
@@ -522,19 +536,19 @@ class MaiTaiController:
                 response = self._send_command("*STB?")
                 if response:
                     status_byte = int(response.strip())
-                    
+
                     # Decode status byte based on documentation
                     status_info = {
                         "connected": True,
                         "emission_possible": bool(status_byte & 1),  # Bit 0
-                        "modelocked": bool(status_byte & 2),         # Bit 1
-                        "raw_status": status_byte
+                        "modelocked": bool(status_byte & 2),  # Bit 1
+                        "raw_status": status_byte,
                     }
-                    
+
                     return status_byte, status_info
                 else:
                     return 0, {"connected": False, "error": "No response"}
-                    
+
             except Exception as e:
                 self.logger.error(f"Error getting status byte: {e}")
                 return 0, {"connected": False, "error": str(e)}
@@ -542,7 +556,7 @@ class MaiTaiController:
     def get_enhanced_shutter_state(self) -> tuple[bool, bool]:
         """
         Get enhanced shutter state using both SHUTTER? and status byte.
-        
+
         Returns
         -------
         tuple[bool, bool]
@@ -558,13 +572,13 @@ class MaiTaiController:
                 shutter_open = False
                 if shutter_response:
                     shutter_open = shutter_response.strip() == "1"
-                
+
                 # Get emission status from status byte
                 _, status_info = self.get_status_byte()
                 emission_possible = status_info.get("emission_possible", False)
-                
+
                 return shutter_open, emission_possible
-                
+
             except Exception as e:
                 self.logger.error(f"Error getting enhanced shutter state: {e}")
                 return False, False

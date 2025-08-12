@@ -19,11 +19,11 @@ License: MIT
 """
 
 # Primary extension metadata
-EXTENSION_NAME = 'μRASHG Microscopy System'
-EXTENSION_CLASS = 'URASHGMicroscopyExtension'
+EXTENSION_NAME = "μRASHG Microscopy System"
+EXTENSION_CLASS = "URASHGMicroscopyExtension"
 
 __all__ = [
-    'URASHGMicroscopyExtension',
+    "URASHGMicroscopyExtension",
 ]
 
 # Import primary extension for PyMoDAQ discovery
@@ -33,6 +33,7 @@ try:
 except ImportError as e:
     # Graceful handling for development/testing
     import logging
+
     logger = logging.getLogger(__name__)
     logger.warning(f"Could not import URASHG microscopy extension: {e}")
     URASHGMicroscopyExtension = None

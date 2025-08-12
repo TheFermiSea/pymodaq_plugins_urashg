@@ -28,7 +28,8 @@ try:
     # Python 3.10+ compatibility fix for collections.Mapping
     import collections.abc
     import collections
-    if not hasattr(collections, 'Mapping'):
+
+    if not hasattr(collections, "Mapping"):
         collections.Mapping = collections.abc.Mapping
         collections.MutableMapping = collections.abc.MutableMapping
         collections.MutableSet = collections.abc.MutableSet
@@ -43,13 +44,14 @@ try:
         collections.Hashable = collections.abc.Hashable
 
     # NumPy 1.20+ compatibility fix for np.complex
-    if not hasattr(np, 'complex'):
+    if not hasattr(np, "complex"):
         np.complex = complex
         np.complex_ = complex
 
     # Qt timer compatibility fix - patch before importing pyrpl
     try:
         from qtpy.QtCore import QTimer
+
         original_setInterval = QTimer.setInterval
 
         def setInterval_patched(self, msec):
@@ -61,19 +63,22 @@ try:
         pass  # Qt not available, skip timer patch
 
     import pyrpl
+
     PYRPL_AVAILABLE = True
     PYRPL_MOCK = False
     from pyrpl.hardware_modules.pid import Pid as PidModule
+
     logger.info("PyRPL library imported successfully")
 except (ImportError, TypeError, AttributeError) as e:
     # Handle PyRPL import issues (e.g., Qt compatibility problems)
     logger.warning(f"PyRPL import failed: {e}")
     logger.info("Attempting to load mock PyRPL implementation...")
-    
+
     try:
         # Import our mock PyRPL implementation
         from .pyrpl_mock import MockPyrpl, MockPID
         import pymodaq_plugins_urashg.utils.pyrpl_mock as pyrpl
+
         PYRPL_AVAILABLE = True  # Mock is available for development
         PYRPL_MOCK = True
         PidModule = MockPID
@@ -84,17 +89,19 @@ except (ImportError, TypeError, AttributeError) as e:
         PYRPL_MOCK = False
         pyrpl = None
         PidModule = object  # Final fallback
-        
+
         # Create a basic mock Pyrpl class for type hints
         class _MockPyrpl:
             pass
-        pyrpl = type('MockPyrplModule', (), {'Pyrpl': _MockPyrpl})()
+
+        pyrpl = type("MockPyrplModule", (), {"Pyrpl": _MockPyrpl})()
 
 from pymodaq.utils.daq_utils import ThreadCommand
 
 
 class ConnectionState(Enum):
     """Connection states for PyRPL devices."""
+
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -104,6 +111,7 @@ class ConnectionState(Enum):
 
 class PIDChannel(Enum):
     """Available PID channels on Red Pitaya."""
+
     PID0 = "pid0"
     PID1 = "pid1"
     PID2 = "pid2"
@@ -111,24 +119,28 @@ class PIDChannel(Enum):
 
 class InputChannel(Enum):
     """Available input channels on Red Pitaya."""
+
     IN1 = "in1"
     IN2 = "in2"
 
 
 class OutputChannel(Enum):
     """Available output channels on Red Pitaya."""
+
     OUT1 = "out1"
     OUT2 = "out2"
 
 
 class ASGChannel(Enum):
     """Available ASG (Arbitrary Signal Generator) channels on Red Pitaya."""
+
     ASG0 = "asg0"
     ASG1 = "asg1"
 
 
 class ASGWaveform(Enum):
     """Available waveforms for ASG."""
+
     SIN = "sin"
     COS = "cos"
     RAMP = "ramp"
@@ -141,6 +153,7 @@ class ASGWaveform(Enum):
 
 class ASGTriggerSource(Enum):
     """Available trigger sources for ASG."""
+
     OFF = "off"
     IMMEDIATELY = "immediately"
     EXT_POSITIVE_EDGE = "ext_positive_edge"
@@ -151,6 +164,7 @@ class ASGTriggerSource(Enum):
 
 class IQChannel(Enum):
     """Available IQ (Lock-in Amplifier) channels on Red Pitaya."""
+
     IQ0 = "iq0"
     IQ1 = "iq1"
     IQ2 = "iq2"
@@ -158,6 +172,7 @@ class IQChannel(Enum):
 
 class IQOutputDirect(Enum):
     """Available output routing for IQ modules."""
+
     OFF = "off"
     OUT1 = "out1"
     OUT2 = "out2"
@@ -165,6 +180,7 @@ class IQOutputDirect(Enum):
 
 class ScopeTriggerSource(Enum):
     """Available trigger sources for Scope."""
+
     IMMEDIATELY = "immediately"
     CH1_POSITIVE_EDGE = "ch1_positive_edge"
     CH1_NEGATIVE_EDGE = "ch1_negative_edge"
@@ -176,6 +192,7 @@ class ScopeTriggerSource(Enum):
 
 class ScopeDecimation(Enum):
     """Available decimation values for Scope."""
+
     DEC_1 = 1
     DEC_8 = 8
     DEC_64 = 64
@@ -187,6 +204,7 @@ class ScopeDecimation(Enum):
 @dataclass
 class PIDConfiguration:
     """Configuration for a PID controller."""
+
     setpoint: float = 0.0
     p_gain: float = 0.1
     i_gain: float = 0.0
@@ -201,6 +219,7 @@ class PIDConfiguration:
 @dataclass
 class ASGConfiguration:
     """Configuration for an Arbitrary Signal Generator."""
+
     frequency: float = 1000.0  # Hz
     amplitude: float = 0.1  # V
     offset: float = 0.0  # V
@@ -219,6 +238,7 @@ class ASGConfiguration:
 @dataclass
 class IQConfiguration:
     """Configuration for IQ (Lock-in Amplifier) module."""
+
     frequency: float = 1000.0  # Hz
     bandwidth: float = 100.0  # Hz
     acbandwidth: float = 10000.0  # Hz, AC bandwidth/inputfilter
@@ -246,6 +266,7 @@ class IQConfiguration:
 @dataclass
 class ScopeConfiguration:
     """Configuration for Scope module."""
+
     input_channel: InputChannel = InputChannel.IN1
     decimation: ScopeDecimation = ScopeDecimation.DEC_64
     trigger_source: ScopeTriggerSource = ScopeTriggerSource.IMMEDIATELY
@@ -260,6 +281,7 @@ class ScopeConfiguration:
 @dataclass
 class ConnectionInfo:
     """Information about a Red Pitaya connection."""
+
     hostname: str
     config_name: str = "urashg"
     port: int = 2222
@@ -326,9 +348,11 @@ class PyRPLConnection:
     def is_connected(self) -> bool:
         """Check if the connection is active and healthy."""
         with self._lock:
-            return (self.state == ConnectionState.CONNECTED and
-                    self._pyrpl is not None and
-                    self._redpitaya is not None)
+            return (
+                self.state == ConnectionState.CONNECTED
+                and self._pyrpl is not None
+                and self._redpitaya is not None
+            )
 
     @property
     def pyrpl(self) -> Optional[pyrpl.Pyrpl]:
@@ -361,19 +385,25 @@ class PyRPLConnection:
             self.last_error = None
 
             if status_callback:
-                status_callback(ThreadCommand('Update_Status',
-                    [f"Connecting to Red Pitaya at {self.hostname}", 'log']))
+                status_callback(
+                    ThreadCommand(
+                        "Update_Status",
+                        [f"Connecting to Red Pitaya at {self.hostname}", "log"],
+                    )
+                )
 
             for attempt in range(self.retry_attempts):
                 try:
-                    logger.info(f"Connection attempt {attempt + 1}/{self.retry_attempts} to {self.hostname}")
+                    logger.info(
+                        f"Connection attempt {attempt + 1}/{self.retry_attempts} to {self.hostname}"
+                    )
 
                     # Create PyRPL connection
                     self._pyrpl = pyrpl.Pyrpl(
                         config=self.config_name,
                         hostname=self.hostname,
                         port=self.port,
-                        timeout=self.connection_timeout
+                        timeout=self.connection_timeout,
                     )
 
                     self._redpitaya = self._pyrpl.rp
@@ -389,8 +419,12 @@ class PyRPLConnection:
                     logger.info(f"Successfully connected to Red Pitaya {self.hostname}")
 
                     if status_callback:
-                        status_callback(ThreadCommand('Update_Status',
-                            [f"Red Pitaya {self.hostname} connected", 'log']))
+                        status_callback(
+                            ThreadCommand(
+                                "Update_Status",
+                                [f"Red Pitaya {self.hostname} connected", "log"],
+                            )
+                        )
 
                     return True
 
@@ -399,7 +433,9 @@ class PyRPLConnection:
                     # but the connection itself is successful, so ignore these
                     logger.debug(f"Ignoring PyRPL ZeroDivisionError: {e}")
                     if self._pyrpl and self._redpitaya:
-                        logger.info(f"PyRPL connection successful despite ZeroDivisionError")
+                        logger.info(
+                            f"PyRPL connection successful despite ZeroDivisionError"
+                        )
                         self.state = ConnectionState.CONNECTED
                         self.connected_at = time.time()
                         self.last_error = None
@@ -415,8 +451,14 @@ class PyRPLConnection:
                 except Exception as e:
                     # Check if this is a PyRPL-related error that we can ignore
                     error_str = str(e)
-                    if "float division by zero" in error_str and self._pyrpl and self._redpitaya:
-                        logger.info(f"PyRPL connection successful despite error: {error_str}")
+                    if (
+                        "float division by zero" in error_str
+                        and self._pyrpl
+                        and self._redpitaya
+                    ):
+                        logger.info(
+                            f"PyRPL connection successful despite error: {error_str}"
+                        )
                         self.state = ConnectionState.CONNECTED
                         self.connected_at = time.time()
                         self.last_error = None
@@ -435,7 +477,7 @@ class PyRPLConnection:
             logger.error(error_msg)
 
             if status_callback:
-                status_callback(ThreadCommand('Update_Status', [error_msg, 'log']))
+                status_callback(ThreadCommand("Update_Status", [error_msg, "log"]))
 
             return False
 
@@ -452,8 +494,12 @@ class PyRPLConnection:
 
             try:
                 if status_callback:
-                    status_callback(ThreadCommand('Update_Status',
-                        [f"Disconnecting from {self.hostname}", 'log']))
+                    status_callback(
+                        ThreadCommand(
+                            "Update_Status",
+                            [f"Disconnecting from {self.hostname}", "log"],
+                        )
+                    )
 
                 # Safely disable all active PIDs, ASGs, IQs, and Scope
                 self._disable_all_pids()
@@ -482,8 +528,12 @@ class PyRPLConnection:
                 logger.info(f"Disconnected from Red Pitaya {self.hostname}")
 
                 if status_callback:
-                    status_callback(ThreadCommand('Update_Status',
-                        [f"Disconnected from {self.hostname}", 'log']))
+                    status_callback(
+                        ThreadCommand(
+                            "Update_Status",
+                            [f"Disconnected from {self.hostname}", "log"],
+                        )
+                    )
 
             except Exception as e:
                 error_msg = f"Error during disconnect from {self.hostname}: {str(e)}"
@@ -495,8 +545,8 @@ class PyRPLConnection:
         """Safely disable all active PID controllers."""
         for pid_channel, pid_module in self._active_pids.items():
             try:
-                pid_module.output_direct = 'off'
-                pid_module.input = 'off'
+                pid_module.output_direct = "off"
+                pid_module.input = "off"
                 logger.debug(f"Disabled PID {pid_channel.value}")
             except Exception as e:
                 logger.warning(f"Failed to disable PID {pid_channel.value}: {e}")
@@ -505,8 +555,8 @@ class PyRPLConnection:
         """Safely disable all active ASG modules."""
         for asg_channel, asg_module in self._active_asgs.items():
             try:
-                asg_module.output_direct = 'off'
-                asg_module.trigger_source = 'off'
+                asg_module.output_direct = "off"
+                asg_module.trigger_source = "off"
                 logger.debug(f"Disabled ASG {asg_channel.value}")
             except Exception as e:
                 logger.warning(f"Failed to disable ASG {asg_channel.value}: {e}")
@@ -515,8 +565,8 @@ class PyRPLConnection:
         """Safely disable all active IQ modules."""
         for iq_channel, iq_module in self._active_iqs.items():
             try:
-                iq_module.output_direct = 'off'
-                iq_module.input = 'off'
+                iq_module.output_direct = "off"
+                iq_module.input = "off"
                 logger.debug(f"Disabled IQ {iq_channel.value}")
             except Exception as e:
                 logger.warning(f"Failed to disable IQ {iq_channel.value}: {e}")
@@ -526,7 +576,7 @@ class PyRPLConnection:
         if self._scope_module is not None:
             try:
                 # Stop any ongoing acquisition
-                self._scope_module.trigger_source = 'off'
+                self._scope_module.trigger_source = "off"
                 logger.debug("Disabled scope module")
             except Exception as e:
                 logger.warning(f"Failed to disable scope: {e}")
@@ -591,13 +641,15 @@ class PyRPLConnection:
                 if config.enabled:
                     pid_module.output_direct = config.output_channel.value
                 else:
-                    pid_module.output_direct = 'off'
+                    pid_module.output_direct = "off"
 
                 # Set voltage limits
                 pid_module.max_voltage = config.voltage_limit_max
                 pid_module.min_voltage = config.voltage_limit_min
 
-                logger.debug(f"Configured PID {channel.value} with setpoint {config.setpoint}")
+                logger.debug(
+                    f"Configured PID {channel.value} with setpoint {config.setpoint}"
+                )
                 return True
 
             except Exception as e:
@@ -710,7 +762,7 @@ class PyRPLConnection:
                 if pid_module is None:
                     return False
 
-                pid_module.output_direct = 'off'
+                pid_module.output_direct = "off"
 
                 if channel in self._pid_configs:
                     self._pid_configs[channel].enabled = False
@@ -738,7 +790,7 @@ class PyRPLConnection:
 
             try:
                 # Use scope for fast voltage reading
-                if hasattr(self._redpitaya, 'scope'):
+                if hasattr(self._redpitaya, "scope"):
                     scope = self._redpitaya.scope
                     if channel == InputChannel.IN1:
                         return scope.voltage_in1
@@ -746,11 +798,13 @@ class PyRPLConnection:
                         return scope.voltage_in2
 
                 # Fallback to sampler if scope not available
-                if hasattr(self._redpitaya, 'sampler'):
+                if hasattr(self._redpitaya, "sampler"):
                     sampler = self._redpitaya.sampler
                     return getattr(sampler, channel.value)
 
-                logger.warning("Neither scope nor sampler available for voltage reading")
+                logger.warning(
+                    "Neither scope nor sampler available for voltage reading"
+                )
                 return None
 
             except Exception as e:
@@ -766,16 +820,16 @@ class PyRPLConnection:
         """
         with self._lock:
             return {
-                'hostname': self.hostname,
-                'config_name': self.config_name,
-                'state': self.state.value,
-                'connected_at': self.connected_at,
-                'last_error': self.last_error,
-                'active_pids': list(self._active_pids.keys()),
-                'active_asgs': list(self._active_asgs.keys()),
-                'active_iqs': list(self._active_iqs.keys()),
-                'scope_configured': self._scope_config is not None,
-                'ref_count': self._ref_count
+                "hostname": self.hostname,
+                "config_name": self.config_name,
+                "state": self.state.value,
+                "connected_at": self.connected_at,
+                "last_error": self.last_error,
+                "active_pids": list(self._active_pids.keys()),
+                "active_asgs": list(self._active_asgs.keys()),
+                "active_iqs": list(self._active_iqs.keys()),
+                "scope_configured": self._scope_config is not None,
+                "ref_count": self._ref_count,
             }
 
     @contextmanager
@@ -815,10 +869,10 @@ class PyRPLManager:
     wavelength-dependent polarimetry measurements.
     """
 
-    _instance: Optional['PyRPLManager'] = None
+    _instance: Optional["PyRPLManager"] = None
     _lock = threading.Lock()
 
-    def __new__(cls) -> 'PyRPLManager':
+    def __new__(cls) -> "PyRPLManager":
         """Singleton implementation."""
         if cls._instance is None:
             with cls._lock:
@@ -838,8 +892,9 @@ class PyRPLManager:
 
         logger.info("PyRPL Manager initialized for URASHG")
 
-    def get_connection(self, hostname: str, config_name: str = "urashg",
-                      **connection_kwargs) -> Optional[PyRPLConnection]:
+    def get_connection(
+        self, hostname: str, config_name: str = "urashg", **connection_kwargs
+    ) -> Optional[PyRPLConnection]:
         """
         Get or create a connection to a Red Pitaya device.
 
@@ -861,9 +916,7 @@ class PyRPLManager:
 
             # Create new connection
             connection_info = ConnectionInfo(
-                hostname=hostname,
-                config_name=config_name,
-                **connection_kwargs
+                hostname=hostname, config_name=config_name, **connection_kwargs
             )
 
             try:
@@ -876,9 +929,13 @@ class PyRPLManager:
                 logger.error(f"Failed to create connection to {hostname}: {e}")
                 return None
 
-    def connect_device(self, hostname: str, config_name: str = "urashg",
-                      status_callback: Optional[callable] = None,
-                      **connection_kwargs) -> Optional[PyRPLConnection]:
+    def connect_device(
+        self,
+        hostname: str,
+        config_name: str = "urashg",
+        status_callback: Optional[callable] = None,
+        **connection_kwargs,
+    ) -> Optional[PyRPLConnection]:
         """
         Connect to a Red Pitaya device for URASHG measurements.
 
@@ -901,8 +958,12 @@ class PyRPLManager:
         else:
             return None
 
-    def disconnect_device(self, hostname: str, config_name: str = "urashg",
-                         status_callback: Optional[callable] = None) -> bool:
+    def disconnect_device(
+        self,
+        hostname: str,
+        config_name: str = "urashg",
+        status_callback: Optional[callable] = None,
+    ) -> bool:
         """
         Disconnect from a Red Pitaya device.
 
@@ -924,7 +985,9 @@ class PyRPLManager:
 
             # Check if connection is still in use
             if connection._ref_count > 0:
-                logger.warning(f"Connection {hostname} still has active references, disconnecting anyway")
+                logger.warning(
+                    f"Connection {hostname} still has active references, disconnecting anyway"
+                )
 
             connection.disconnect(status_callback)
             return True
@@ -1003,12 +1066,12 @@ class PyRPLManager:
                 connections_info[key] = conn.get_connection_info()
 
             return {
-                'total_connections': len(self._connections),
-                'connections': connections_info
+                "total_connections": len(self._connections),
+                "connections": connections_info,
             }
 
     @classmethod
-    def get_instance(cls) -> 'PyRPLManager':
+    def get_instance(cls) -> "PyRPLManager":
         """Get the singleton instance."""
         return cls()
 
@@ -1019,9 +1082,12 @@ def get_pyrpl_manager() -> PyRPLManager:
     return PyRPLManager.get_instance()
 
 
-def connect_redpitaya(hostname: str, config_name: str = "urashg",
-                     status_callback: Optional[callable] = None,
-                     **kwargs) -> Optional[PyRPLConnection]:
+def connect_redpitaya(
+    hostname: str,
+    config_name: str = "urashg",
+    status_callback: Optional[callable] = None,
+    **kwargs,
+) -> Optional[PyRPLConnection]:
     """
     Convenience function to connect to a Red Pitaya device for URASHG.
 
@@ -1044,8 +1110,11 @@ def connect_redpitaya(hostname: str, config_name: str = "urashg",
     return manager.connect_device(hostname, config_name, status_callback, **kwargs)
 
 
-def disconnect_redpitaya(hostname: str, config_name: str = "urashg",
-                        status_callback: Optional[callable] = None) -> bool:
+def disconnect_redpitaya(
+    hostname: str,
+    config_name: str = "urashg",
+    status_callback: Optional[callable] = None,
+) -> bool:
     """
     Convenience function to disconnect from a Red Pitaya device.
 
@@ -1090,7 +1159,7 @@ if __name__ == "__main__":
             p_gain=0.1,
             i_gain=0.01,
             input_channel=InputChannel.IN1,
-            output_channel=OutputChannel.OUT1
+            output_channel=OutputChannel.OUT1,
         )
 
         success = connection.configure_pid(PIDChannel.PID0, config)

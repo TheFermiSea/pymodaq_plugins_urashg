@@ -17,6 +17,7 @@ from pymodaq.control_modules.viewer_utility_classes import (
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataToExport, DataWithAxes
 from pymodaq_data.data import DataSource
+
 try:
     from pymodaq.control_modules.thread_commands import ThreadStatusViewer
 except ImportError:

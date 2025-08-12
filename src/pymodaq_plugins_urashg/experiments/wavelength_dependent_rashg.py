@@ -42,11 +42,15 @@ from pymodaq_data import DataWithAxes, DataToExport, Axis
 from enum import Enum as BaseEnum
 
 from .base_experiment import URASHGBaseExperiment, ExperimentState
+
 try:
     from ..hardware.urashg.redpitaya_control import (
-        PowerStabilizationController, StabilizationConfiguration,
-        PowerTarget, PowerStabilizationError
+        PowerStabilizationController,
+        StabilizationConfiguration,
+        PowerTarget,
+        PowerStabilizationError,
     )
+
     PYRPL_AVAILABLE = True
 except ImportError:
     # PyRPL not available - provide mock classes
@@ -62,6 +66,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SpectralPoint:
     """Data structure for a single spectral measurement point."""
+
     wavelength: float  # nm
     target_power: float  # V (setpoint)
     measured_power: float  # V (actual)
@@ -73,6 +78,7 @@ class SpectralPoint:
 @dataclass
 class SpectralScanConfiguration:
     """Configuration for wavelength-dependent spectral scan."""
+
     # Wavelength scan parameters
     wavelength_start: float = 700.0  # nm
     wavelength_end: float = 900.0  # nm
@@ -131,8 +137,8 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
 
     experiment_name = "Wavelength-Dependent RASHG with Power Stabilization"
     experiment_type = "wavelength_dependent_rashg_stabilized"
-    required_modules = ['MaiTai', 'H800', 'H400', 'Newport1830C', 'PyRPL_PID']
-    optional_modules = ['Q800', 'Spectrometer']
+    required_modules = ["MaiTai", "H800", "H400", "Newport1830C", "PyRPL_PID"]
+    optional_modules = ["Q800", "Spectrometer"]
 
     def __init__(self, dashboard=None):
         """Initialize the wavelength-dependent RASHG experiment."""
@@ -165,22 +171,18 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
         self.power_stabilization_config = StabilizationConfiguration(
             hostname="rp-f08d6c.local",  # Red Pitaya hostname
             config_name="urashg_spectroscopy",  # Unique config for spectroscopy
-
             # PID parameters optimized for power stabilization
             p_gain=0.15,  # Slightly higher for fast wavelength changes
             i_gain=0.02,  # Moderate integral for steady-state accuracy
-            d_gain=0.0,   # No derivative to avoid noise amplification
-
+            d_gain=0.0,  # No derivative to avoid noise amplification
             # Monitoring parameters for spectroscopic measurements
             power_monitoring_rate=20.0,  # 20 Hz for detailed monitoring
             stability_check_duration=2.0,  # 2s window for stability assessment
             power_stability_threshold=0.002,  # 2mV RMS for high precision
-
             # Safety limits
             min_power_setpoint=-0.8,  # Conservative limits for laser safety
             max_power_setpoint=0.8,
-
-            mock_mode=False  # Will auto-switch if PyRPL unavailable
+            mock_mode=False,  # Will auto-switch if PyRPL unavailable
         )
 
     def _setup_experimental_parameters(self):
@@ -195,7 +197,7 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
         return np.arange(
             self.scan_config.wavelength_start,
             self.scan_config.wavelength_end + self.scan_config.wavelength_step,
-            self.scan_config.wavelength_step
+            self.scan_config.wavelength_step,
         )
 
     def initialize_hardware(self) -> bool:
@@ -252,7 +254,7 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
     def _power_status_callback(self, message: str):
         """Callback for power stabilization status updates."""
         logger.info(f"Power Stabilization: {message}")
-        if hasattr(self, 'progress_callback') and self.progress_callback:
+        if hasattr(self, "progress_callback") and self.progress_callback:
             self.progress_callback(f"Power: {message}")
 
     def calculate_power_target(self, wavelength: float) -> float:
@@ -303,9 +305,9 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
 
             # Set wavelength on MaiTai laser
             logger.info(f"Setting wavelength to {wavelength:.1f} nm")
-            if 'MaiTai' in self.modules:
+            if "MaiTai" in self.modules:
                 # Set wavelength and wait for stabilization
-                self.modules['MaiTai'].move_abs(wavelength)
+                self.modules["MaiTai"].move_abs(wavelength)
                 time.sleep(self.scan_config.wavelength_settle_time)
 
             self.current_wavelength = wavelength
@@ -317,7 +319,7 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                     wavelength=wavelength,
                     power_setpoint=power_setpoint,
                     tolerance=self.scan_config.power_tolerance,
-                    timeout=self.scan_config.power_stabilization_timeout
+                    timeout=self.scan_config.power_stabilization_timeout,
                 )
 
                 self.current_power_target = power_target
@@ -331,13 +333,19 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                         measurement_success = True
                         logger.info(f"Power stabilized at {wavelength:.1f} nm")
                         if self.progress_callback:
-                            self.progress_callback(f"Power stable at {wavelength:.1f} nm")
+                            self.progress_callback(
+                                f"Power stable at {wavelength:.1f} nm"
+                            )
 
                         yield power_stable
                     else:
-                        logger.warning(f"Power stabilization failed at {wavelength:.1f} nm")
+                        logger.warning(
+                            f"Power stabilization failed at {wavelength:.1f} nm"
+                        )
                         if self.progress_callback:
-                            self.progress_callback(f"Power unstable at {wavelength:.1f} nm")
+                            self.progress_callback(
+                                f"Power unstable at {wavelength:.1f} nm"
+                            )
                         yield False
             else:
                 # No power stabilization - proceed directly
@@ -363,11 +371,11 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
             Dictionary containing RASHG measurement data
         """
         measurement_data = {
-            'wavelength': wavelength,
-            'timestamp': time.time(),
-            'measurements': [],
-            'power_readings': [],
-            'measurement_statistics': {}
+            "wavelength": wavelength,
+            "timestamp": time.time(),
+            "measurements": [],
+            "power_readings": [],
+            "measurement_statistics": {},
         }
 
         # Perform multiple measurements for averaging
@@ -376,7 +384,7 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                 # Record power if available
                 if self.power_controller:
                     current_power = self.power_controller.get_current_power()
-                    measurement_data['power_readings'].append(current_power)
+                    measurement_data["power_readings"].append(current_power)
 
                 # Perform RASHG measurement (placeholder for actual measurement)
                 # This would typically involve:
@@ -386,7 +394,7 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                 # 4. Extracting anisotropy parameters
 
                 rashg_signal = self._measure_rashg_signal()
-                measurement_data['measurements'].append(rashg_signal)
+                measurement_data["measurements"].append(rashg_signal)
 
                 # Delay between measurements
                 if i < self.scan_config.measurements_per_point - 1:
@@ -396,12 +404,12 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                 logger.error(f"Measurement error at {wavelength} nm: {e}")
 
         # Calculate measurement statistics
-        if measurement_data['measurements']:
-            measurements = np.array(measurement_data['measurements'])
-            measurement_data['measurement_statistics'] = {
-                'mean': np.mean(measurements),
-                'std': np.std(measurements),
-                'count': len(measurements)
+        if measurement_data["measurements"]:
+            measurements = np.array(measurement_data["measurements"])
+            measurement_data["measurement_statistics"] = {
+                "mean": np.mean(measurements),
+                "std": np.std(measurements),
+                "count": len(measurements),
             }
 
         return measurement_data
@@ -447,8 +455,10 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
             self.scan_start_time = time.time()
             self.spectral_data.clear()
 
-            logger.info(f"Starting spectral scan: {wavelengths[0]:.1f} - {wavelengths[-1]:.1f} nm "
-                       f"({len(wavelengths)} points)")
+            logger.info(
+                f"Starting spectral scan: {wavelengths[0]:.1f} - {wavelengths[-1]:.1f} nm "
+                f"({len(wavelengths)} points)"
+            )
 
             # Scan each wavelength
             for wavelength in wavelengths:
@@ -459,7 +469,9 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                 # Update progress
                 progress = (self.wavelength_index / self.total_wavelengths) * 100
                 if self.progress_callback:
-                    self.progress_callback(f"Scanning {wavelength:.1f} nm ({progress:.1f}%)")
+                    self.progress_callback(
+                        f"Scanning {wavelength:.1f} nm ({progress:.1f}%)"
+                    )
 
                 # Perform measurement with power stabilization
                 with self.wavelength_measurement_context(wavelength) as stable:
@@ -470,29 +482,41 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                         # Get power stability information
                         power_stability = {}
                         if self.power_controller:
-                            power_stability = self.power_controller.assess_power_stability()
+                            power_stability = (
+                                self.power_controller.assess_power_stability()
+                            )
 
                         # Create spectral point data structure
                         spectral_point = SpectralPoint(
                             wavelength=wavelength,
-                            target_power=self.current_power_target.power_setpoint if self.current_power_target else 0.0,
-                            measured_power=np.mean(measurement_data.get('power_readings', [0.0])),
+                            target_power=(
+                                self.current_power_target.power_setpoint
+                                if self.current_power_target
+                                else 0.0
+                            ),
+                            measured_power=np.mean(
+                                measurement_data.get("power_readings", [0.0])
+                            ),
                             power_stability=power_stability,
                             measurement_data=measurement_data,
-                            timestamp=time.time()
+                            timestamp=time.time(),
                         )
 
                         self.spectral_data.append(spectral_point)
                         logger.info(f"Completed measurement at {wavelength:.1f} nm")
 
                     else:
-                        logger.warning(f"Skipped measurement at {wavelength:.1f} nm due to power instability")
+                        logger.warning(
+                            f"Skipped measurement at {wavelength:.1f} nm due to power instability"
+                        )
 
                 self.wavelength_index += 1
 
             # Scan completed
             scan_duration = time.time() - self.scan_start_time
-            logger.info(f"Spectral scan completed: {len(self.spectral_data)} points in {scan_duration:.1f}s")
+            logger.info(
+                f"Spectral scan completed: {len(self.spectral_data)} points in {scan_duration:.1f}s"
+            )
 
             return len(self.spectral_data) > 0
 
@@ -508,12 +532,16 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
             Dictionary containing analysis results
         """
         if not self.spectral_data:
-            return {'error': 'No spectral data available'}
+            return {"error": "No spectral data available"}
 
         # Extract data arrays
         wavelengths = np.array([point.wavelength for point in self.spectral_data])
-        signals = np.array([point.measurement_data['measurement_statistics']['mean']
-                           for point in self.spectral_data])
+        signals = np.array(
+            [
+                point.measurement_data["measurement_statistics"]["mean"]
+                for point in self.spectral_data
+            ]
+        )
         powers = np.array([point.measured_power for point in self.spectral_data])
 
         # Power normalization if enabled
@@ -522,36 +550,42 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
             # Normalize to average power
             avg_power = np.mean(powers[powers > 0])
             if avg_power > 0:
-                power_correction = (avg_power / powers) ** self.scan_config.power_correction_order
+                power_correction = (
+                    avg_power / powers
+                ) ** self.scan_config.power_correction_order
                 power_correction[powers <= 0] = 1.0  # Avoid division by zero
                 normalized_signals = signals * power_correction
 
         analysis_results = {
-            'wavelengths': wavelengths,
-            'raw_signals': signals,
-            'normalized_signals': normalized_signals,
-            'measured_powers': powers,
-            'scan_duration': time.time() - self.scan_start_time if self.scan_start_time else 0,
-            'total_points': len(self.spectral_data),
-            'power_stabilization_enabled': self.scan_config.enable_power_stabilization,
-            'power_statistics': {
-                'mean_power': np.mean(powers) if len(powers) > 0 else 0,
-                'power_std': np.std(powers) if len(powers) > 0 else 0,
-                'power_variation': (np.max(powers) - np.min(powers)) if len(powers) > 0 else 0
-            }
+            "wavelengths": wavelengths,
+            "raw_signals": signals,
+            "normalized_signals": normalized_signals,
+            "measured_powers": powers,
+            "scan_duration": (
+                time.time() - self.scan_start_time if self.scan_start_time else 0
+            ),
+            "total_points": len(self.spectral_data),
+            "power_stabilization_enabled": self.scan_config.enable_power_stabilization,
+            "power_statistics": {
+                "mean_power": np.mean(powers) if len(powers) > 0 else 0,
+                "power_std": np.std(powers) if len(powers) > 0 else 0,
+                "power_variation": (
+                    (np.max(powers) - np.min(powers)) if len(powers) > 0 else 0
+                ),
+            },
         }
 
         # Power stability analysis
         stability_scores = []
         for point in self.spectral_data:
             if point.power_stability:
-                stability_scores.append(point.power_stability.get('rms_deviation', 0))
+                stability_scores.append(point.power_stability.get("rms_deviation", 0))
 
         if stability_scores:
-            analysis_results['stability_statistics'] = {
-                'mean_rms_deviation': np.mean(stability_scores),
-                'max_rms_deviation': np.max(stability_scores),
-                'stability_threshold': self.power_stabilization_config.power_stability_threshold
+            analysis_results["stability_statistics"] = {
+                "mean_rms_deviation": np.mean(stability_scores),
+                "max_rms_deviation": np.max(stability_scores),
+                "stability_threshold": self.power_stabilization_config.power_stability_threshold,
             }
 
         return analysis_results
@@ -572,19 +606,23 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
 
         # Prepare data for saving
         save_data = {
-            'wavelengths': np.array([point.wavelength for point in self.spectral_data]),
-            'signals': np.array([point.measurement_data['measurement_statistics']['mean']
-                               for point in self.spectral_data]),
-            'powers': np.array([point.measured_power for point in self.spectral_data]),
-            'timestamps': np.array([point.timestamp for point in self.spectral_data]),
-            'scan_config': {
-                'wavelength_start': self.scan_config.wavelength_start,
-                'wavelength_end': self.scan_config.wavelength_end,
-                'wavelength_step': self.scan_config.wavelength_step,
-                'power_setpoint': self.scan_config.power_setpoint,
-                'enable_power_stabilization': self.scan_config.enable_power_stabilization
+            "wavelengths": np.array([point.wavelength for point in self.spectral_data]),
+            "signals": np.array(
+                [
+                    point.measurement_data["measurement_statistics"]["mean"]
+                    for point in self.spectral_data
+                ]
+            ),
+            "powers": np.array([point.measured_power for point in self.spectral_data]),
+            "timestamps": np.array([point.timestamp for point in self.spectral_data]),
+            "scan_config": {
+                "wavelength_start": self.scan_config.wavelength_start,
+                "wavelength_end": self.scan_config.wavelength_end,
+                "wavelength_step": self.scan_config.wavelength_step,
+                "power_setpoint": self.scan_config.power_setpoint,
+                "enable_power_stabilization": self.scan_config.enable_power_stabilization,
             },
-            'analysis_results': self.analyze_spectral_data()
+            "analysis_results": self.analyze_spectral_data(),
         }
 
         # Save data
@@ -614,17 +652,23 @@ class WavelengthDependentRASHGExperiment(URASHGBaseExperiment):
                 analysis_results = self.analyze_spectral_data()
                 saved_file = self.save_experimental_data()
 
-                logger.info("Wavelength-Dependent RASHG experiment completed successfully")
+                logger.info(
+                    "Wavelength-Dependent RASHG experiment completed successfully"
+                )
                 logger.info(f"Data saved to: {saved_file}")
 
                 # Report summary
-                if 'total_points' in analysis_results:
-                    logger.info(f"Collected {analysis_results['total_points']} spectral points")
+                if "total_points" in analysis_results:
+                    logger.info(
+                        f"Collected {analysis_results['total_points']} spectral points"
+                    )
 
-                if 'power_statistics' in analysis_results:
-                    power_stats = analysis_results['power_statistics']
-                    logger.info(f"Power stability: {power_stats['power_std']:.4f}V RMS "
-                               f"(variation: {power_stats['power_variation']:.4f}V)")
+                if "power_statistics" in analysis_results:
+                    power_stats = analysis_results["power_statistics"]
+                    logger.info(
+                        f"Power stability: {power_stats['power_std']:.4f}V RMS "
+                        f"(variation: {power_stats['power_variation']:.4f}V)"
+                    )
 
                 return analysis_results
 

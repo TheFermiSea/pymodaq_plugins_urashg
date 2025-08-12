@@ -224,7 +224,9 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 try:
                     wavelength = self.controller.get_wavelength()
                     if wavelength is not None:
-                        self.settings.child("status_group", "current_wavelength").setValue(wavelength)
+                        self.settings.child(
+                            "status_group", "current_wavelength"
+                        ).setValue(wavelength)
                         self.current_position = wavelength
                 except Exception:
                     pass  # Ignore errors during initialization
@@ -306,7 +308,13 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             if isinstance(value, DataActuator):
                 target_wavelength = float(value.value())
                 self.emit_status(
-                    ThreadCommand("Update_Status", [f"DEBUG: DataActuator wavelength: {target_wavelength} nm", "log"])
+                    ThreadCommand(
+                        "Update_Status",
+                        [
+                            f"DEBUG: DataActuator wavelength: {target_wavelength} nm",
+                            "log",
+                        ],
+                    )
                 )
             else:
                 target_wavelength = float(value)
@@ -333,7 +341,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             if success:
                 self.emit_status(
                     ThreadCommand(
-                        "Update_Status", [f"Moving to {int(round(target_wavelength))} nm", "log"]
+                        "Update_Status",
+                        [f"Moving to {int(round(target_wavelength))} nm", "log"],
                     )
                 )
 
@@ -341,11 +350,11 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 self.current_position = int(round(target_wavelength))
 
                 # Emit move done signal with proper DataActuator
-                plugin_name = getattr(self, 'title', self.__class__.__name__)
+                plugin_name = getattr(self, "title", self.__class__.__name__)
                 data_actuator = DataActuator(
                     name=plugin_name,
                     data=[np.array([int(round(target_wavelength))])],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
                 self.move_done()  # Emit move_done signal
             else:
@@ -372,7 +381,9 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             to extract the numerical value (PyMoDAQ 5.x single-axis pattern).
         """
         self.emit_status(
-            ThreadCommand("Update_Status", [f"DEBUG: move_rel called with {type(value)}", "log"])
+            ThreadCommand(
+                "Update_Status", [f"DEBUG: move_rel called with {type(value)}", "log"]
+            )
         )
         try:
             # Extract numerical value from DataActuator using .value() method
@@ -383,7 +394,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 relative_move = float(value)
 
             self.emit_status(
-                ThreadCommand("Update_Status", [f"DEBUG: Relative move of {relative_move} nm requested", "log"])
+                ThreadCommand(
+                    "Update_Status",
+                    [f"DEBUG: Relative move of {relative_move} nm requested", "log"],
+                )
             )
 
             # Get current wavelength
@@ -391,20 +405,25 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             target = current + relative_move
 
             self.emit_status(
-                ThreadCommand("Update_Status", [f"DEBUG: Current: {current}, Target: {target}", "log"])
+                ThreadCommand(
+                    "Update_Status",
+                    [f"DEBUG: Current: {current}, Target: {target}", "log"],
+                )
             )
 
             # Create DataActuator for target position
-            plugin_name = getattr(self, 'title', self.__class__.__name__)
+            plugin_name = getattr(self, "title", self.__class__.__name__)
             target_data = DataActuator(
                 name=plugin_name,
                 data=[np.array([target])],
-                units=self._controller_units
+                units=self._controller_units,
             )
             self.move_abs(target_data)
         except Exception as e:
             self.emit_status(
-                ThreadCommand("Update_Status", [f"Error in relative move: {str(e)}", "log"])
+                ThreadCommand(
+                    "Update_Status", [f"Error in relative move: {str(e)}", "log"]
+                )
             )
 
     def stop_motion(self):
@@ -428,11 +447,11 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 )
 
                 # Create DataActuator and emit to main PyMoDAQ UI
-                plugin_name = getattr(self, 'title', self.__class__.__name__)
+                plugin_name = getattr(self, "title", self.__class__.__name__)
                 current_data = DataActuator(
                     name=plugin_name,
                     data=[np.array([wavelength])],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
                 # Status update - no specific signal needed for GET_ACTUATOR_VALUE in PyMoDAQ 5.x
 
@@ -442,14 +461,18 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 self.settings.child("status_group", "current_power").setValue(power)
 
             # Update shutter state only after full initialization
-            if hasattr(self, '_fully_initialized') and self._fully_initialized:
+            if hasattr(self, "_fully_initialized") and self._fully_initialized:
                 try:
                     # Full enhanced status monitoring only after initialization
-                    shutter_open, emission_possible = self.controller.get_enhanced_shutter_state()
-                    self.settings.child("status_group", "shutter_open").setValue(shutter_open)
+                    shutter_open, emission_possible = (
+                        self.controller.get_enhanced_shutter_state()
+                    )
+                    self.settings.child("status_group", "shutter_open").setValue(
+                        shutter_open
+                    )
 
                     # Get full status byte information periodically
-                    if not hasattr(self, '_status_counter'):
+                    if not hasattr(self, "_status_counter"):
                         self._status_counter = 0
                     self._status_counter += 1
 
@@ -458,16 +481,24 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                         if status_info.get("connected", False):
                             modelocked = status_info.get("modelocked", False)
                             self.emit_status(
-                                ThreadCommand("Update_Status",
-                                            [f"Status: Emission={emission_possible}, Modelocked={modelocked}, Shutter={shutter_open}", "log"])
+                                ThreadCommand(
+                                    "Update_Status",
+                                    [
+                                        f"Status: Emission={emission_possible}, Modelocked={modelocked}, Shutter={shutter_open}",
+                                        "log",
+                                    ],
+                                )
                             )
                 except Exception as e:
                     # Log enhanced status errors only occasionally
-                    if hasattr(self, '_error_counter'):
-                        self._error_counter = getattr(self, '_error_counter', 0) + 1
+                    if hasattr(self, "_error_counter"):
+                        self._error_counter = getattr(self, "_error_counter", 0) + 1
                         if self._error_counter % 10 == 0:  # Log every 10th error
                             self.emit_status(
-                                ThreadCommand("Update_Status", [f"Enhanced status error: {str(e)}", "log"])
+                                ThreadCommand(
+                                    "Update_Status",
+                                    [f"Enhanced status error: {str(e)}", "log"],
+                                )
                             )
 
         except Exception as e:
@@ -495,73 +526,111 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
                 elif param.name() == "set_wavelength_btn":
                     # Set wavelength from target parameter
-                    target = self.settings.child("control_group", "target_wavelength").value()
+                    target = self.settings.child(
+                        "control_group", "target_wavelength"
+                    ).value()
                     self.move_abs(target)
 
                 elif param.name() == "open_shutter_btn":
                     # Open shutter
                     self.emit_status(
-                        ThreadCommand("Update_Status", ["DEBUG: Open shutter button clicked", "log"])
+                        ThreadCommand(
+                            "Update_Status",
+                            ["DEBUG: Open shutter button clicked", "log"],
+                        )
                     )
                     if self.controller and self.controller.connected:
                         if self.controller.open_shutter():
                             # Check for errors after shutter command (quick check)
-                            has_errors, error_messages = self.controller.check_system_errors(quick_check=True)
+                            has_errors, error_messages = (
+                                self.controller.check_system_errors(quick_check=True)
+                            )
                             if has_errors:
                                 error_text = "; ".join(error_messages)
                                 self.emit_status(
-                                    ThreadCommand("Update_Status", [f"Shutter command errors: {error_text}", "log"])
+                                    ThreadCommand(
+                                        "Update_Status",
+                                        [
+                                            f"Shutter command errors: {error_text}",
+                                            "log",
+                                        ],
+                                    )
                                 )
                             else:
                                 # Verify shutter actually opened
                                 time.sleep(0.5)  # Brief delay for shutter to respond
-                                shutter_open, emission_possible = self.controller.get_enhanced_shutter_state()
+                                shutter_open, emission_possible = (
+                                    self.controller.get_enhanced_shutter_state()
+                                )
                                 status_msg = f"Shutter open: {shutter_open}, Emission possible: {emission_possible}"
                                 self.emit_status(
                                     ThreadCommand("Update_Status", [status_msg, "log"])
                                 )
                         else:
                             self.emit_status(
-                                ThreadCommand("Update_Status", ["Failed to send open shutter command", "log"])
+                                ThreadCommand(
+                                    "Update_Status",
+                                    ["Failed to send open shutter command", "log"],
+                                )
                             )
 
                 elif param.name() == "close_shutter_btn":
                     # Close shutter
                     self.emit_status(
-                        ThreadCommand("Update_Status", ["DEBUG: Close shutter button clicked", "log"])
+                        ThreadCommand(
+                            "Update_Status",
+                            ["DEBUG: Close shutter button clicked", "log"],
+                        )
                     )
                     if self.controller and self.controller.connected:
                         if self.controller.close_shutter():
                             # Check for errors after shutter command (quick check)
-                            has_errors, error_messages = self.controller.check_system_errors(quick_check=True)
+                            has_errors, error_messages = (
+                                self.controller.check_system_errors(quick_check=True)
+                            )
                             if has_errors:
                                 error_text = "; ".join(error_messages)
                                 self.emit_status(
-                                    ThreadCommand("Update_Status", [f"Shutter command errors: {error_text}", "log"])
+                                    ThreadCommand(
+                                        "Update_Status",
+                                        [
+                                            f"Shutter command errors: {error_text}",
+                                            "log",
+                                        ],
+                                    )
                                 )
                             else:
                                 # Verify shutter actually closed
                                 time.sleep(0.5)  # Brief delay for shutter to respond
-                                shutter_open, emission_possible = self.controller.get_enhanced_shutter_state()
+                                shutter_open, emission_possible = (
+                                    self.controller.get_enhanced_shutter_state()
+                                )
                                 status_msg = f"Shutter open: {shutter_open}, Emission possible: {emission_possible}"
                                 self.emit_status(
                                     ThreadCommand("Update_Status", [status_msg, "log"])
                                 )
                         else:
                             self.emit_status(
-                                ThreadCommand("Update_Status", ["Failed to send close shutter command", "log"])
+                                ThreadCommand(
+                                    "Update_Status",
+                                    ["Failed to send close shutter command", "log"],
+                                )
                             )
 
                 elif param.name() == "go_home_btn":
                     # Move to home wavelength
                     self.emit_status(
-                        ThreadCommand("Update_Status", ["Moving to home wavelength...", "log"])
+                        ThreadCommand(
+                            "Update_Status", ["Moving to home wavelength...", "log"]
+                        )
                     )
                     self.move_home()
 
         except Exception as e:
             self.emit_status(
-                ThreadCommand("Update_Status", [f"Settings commit error: {str(e)}", "log"])
+                ThreadCommand(
+                    "Update_Status", [f"Settings commit error: {str(e)}", "log"]
+                )
             )
 
     def move_home(self, value=None):
@@ -577,10 +646,15 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             Ignored parameter, required for PyMoDAQ 5.x compatibility
         """
         try:
-            home_wavelength = self.settings.child("control_group", "home_wavelength").value()
+            home_wavelength = self.settings.child(
+                "control_group", "home_wavelength"
+            ).value()
 
             self.emit_status(
-                ThreadCommand("Update_Status", [f"Moving to home wavelength: {home_wavelength} nm", "log"])
+                ThreadCommand(
+                    "Update_Status",
+                    [f"Moving to home wavelength: {home_wavelength} nm", "log"],
+                )
             )
 
             # Use move_abs to go to home position
@@ -594,7 +668,6 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             self.emit_status(
                 ThreadCommand("Update_Status", [f"Home move error: {str(e)}", "log"])
             )
-
 
 
 if __name__ == "__main__":

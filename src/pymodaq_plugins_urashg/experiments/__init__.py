@@ -44,29 +44,26 @@ except NotImplementedError:
     WavelengthDependentRASHGExperiment = None
 
 __all__ = [
-    'URASHGBaseExperiment',
-    'EOMCalibrationExperiment',
-    'ElliptecCalibrationExperiment',
-    'VariableAttenuatorCalibrationExperiment',
-    'PDSHGExperiment',
+    "URASHGBaseExperiment",
+    "EOMCalibrationExperiment",
+    "ElliptecCalibrationExperiment",
+    "VariableAttenuatorCalibrationExperiment",
+    "PDSHGExperiment",
     # 'BasicURASHGExperiment',  # Future implementation
     # 'WavelengthDependentRASHGExperiment'  # Future implementation
 ]
 
 # Implemented experiments (ready for use)
 IMPLEMENTED_EXPERIMENTS = [
-    'URASHGBaseExperiment',
-    'EOMCalibrationExperiment',
-    'ElliptecCalibrationExperiment',
-    'VariableAttenuatorCalibrationExperiment',
-    'PDSHGExperiment'
+    "URASHGBaseExperiment",
+    "EOMCalibrationExperiment",
+    "ElliptecCalibrationExperiment",
+    "VariableAttenuatorCalibrationExperiment",
+    "PDSHGExperiment",
 ]
 
 # Future experiments (placeholders)
-FUTURE_EXPERIMENTS = [
-    'BasicURASHGExperiment',
-    'WavelengthDependentRASHGExperiment'
-]
+FUTURE_EXPERIMENTS = ["BasicURASHGExperiment", "WavelengthDependentRASHGExperiment"]
 
 # Module metadata
 __version__ = "1.0.0"

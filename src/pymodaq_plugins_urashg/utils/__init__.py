@@ -10,18 +10,38 @@ from pymodaq_utils.config import BaseConfig, USER
 
 class Config(BaseConfig):
     """Main class to deal with configuration values for this plugin"""
-    config_template_path = Path(__file__).parent.parent.joinpath('resources/config_template.toml')
+
+    config_template_path = Path(__file__).parent.parent.joinpath(
+        "resources/config_template.toml"
+    )
     config_name = f"config_{__package__.split('pymodaq_plugins_')[1]}"
+
 
 # PyRPL wrapper utilities for hardware integration
 try:
     from .pyrpl_wrapper import (
-        PyRPLManager, PyRPLConnection, PIDChannel, InputChannel, OutputChannel,
-        PIDConfiguration, ASGConfiguration, IQConfiguration, ScopeConfiguration,
-        ConnectionState, ASGChannel, ASGWaveform, ASGTriggerSource,
-        IQChannel, IQOutputDirect, ScopeTriggerSource, ScopeDecimation,
-        get_pyrpl_manager, connect_redpitaya, disconnect_redpitaya
+        PyRPLManager,
+        PyRPLConnection,
+        PIDChannel,
+        InputChannel,
+        OutputChannel,
+        PIDConfiguration,
+        ASGConfiguration,
+        IQConfiguration,
+        ScopeConfiguration,
+        ConnectionState,
+        ASGChannel,
+        ASGWaveform,
+        ASGTriggerSource,
+        IQChannel,
+        IQOutputDirect,
+        ScopeTriggerSource,
+        ScopeDecimation,
+        get_pyrpl_manager,
+        connect_redpitaya,
+        disconnect_redpitaya,
     )
+
     PYRPL_WRAPPER_AVAILABLE = True
 except ImportError as e:
     # PyRPL not available - provide mock classes for development
@@ -48,11 +68,28 @@ except ImportError as e:
     disconnect_redpitaya = None
 
 __all__ = [
-    'set_logger', 'get_module_name', 'Config',
-    'PyRPLManager', 'PyRPLConnection', 'PIDChannel', 'InputChannel', 'OutputChannel',
-    'PIDConfiguration', 'ASGConfiguration', 'IQConfiguration', 'ScopeConfiguration',
-    'ConnectionState', 'ASGChannel', 'ASGWaveform', 'ASGTriggerSource',
-    'IQChannel', 'IQOutputDirect', 'ScopeTriggerSource', 'ScopeDecimation',
-    'get_pyrpl_manager', 'connect_redpitaya', 'disconnect_redpitaya',
-    'PYRPL_WRAPPER_AVAILABLE'
+    "set_logger",
+    "get_module_name",
+    "Config",
+    "PyRPLManager",
+    "PyRPLConnection",
+    "PIDChannel",
+    "InputChannel",
+    "OutputChannel",
+    "PIDConfiguration",
+    "ASGConfiguration",
+    "IQConfiguration",
+    "ScopeConfiguration",
+    "ConnectionState",
+    "ASGChannel",
+    "ASGWaveform",
+    "ASGTriggerSource",
+    "IQChannel",
+    "IQOutputDirect",
+    "ScopeTriggerSource",
+    "ScopeDecimation",
+    "get_pyrpl_manager",
+    "connect_redpitaya",
+    "disconnect_redpitaya",
+    "PYRPL_WRAPPER_AVAILABLE",
 ]
