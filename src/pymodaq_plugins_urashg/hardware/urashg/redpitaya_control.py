@@ -29,25 +29,15 @@ import numpy as np
 # Import PyRPL wrapper utilities
 try:
     from ...utils import (
-<<<<<<< HEAD
         PYRPL_WRAPPER_AVAILABLE,
-        InputChannel,
-        OutputChannel,
+        PyRPLManager,
+        PyRPLConnection,
         PIDChannel,
         PIDConfiguration,
-        PyRPLConnection,
-        PyRPLManager,
+        get_pyrpl_manager,
         connect_redpitaya,
         disconnect_redpitaya,
-        get_pyrpl_manager,
     )
-
-=======
-        PyRPLManager, PyRPLConnection, PIDChannel, InputChannel, OutputChannel,
-        PIDConfiguration, get_pyrpl_manager, connect_redpitaya, disconnect_redpitaya,
-        PYRPL_WRAPPER_AVAILABLE
-    )
->>>>>>> architecture_compliance_fix
     if not PYRPL_WRAPPER_AVAILABLE or PIDChannel is None:
         raise ImportError("PyRPL wrapper not available")
 except ImportError:
@@ -55,15 +45,6 @@ except ImportError:
     PYRPL_WRAPPER_AVAILABLE = False
     PyRPLManager = None
     PyRPLConnection = None
-<<<<<<< HEAD
-    PIDChannel = type("PIDChannel", (), {"PID0": "pid0"})()
-    InputChannel = type("InputChannel", (), {"IN1": "in1"})()
-    OutputChannel = type("OutputChannel", (), {"OUT1": "out1"})()
-=======
-    PIDChannel = type('PIDChannel', (), {'PID0': 'pid0'})()
-    InputChannel = type('InputChannel', (), {'IN1': 'in1'})()
-    OutputChannel = type('OutputChannel', (), {'OUT1': 'out1'})()
->>>>>>> architecture_compliance_fix
     PIDConfiguration = None
     get_pyrpl_manager = None
     connect_redpitaya = None
@@ -223,17 +204,8 @@ class PowerStabilizationController:
                     StabilizationState.ERROR,
                 ]
             else:
-<<<<<<< HEAD
-                return (
-                    self.pyrpl_connection is not None
-                    and self.pyrpl_connection.is_connected
-                    and self.state == StabilizationState.CONNECTED
-                )
-=======
-                return (self.pyrpl_connection is not None and
-                       self.pyrpl_connection.is_connected and
-                       self.state == StabilizationState.CONNECTED)
->>>>>>> architecture_compliance_fix
+                # For real hardware, check actual PyRPL connection status
+                return self._pyrpl_manager is not None and self._pyrpl_manager.is_connected()
 
     @property
     def is_stabilizing(self) -> bool:
@@ -297,18 +269,6 @@ class PowerStabilizationController:
                         status_callback=lambda cmd: self._emit_status(cmd.args[0]),
                     )
 
-<<<<<<< HEAD
-                    if (
-                        not self.pyrpl_connection
-                        or not self.pyrpl_connection.is_connected
-                    ):
-                        raise PowerStabilizationError(
-                            f"Failed to connect to {self.config.hostname}"
-                        )
-=======
-                    if not self.pyrpl_connection or not self.pyrpl_connection.is_connected:
-                        raise PowerStabilizationError(f"Failed to connect to {self.config.hostname}")
->>>>>>> architecture_compliance_fix
 
                     # Configure PID controller for power stabilization
                     pid_config = PIDConfiguration(
@@ -326,17 +286,6 @@ class PowerStabilizationController:
                     success = self.pyrpl_connection.configure_pid(
                         self.config.pid_channel, pid_config
                     )
-<<<<<<< HEAD
-                    if not success:
-                        raise PowerStabilizationError(
-                            f"Failed to configure PID {self.config.pid_channel.value}"
-                        )
-=======
-
-                    success = self.pyrpl_connection.configure_pid(self.config.pid_channel, pid_config)
-                    if not success:
-                        raise PowerStabilizationError(f"Failed to configure PID {self.config.pid_channel.value}")
->>>>>>> architecture_compliance_fix
 
                     self.state = StabilizationState.CONNECTED
                     self._emit_status(
@@ -426,12 +375,6 @@ class PowerStabilizationController:
                 else:
                     # Set PID setpoint
                     success = self.pyrpl_connection.set_pid_setpoint(
-<<<<<<< HEAD
-                        self.config.pid_channel, target.power_setpoint
-=======
-                        self.config.pid_channel,
-                        target.power_setpoint
->>>>>>> architecture_compliance_fix
                     )
 
                     if success:
@@ -591,11 +534,6 @@ class PowerStabilizationController:
             # Calculate stability metrics
             recent_powers = np.array(recent_readings)
             mean_power = np.mean(recent_powers)
-<<<<<<< HEAD
-            rms_deviation = np.sqrt(np.mean((recent_powers - mean_power) ** 2))
-=======
-            rms_deviation = np.sqrt(np.mean((recent_powers - mean_power)**2))
->>>>>>> architecture_compliance_fix
 
             # Check if power is stable within threshold
             is_stable = rms_deviation <= self.config.power_stability_threshold
@@ -642,16 +580,6 @@ class PowerStabilizationController:
         while time.time() - start_time < max_wait:
             stability = self.assess_power_stability()
 
-<<<<<<< HEAD
-            if stability["stable"] and stability.get("target_compliance", False):
-                self._emit_status(
-                    f"Power stabilized in {time.time() - start_time:.1f}s"
-                )
-=======
-            if (stability['stable'] and
-                stability.get('target_compliance', False)):
-                self._emit_status(f"Power stabilized in {time.time() - start_time:.1f}s")
->>>>>>> architecture_compliance_fix
                 return True
 
             time.sleep(0.1)  # Check every 100ms
@@ -690,13 +618,6 @@ class PowerStabilizationController:
         """Background loop for continuous power monitoring."""
         monitor_interval = 1.0 / self.config.power_monitoring_rate
 
-<<<<<<< HEAD
-        while self._monitoring_active and not self._stop_monitoring.wait(
-            monitor_interval
-        ):
-=======
-        while self._monitoring_active and not self._stop_monitoring.wait(monitor_interval):
->>>>>>> architecture_compliance_fix
             try:
                 current_power = self.get_current_power()
                 current_time = time.time()
@@ -725,13 +646,6 @@ class PowerStabilizationController:
         """
         with self._lock:
             current_power = self.get_current_power()
-<<<<<<< HEAD
-            stability = (
-                self.assess_power_stability() if len(self.power_history) > 1 else {}
-            )
-=======
-            stability = self.assess_power_stability() if len(self.power_history) > 1 else {}
->>>>>>> architecture_compliance_fix
 
             return {
                 "state": self.state,
@@ -846,13 +760,6 @@ class RedPitayaController(PowerStabilizationController):
                 voltage_limit_max=self.config.max_power_setpoint,
                 enabled=self.is_stabilizing,
             )
-<<<<<<< HEAD
-            return self.pyrpl_connection.configure_pid(
-                self.config.pid_channel, pid_config
-            )
-=======
-            return self.pyrpl_connection.configure_pid(self.config.pid_channel, pid_config)
->>>>>>> architecture_compliance_fix
 
         return True
 

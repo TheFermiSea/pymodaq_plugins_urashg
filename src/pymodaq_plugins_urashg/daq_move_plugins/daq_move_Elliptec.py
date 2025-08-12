@@ -502,27 +502,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 relative_moves_list = list(value)
             else:
                 # Handle single float value for relative move
-<<<<<<< HEAD
-                num_mounts = (
-                    len(self.controller.mount_addresses)
-                    if self.controller and self.controller.mount_addresses
-                    else 3
-                )
-                relative_moves_list = [float(value)] + [0.0] * (num_mounts - 1)
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            f"Single relative value {value} applied to first axis only",
-                            "log",
-                        ],
-                    )
-                )
-=======
                 num_mounts = len(self.controller.mount_addresses) if self.controller and self.controller.mount_addresses else 3
                 relative_moves_list = [float(value)] + [0.0] * (num_mounts - 1)
                 self.emit_status(ThreadCommand("Update_Status", [f"Single relative value {value} applied to first axis only", "log"]))
->>>>>>> architecture_compliance_fix
 
             current_array = self.get_actuator_value()[0]
             current_list = current_array.tolist()
