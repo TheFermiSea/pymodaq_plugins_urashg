@@ -121,7 +121,25 @@ from .elliptec_wrapper import ElliptecController, ElliptecError
 from .maitai_control import MaiTaiController, MaiTaiError
 
 # Import all hardware controllers
-from .redpitaya_control import RedPitayaController, RedPitayaError
+try:
+    from .redpitaya_control import RedPitayaController, RedPitayaError
+    REDPITAYA_AVAILABLE = True
+except ImportError as e:
+    # RedPitaya/PyRPL not available - provide mock classes
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"RedPitaya control not available ({e}), using mock classes for development")
+
+    class RedPitayaController:
+        """Mock RedPitaya controller for development without PyRPL"""
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class RedPitayaError(Exception):
+        """Mock RedPitaya error for development"""
+        pass
+
+    REDPITAYA_AVAILABLE = False
 
 # Import system coordinator
 from .system_control import SystemError, URASHGSystem

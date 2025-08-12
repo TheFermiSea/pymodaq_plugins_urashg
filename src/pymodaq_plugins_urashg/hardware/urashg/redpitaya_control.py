@@ -33,18 +33,29 @@ try:
         PyRPLManager,
         PyRPLConnection,
         PIDChannel,
+        InputChannel,
+        OutputChannel,
         PIDConfiguration,
         get_pyrpl_manager,
         connect_redpitaya,
         disconnect_redpitaya,
     )
+
     if not PYRPL_WRAPPER_AVAILABLE or PIDChannel is None:
         raise ImportError("PyRPL wrapper not available")
 except ImportError:
     # PyRPL not available - provide mock constants
+    from enum import Enum
+
+    class MockEnum(Enum):
+        MOCK = "mock"
+
     PYRPL_WRAPPER_AVAILABLE = False
     PyRPLManager = None
     PyRPLConnection = None
+    PIDChannel = MockEnum
+    InputChannel = MockEnum
+    OutputChannel = MockEnum
     PIDConfiguration = None
     get_pyrpl_manager = None
     connect_redpitaya = None
@@ -205,7 +216,10 @@ class PowerStabilizationController:
                 ]
             else:
                 # For real hardware, check actual PyRPL connection status
-                return self._pyrpl_manager is not None and self._pyrpl_manager.is_connected()
+                return (
+                    self._pyrpl_manager is not None
+                    and self._pyrpl_manager.is_connected()
+                )
 
     @property
     def is_stabilizing(self) -> bool:
@@ -268,7 +282,6 @@ class PowerStabilizationController:
                         connection_timeout=self.config.connection_timeout,
                         status_callback=lambda cmd: self._emit_status(cmd.args[0]),
                     )
-
 
                     # Configure PID controller for power stabilization
                     pid_config = PIDConfiguration(
@@ -374,8 +387,7 @@ class PowerStabilizationController:
 
                 else:
                     # Set PID setpoint
-                    success = self.pyrpl_connection.set_pid_setpoint(
-                    )
+                    success = self.pyrpl_connection.set_pid_setpoint()
 
                     if success:
                         self._emit_status(
