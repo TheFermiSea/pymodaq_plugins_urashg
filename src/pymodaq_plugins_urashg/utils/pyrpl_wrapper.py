@@ -97,7 +97,15 @@ except (ImportError, TypeError, AttributeError) as e:
 
         pyrpl = type("MockPyrplModule", (), {"Pyrpl": _MockPyrpl})()
 
-from pymodaq.utils.daq_utils import ThreadCommand
+# Import PyMoDAQ utilities - handle import failures gracefully
+try:
+    from pymodaq.utils.daq_utils import ThreadCommand
+except ImportError:
+    # Create a mock ThreadCommand for environments without PyMoDAQ
+    class ThreadCommand:
+        def __init__(self, command, data=None):
+            self.command = command
+            self.data = data
 
 
 class ConnectionState(Enum):

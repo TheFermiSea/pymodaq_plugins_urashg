@@ -81,9 +81,7 @@ class AutomatedμRASHGScanner:
         if config_file and Path(config_file).exists():
             return configuration_manager.load_config(config_file)
         else:
-            self.logger.warning(
-                "No config file provided, using default configuration"
-            )
+            self.logger.warning("No config file provided, using default configuration")
             return self._get_default_config()
 
     def _get_default_config(self) -> Dict:
@@ -180,25 +178,19 @@ class AutomatedμRASHGScanner:
         """Setup plugins manually if no preset file is available."""
         # This would typically be done through the Dashboard GUI
         # For automation, we assume plugins are pre-configured
-        self.logger.info(
-            "Manual plugin setup - please configure plugins in Dashboard"
-        )
+        self.logger.info("Manual plugin setup - please configure plugins in Dashboard")
 
     def _get_plugin_references(self):
         """Get references to initialized plugins from the dashboard."""
         try:
             # Get move plugins
-            self.redpitaya_plugin = self.dashboard.get_move_by_title(
-                "RedPitaya_PID"
-            )
+            self.redpitaya_plugin = self.dashboard.get_move_by_title("RedPitaya_PID")
             self.elliptec_plugin = self.dashboard.get_move_by_title(
                 "Elliptec_Polarization"
             )
 
             # Get viewer plugins
-            self.camera_plugin = self.dashboard.get_viewer_by_title(
-                "PrimeBSI_Camera"
-            )
+            self.camera_plugin = self.dashboard.get_viewer_by_title("PrimeBSI_Camera")
 
             self.logger.info("Plugin references acquired successfully")
 
@@ -213,15 +205,11 @@ class AutomatedμRASHGScanner:
         self.hardware_system.redpitaya.set_pid_parameters(
             kp=pid_config["kp"], ki=pid_config["ki"], kd=pid_config["kd"]
         )
-        self.hardware_system.redpitaya.set_power_setpoint(
-            pid_config["setpoint_mw"]
-        )
+        self.hardware_system.redpitaya.set_power_setpoint(pid_config["setpoint_mw"])
 
         # Configure camera
         camera_config = self.config["hardware"]["camera"]
-        self.hardware_system.camera.set_exposure_time(
-            camera_config["exposure_ms"]
-        )
+        self.hardware_system.camera.set_exposure_time(camera_config["exposure_ms"])
         self.hardware_system.camera.set_gain(camera_config["gain"])
 
         if camera_config["roi"]["enabled"]:
@@ -338,9 +326,7 @@ class AutomatedμRASHGScanner:
                     self.logger.info("Measurement cancelled by user")
                     break
 
-                self.logger.info(
-                    f"Measuring angle {angle}° ({i+1}/{len(angles)})"
-                )
+                self.logger.info(f"Measuring angle {angle}° ({i+1}/{len(angles)})")
 
                 # Set polarization angle
                 self.hardware_system.elliptec.set_hwp_incident_angle(angle)
@@ -350,9 +336,7 @@ class AutomatedμRASHGScanner:
 
                 # Acquire frames with averaging
                 frame_data = self._acquire_averaged_frames(
-                    self.config["measurement"]["polarization_scan"][
-                        "averaging_frames"
-                    ]
+                    self.config["measurement"]["polarization_scan"]["averaging_frames"]
                 )
 
                 # Process frame data
@@ -366,9 +350,7 @@ class AutomatedμRASHGScanner:
                     full_images.append(processed_frame)
 
                 # Log progress
-                self.logger.info(
-                    f"Angle {angle}°: SHG intensity = {intensity:.2f}"
-                )
+                self.logger.info(f"Angle {angle}°: SHG intensity = {intensity:.2f}")
 
             # Compile results
             results = {
@@ -484,9 +466,7 @@ class AutomatedμRASHGScanner:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
         # Linear plot
-        ax1.plot(
-            results["polarization_angles"], results["shg_intensities"], "bo-"
-        )
+        ax1.plot(results["polarization_angles"], results["shg_intensities"], "bo-")
         ax1.set_xlabel("HWP Angle (degrees)")
         ax1.set_ylabel("SHG Intensity (counts)")
         ax1.set_title("Polarization-Resolved SHG")
@@ -542,9 +522,7 @@ def main():
         default="./data/",
         help="Output directory for results",
     )
-    parser.add_argument(
-        "--angles", type=str, help="Comma-separated list of angles"
-    )
+    parser.add_argument("--angles", type=str, help="Comma-separated list of angles")
     parser.add_argument(
         "--log-level",
         type=str,
@@ -571,15 +549,11 @@ def main():
     try:
         # Initialize system
         if not scanner.initialize_system():
-            print(
-                "System initialization failed. Please check hardware connections."
-            )
+            print("System initialization failed. Please check hardware connections.")
             return 1
 
         # Run measurement
-        results = scanner.run_polarization_scan(
-            angles=angles, save_path=args.output
-        )
+        results = scanner.run_polarization_scan(angles=angles, save_path=args.output)
 
         print(f"Measurement completed successfully!")
         print(f"Measured {len(results['polarization_angles'])} angles")

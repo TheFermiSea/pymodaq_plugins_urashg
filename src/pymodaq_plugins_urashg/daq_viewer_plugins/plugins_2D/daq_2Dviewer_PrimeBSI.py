@@ -4,7 +4,6 @@ from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
 
 
-
 # Removed unused imports: get_param_path, iter_children
 from pymodaq.utils.data import Axis, DataToExport, DataWithAxes
 from pymodaq_data import DataSource

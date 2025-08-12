@@ -14,10 +14,10 @@ import importlib
 from pathlib import Path
 
 
-    """Ensure Python 3.8+ is being used"""
-    if sys.version_info < (3, 8):
-        raise RuntimeError("Python 3.8+ is required for PyMoDAQ v5")
-    print(f"[OK] Python {sys.version_info.major}.{sys.version_info.minor} detected")
+"""Ensure Python 3.8+ is being used"""
+if sys.version_info < (3, 8):
+    raise RuntimeError("Python 3.8+ is required for PyMoDAQ v5")
+print(f"[OK] Python {sys.version_info.major}.{sys.version_info.minor} detected")
 
 def install_pymodaq():
     """Install PyMoDAQ version 5 and core dependencies"""

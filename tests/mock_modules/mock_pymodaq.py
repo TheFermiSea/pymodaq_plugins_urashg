@@ -9,7 +9,7 @@ from unittest.mock import Mock, MagicMock
 
 class MockThreadCommand:
     """Mock thread command for PyMoDAQ communication."""
-    
+
     def __init__(self, command, data=None):
         self.command = command
         self.data = data if data is not None else []
@@ -17,20 +17,29 @@ class MockThreadCommand:
 
 class MockAxis:
     """Mock axis for data structure."""
-    
+
     def __init__(self, data=None, label="", units="", **kwargs):
         self.data = data if data is not None else np.arange(100)
         self.label = label
         self.units = units
-        
+
     def get_data(self):
         return self.data
 
 
 class MockDataWithAxes:
     """Mock DataWithAxes for PyMoDAQ 5.x."""
-    
-    def __init__(self, name="", data=None, axes=None, labels=None, units=None, source=None, **kwargs):
+
+    def __init__(
+        self,
+        name="",
+        data=None,
+        axes=None,
+        labels=None,
+        units=None,
+        source=None,
+        **kwargs,
+    ):
         self.name = name
         self.data = data if data is not None else []
         self.axes = axes if axes is not None else []
@@ -41,7 +50,7 @@ class MockDataWithAxes:
 
 class MockDataToExport:
     """Mock DataToExport for PyMoDAQ 5.x."""
-    
+
     def __init__(self, name="", data=None, **kwargs):
         self.name = name
         self.data = data if data is not None else []
@@ -49,16 +58,16 @@ class MockDataToExport:
 
 class MockParameter:
     """Mock parameter class for PyMoDAQ settings."""
-    
+
     def __init__(self, name="", value=None, **kwargs):
         self._name = name
         self._value = value
         self._children = {}
         self._parent = None
-        self._readonly = kwargs.get('readonly', False)
-        self._limits = kwargs.get('limits', [])
-        self._type = kwargs.get('type', 'str')
-        self.opts = kwargs.get('opts', {})
+        self._readonly = kwargs.get("readonly", False)
+        self._limits = kwargs.get("limits", [])
+        self._type = kwargs.get("type", "str")
+        self.opts = kwargs.get("opts", {})
 
     def name(self):
         return self._name
@@ -108,7 +117,7 @@ class MockParameter:
 
 class MockStatus:
     """Mock status object."""
-    
+
     def __init__(self):
         self.busy = False
         self.message = ""
@@ -120,7 +129,7 @@ class MockStatus:
 
 class MockSignal:
     """Mock signal for data emission."""
-    
+
     def __init__(self):
         self._callbacks = []
 
@@ -149,19 +158,19 @@ class MockDAQViewerBase:
         settings = MockParameter("root")
 
         # Create camera settings
-        settings.child('camera_settings', 'camera_name').setValue('')
-        settings.child('camera_settings', 'sensor_size').setValue('')
-        settings.child('camera_settings', 'exposure').setValue(100.0)
-        settings.child('camera_settings', 'readout_port').setValue('Port 1')
-        settings.child('camera_settings', 'speed_index').setValue(1)
-        settings.child('camera_settings', 'gain').setValue(1)
-        settings.child('camera_settings', 'trigger_mode').setValue('Internal')
-        settings.child('camera_settings', 'clear_mode').setValue('Pre-Sequence')
-        settings.child('camera_settings', 'temperature').setValue(-10.0)
-        settings.child('camera_settings', 'temperature_setpoint').setValue(-10)
+        settings.child("camera_settings", "camera_name").setValue("")
+        settings.child("camera_settings", "sensor_size").setValue("")
+        settings.child("camera_settings", "exposure").setValue(100.0)
+        settings.child("camera_settings", "readout_port").setValue("Port 1")
+        settings.child("camera_settings", "speed_index").setValue(1)
+        settings.child("camera_settings", "gain").setValue(1)
+        settings.child("camera_settings", "trigger_mode").setValue("Internal")
+        settings.child("camera_settings", "clear_mode").setValue("Pre-Sequence")
+        settings.child("camera_settings", "temperature").setValue(-10.0)
+        settings.child("camera_settings", "temperature_setpoint").setValue(-10)
 
         # Create ROI settings
-        settings.child('roi_settings', 'roi_integration').setValue(True)
+        settings.child("roi_settings", "roi_integration").setValue(True)
 
         return settings
 

@@ -1,7 +1,7 @@
-
 """Mock PyVCAM module for camera testing"""
 
 import numpy as np
+
 
 class MockCamera:
     """Mock camera for testing"""
@@ -53,6 +53,7 @@ class MockCamera:
         """Set post-processing parameter"""
         pass
 
+
 class Camera:
     """Mock Camera class"""
 
@@ -61,13 +62,16 @@ class Camera:
         """Detect mock cameras"""
         yield MockCamera()
 
+
 class TriggerMode:
     INTERNAL = "Internal"
     EXTERNAL = "External"
 
+
 class ClearMode:
     PRE_SEQUENCE = "Pre-Sequence"
     POST_SEQUENCE = "Post-Sequence"
+
 
 class Param:
     EXP_TIME = "exp_time"
@@ -75,6 +79,7 @@ class Param:
     PIX_TIME = "pix_time"
     GAIN_INDEX = "gain_index"
     TEMP_SETPOINT = "temp_setpoint"
+
 
 class pvc:
     @staticmethod

@@ -39,17 +39,19 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import numpy as np
 
+
 def setup_logging(verbose: bool = False):
     """Setup logging configuration for the test."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler('power_stabilization_test.log')
-        ]
+            logging.FileHandler("power_stabilization_test.log"),
+        ],
     )
+
 
 def test_pyrpl_wrapper_import():
     """Test PyRPL wrapper import and basic functionality."""
@@ -59,8 +61,14 @@ def test_pyrpl_wrapper_import():
 
     try:
         from pymodaq_plugins_urashg.utils import (
-            PyRPLManager, PyRPLConnection, PIDChannel, InputChannel, OutputChannel,
-            PIDConfiguration, get_pyrpl_manager, PYRPL_WRAPPER_AVAILABLE
+            PyRPLManager,
+            PyRPLConnection,
+            PIDChannel,
+            InputChannel,
+            OutputChannel,
+            PIDConfiguration,
+            get_pyrpl_manager,
+            PYRPL_WRAPPER_AVAILABLE,
         )
 
         print(f"✓ PyRPL wrapper import successful")
@@ -78,7 +86,7 @@ def test_pyrpl_wrapper_import():
             p_gain=0.1,
             i_gain=0.01,
             input_channel=InputChannel.IN1,
-            output_channel=OutputChannel.OUT1
+            output_channel=OutputChannel.OUT1,
         )
         print(f"✓ PID configuration created: {pid_config}")
 
@@ -89,15 +97,20 @@ def test_pyrpl_wrapper_import():
         traceback.print_exc()
         return False
 
+
 def test_power_stabilization_controller(use_hardware: bool = False):
     """Test the power stabilization controller."""
     print("=" * 60)
-    print(f"TEST 2: Power Stabilization Controller ({'Hardware' if use_hardware else 'Mock'} Mode)")
+    print(
+        f"TEST 2: Power Stabilization Controller ({'Hardware' if use_hardware else 'Mock'} Mode)"
+    )
     print("=" * 60)
 
     try:
         from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import (
-            PowerStabilizationController, StabilizationConfiguration, PowerTarget
+            PowerStabilizationController,
+            StabilizationConfiguration,
+            PowerTarget,
         )
 
         # Create configuration
@@ -107,7 +120,7 @@ def test_power_stabilization_controller(use_hardware: bool = False):
             p_gain=0.1,
             i_gain=0.01,
             d_gain=0.0,
-            mock_mode=not use_hardware
+            mock_mode=not use_hardware,
         )
 
         print(f"✓ Created stabilization configuration (mock_mode={config.mock_mode})")
@@ -118,12 +131,16 @@ def test_power_stabilization_controller(use_hardware: bool = False):
 
         # Test connection
         if controller.connect():
-            print(f"✓ Connected to Red Pitaya {'hardware' if use_hardware else '(mock)'}")
+            print(
+                f"✓ Connected to Red Pitaya {'hardware' if use_hardware else '(mock)'}"
+            )
 
             # Test power target setting
             target = PowerTarget(wavelength=800.0, power_setpoint=0.5, tolerance=0.001)
             if controller.set_power_target(target):
-                print(f"✓ Power target set: {target.wavelength}nm → {target.power_setpoint}V")
+                print(
+                    f"✓ Power target set: {target.wavelength}nm → {target.power_setpoint}V"
+                )
 
                 # Test power stabilization
                 if controller.start_stabilization():
@@ -140,14 +157,18 @@ def test_power_stabilization_controller(use_hardware: bool = False):
 
                     # Test status
                     status = controller.get_status()
-                    print(f"✓ Controller status: {status['state']}, connected: {status['connected']}")
+                    print(
+                        f"✓ Controller status: {status['state']}, connected: {status['connected']}"
+                    )
 
                     # Test context manager
                     with controller.power_stabilization_context(target) as stable:
                         if stable:
                             print(f"✓ Power stabilization context working")
                         else:
-                            print(f"⚠ Power stabilization context failed (expected in mock mode)")
+                            print(
+                                f"⚠ Power stabilization context failed (expected in mock mode)"
+                            )
 
                     controller.stop_stabilization()
                     print(f"✓ Power stabilization stopped")
@@ -171,15 +192,18 @@ def test_power_stabilization_controller(use_hardware: bool = False):
         traceback.print_exc()
         return False
 
+
 def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
     """Test the URASHG PyRPL PID plugin."""
     print("=" * 60)
-    print(f"TEST 3: URASHG PyRPL PID Plugin ({'Hardware' if use_hardware else 'Mock'} Mode)")
+    print(
+        f"TEST 3: URASHG PyRPL PID Plugin ({'Hardware' if use_hardware else 'Mock'} Mode)"
+    )
     print("=" * 60)
 
     try:
         from pymodaq_plugins_urashg.daq_move_plugins.daq_move_URASHG_PyRPL_PID import (
-            DAQ_Move_URASHG_PyRPL_PID
+            DAQ_Move_URASHG_PyRPL_PID,
         )
         from pymodaq.utils.data import DataActuator
 
@@ -190,13 +214,21 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
         plugin.ini_attributes()
 
         # Set mock mode
-        if hasattr(plugin.settings, 'child'):
+        if hasattr(plugin.settings, "child"):
             try:
-                plugin.settings.child('connection_settings', 'mock_mode').setValue(not use_hardware)
-                plugin.settings.child('connection_settings', 'redpitaya_host').setValue('rp-f08d6c.local')
-                print(f"✓ Plugin configured for {'hardware' if use_hardware else 'mock'} mode")
+                plugin.settings.child("connection_settings", "mock_mode").setValue(
+                    not use_hardware
+                )
+                plugin.settings.child("connection_settings", "redpitaya_host").setValue(
+                    "rp-f08d6c.local"
+                )
+                print(
+                    f"✓ Plugin configured for {'hardware' if use_hardware else 'mock'} mode"
+                )
             except:
-                print(f"⚠ Could not configure plugin settings (expected during testing)")
+                print(
+                    f"⚠ Could not configure plugin settings (expected during testing)"
+                )
 
         # Test basic attributes
         print(f"✓ Plugin units: {plugin._controller_units}")
@@ -214,12 +246,12 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
                 print(f"✓ Current actuator value: {position}")
 
                 # Test absolute move
-                target = DataActuator(data=0.3, units='V')
+                target = DataActuator(data=0.3, units="V")
                 plugin.move_abs(target)
                 print(f"✓ Absolute move to {target} completed")
 
                 # Test relative move
-                relative = DataActuator(data=0.1, units='V')
+                relative = DataActuator(data=0.1, units="V")
                 plugin.move_rel(relative)
                 print(f"✓ Relative move by {relative} completed")
 
@@ -236,10 +268,14 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
                 print(f"✓ Plugin closed successfully")
 
             else:
-                print(f"⚠ Plugin initialization failed: {info} (may be expected without PyMoDAQ)")
+                print(
+                    f"⚠ Plugin initialization failed: {info} (may be expected without PyMoDAQ)"
+                )
 
         except Exception as e:
-            print(f"⚠ Plugin stage initialization failed: {e} (expected without PyMoDAQ framework)")
+            print(
+                f"⚠ Plugin stage initialization failed: {e} (expected without PyMoDAQ framework)"
+            )
 
         return True
 
@@ -248,15 +284,20 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
         traceback.print_exc()
         return False
 
+
 def test_wavelength_dependent_experiment(use_hardware: bool = False):
     """Test the enhanced wavelength-dependent experiment."""
     print("=" * 60)
-    print(f"TEST 4: Wavelength-Dependent RASHG Experiment ({'Hardware' if use_hardware else 'Mock'} Mode)")
+    print(
+        f"TEST 4: Wavelength-Dependent RASHG Experiment ({'Hardware' if use_hardware else 'Mock'} Mode)"
+    )
     print("=" * 60)
 
     try:
         from pymodaq_plugins_urashg.experiments.wavelength_dependent_rashg import (
-            WavelengthDependentRASHGExperiment, SpectralScanConfiguration, SpectralPoint
+            WavelengthDependentRASHGExperiment,
+            SpectralScanConfiguration,
+            SpectralPoint,
         )
 
         print(f"✓ Wavelength-dependent experiment imported successfully")
@@ -271,15 +312,19 @@ def test_wavelength_dependent_experiment(use_hardware: bool = False):
             wavelength_step=5.0,  # Large step for quick testing
             power_setpoint=0.5,
             enable_power_stabilization=True,
-            measurements_per_point=3  # Reduced for testing
+            measurements_per_point=3,  # Reduced for testing
         )
 
         # Set mock mode if not using hardware
         if not use_hardware:
             experiment.power_stabilization_config.mock_mode = True
 
-        print(f"✓ Experiment configured: {experiment.scan_config.wavelength_start}-{experiment.scan_config.wavelength_end} nm")
-        print(f"✓ Power stabilization: {experiment.scan_config.enable_power_stabilization}")
+        print(
+            f"✓ Experiment configured: {experiment.scan_config.wavelength_start}-{experiment.scan_config.wavelength_end} nm"
+        )
+        print(
+            f"✓ Power stabilization: {experiment.scan_config.enable_power_stabilization}"
+        )
         print(f"✓ Expected points: {len(experiment.wavelength_points)}")
 
         # Test wavelength points calculation
@@ -295,9 +340,9 @@ def test_wavelength_dependent_experiment(use_hardware: bool = False):
             wavelength=800.0,
             target_power=0.5,
             measured_power=0.501,
-            power_stability={'stable': True, 'rms_deviation': 0.001},
-            measurement_data={'measurements': [1000, 1010, 995]},
-            timestamp=time.time()
+            power_stability={"stable": True, "rms_deviation": 0.001},
+            measurement_data={"measurements": [1000, 1010, 995]},
+            timestamp=time.time(),
         )
         print(f"✓ Spectral point structure: {test_point.wavelength}nm")
 
@@ -321,6 +366,7 @@ def test_wavelength_dependent_experiment(use_hardware: bool = False):
         traceback.print_exc()
         return False
 
+
 def test_error_handling_and_safety():
     """Test error handling and safety protocols."""
     print("=" * 60)
@@ -329,8 +375,10 @@ def test_error_handling_and_safety():
 
     try:
         from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import (
-            PowerStabilizationController, StabilizationConfiguration, PowerTarget,
-            PowerStabilizationError
+            PowerStabilizationController,
+            StabilizationConfiguration,
+            PowerTarget,
+            PowerStabilizationError,
         )
 
         print("✓ Error handling classes imported")
@@ -339,7 +387,7 @@ def test_error_handling_and_safety():
         try:
             config = StabilizationConfiguration(
                 hostname="invalid.host.name",
-                mock_mode=False  # Force real connection to invalid host
+                mock_mode=False,  # Force real connection to invalid host
             )
             controller = PowerStabilizationController(config)
             success = controller.connect()
@@ -381,6 +429,7 @@ def test_error_handling_and_safety():
         traceback.print_exc()
         return False
 
+
 def run_integration_test_suite(use_hardware: bool = False, verbose: bool = False):
     """Run the complete integration test suite."""
     print("🧪 URASHG PyRPL Power Stabilization Integration Test Suite")
@@ -401,7 +450,7 @@ def run_integration_test_suite(use_hardware: bool = False, verbose: bool = False
         ("Power Controller", test_power_stabilization_controller, [use_hardware]),
         ("PyRPL PID Plugin", test_urashg_pyrpl_pid_plugin, [use_hardware]),
         ("Wavelength Experiment", test_wavelength_dependent_experiment, [use_hardware]),
-        ("Error Handling", test_error_handling_and_safety, [])
+        ("Error Handling", test_error_handling_and_safety, []),
     ]
 
     for test_name, test_func, args in tests:
@@ -410,18 +459,11 @@ def run_integration_test_suite(use_hardware: bool = False, verbose: bool = False
             start_time = time.time()
             result = test_func(*args)
             duration = time.time() - start_time
-            test_results[test_name] = {
-                'passed': result,
-                'duration': duration
-            }
+            test_results[test_name] = {"passed": result, "duration": duration}
             status = "✅ PASSED" if result else "❌ FAILED"
             print(f"\n{status} ({duration:.2f}s)")
         except Exception as e:
-            test_results[test_name] = {
-                'passed': False,
-                'duration': 0,
-                'error': str(e)
-            }
+            test_results[test_name] = {"passed": False, "duration": 0, "error": str(e)}
             print(f"\n❌ FAILED - Exception: {e}")
 
     # Print summary
@@ -430,14 +472,14 @@ def run_integration_test_suite(use_hardware: bool = False, verbose: bool = False
     print("=" * 70)
 
     total_tests = len(test_results)
-    passed_tests = sum(1 for r in test_results.values() if r['passed'])
+    passed_tests = sum(1 for r in test_results.values() if r["passed"])
 
     for test_name, result in test_results.items():
-        status = "✅ PASS" if result['passed'] else "❌ FAIL"
-        duration = result.get('duration', 0)
+        status = "✅ PASS" if result["passed"] else "❌ FAIL"
+        duration = result.get("duration", 0)
         print(f"{status:10} {test_name:20} ({duration:.2f}s)")
 
-        if 'error' in result:
+        if "error" in result:
             print(f"           Error: {result['error']}")
 
     print("-" * 70)
@@ -450,6 +492,7 @@ def run_integration_test_suite(use_hardware: bool = False, verbose: bool = False
         print("⚠️  Some tests failed. Check the output above for details.")
         return 1
 
+
 def main():
     """Main entry point for the test script."""
     parser = argparse.ArgumentParser(
@@ -460,27 +503,27 @@ Examples:
   python test_power_stabilization_integration.py              # Mock mode testing
   python test_power_stabilization_integration.py --hardware   # Hardware testing
   python test_power_stabilization_integration.py --verbose    # Detailed output
-        """
+        """,
     )
 
     parser.add_argument(
-        '--hardware',
-        action='store_true',
-        help='Test with real Red Pitaya hardware (requires rp-f08d6c.local)'
+        "--hardware",
+        action="store_true",
+        help="Test with real Red Pitaya hardware (requires rp-f08d6c.local)",
     )
 
     parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Enable verbose logging output'
+        "--verbose", "-v", action="store_true", help="Enable verbose logging output"
     )
 
     args = parser.parse_args()
 
     if args.hardware:
-        print("⚠️  Hardware mode selected - ensure Red Pitaya is connected at rp-f08d6c.local")
+        print(
+            "⚠️  Hardware mode selected - ensure Red Pitaya is connected at rp-f08d6c.local"
+        )
         response = input("Continue with hardware testing? (y/N): ")
-        if response.lower() not in ('y', 'yes'):
+        if response.lower() not in ("y", "yes"):
             print("Switching to mock mode...")
             args.hardware = False
 
@@ -495,6 +538,7 @@ Examples:
         if args.verbose:
             traceback.print_exc()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

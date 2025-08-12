@@ -13,17 +13,20 @@ import os
 from pathlib import Path
 import importlib.util
 
+
 def print_header(title):
     """Print formatted section header"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print(f" {title}")
-    print("="*80)
+    print("=" * 80)
+
 
 def print_section(title):
     """Print formatted subsection header"""
-    print("\n" + "-"*60)
+    print("\n" + "-" * 60)
     print(f" {title}")
-    print("-"*60)
+    print("-" * 60)
+
 
 def check_environment():
     """Check if the test environment is properly set up"""
@@ -32,16 +35,20 @@ def check_environment():
     # Check Python version
     python_version = sys.version_info
     if python_version < (3, 8):
-        print(f"[ERROR] Python {python_version.major}.{python_version.minor} detected - Python 3.8+ required")
+        print(
+            f"[ERROR] Python {python_version.major}.{python_version.minor} detected - Python 3.8+ required"
+        )
         return False
     else:
-        print(f"[OK] Python {python_version.major}.{python_version.minor}.{python_version.micro} detected")
+        print(
+            f"[OK] Python {python_version.major}.{python_version.minor}.{python_version.micro} detected"
+        )
 
     # Check required modules
     required_modules = [
-        ('numpy', 'numpy'),
-        ('unittest.mock', 'unittest.mock'),
-        ('pathlib', 'pathlib')
+        ("numpy", "numpy"),
+        ("unittest.mock", "unittest.mock"),
+        ("pathlib", "pathlib"),
     ]
 
     missing_modules = []
@@ -60,9 +67,9 @@ def check_environment():
 
     # Check plugin files exist
     plugin_files = [
-        'src/pymodaq_plugins_urashg/daq_move_plugins/DAQ_Move_Elliptec.py',
-        'src/pymodaq_plugins_urashg/daq_move_plugins/DAQ_Move_MaiTai.py',
-        'src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_2D/DAQ_Viewer_PrimeBSI.py'
+        "src/pymodaq_plugins_urashg/daq_move_plugins/DAQ_Move_Elliptec.py",
+        "src/pymodaq_plugins_urashg/daq_move_plugins/DAQ_Move_MaiTai.py",
+        "src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_2D/DAQ_Viewer_PrimeBSI.py",
     ]
 
     base_path = Path(__file__).parent.parent
@@ -83,6 +90,7 @@ def check_environment():
     print("\nSUCCESS: Environment check passed!")
     return True
 
+
 def run_individual_test(test_script):
     """Run an individual test script"""
     test_path = Path(__file__).parent / test_script
@@ -96,9 +104,12 @@ def run_individual_test(test_script):
         start_time = time.time()
 
         # Run the test script
-        result = subprocess.run([
-            sys.executable, str(test_path)
-        ], capture_output=True, text=True, timeout=300)  # 5 minute timeout
+        result = subprocess.run(
+            [sys.executable, str(test_path)],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )  # 5 minute timeout
 
         end_time = time.time()
         duration = end_time - start_time
@@ -119,15 +130,16 @@ def run_individual_test(test_script):
         print(f"ERROR: {test_script} ERROR: {e}")
         return False, f"ERROR: {e}"
 
+
 def run_plugin_tests():
     """Run all plugin tests"""
     print_section("Plugin Tests")
 
     # Define test scripts and their descriptions
     test_scripts = [
-        ('test_elliptec_plugin.py', 'Elliptec Rotation Mount Controller'),
-        ('test_maitai_plugin.py', 'MaiTai Ti:Sapphire Laser Controller'),
-        ('test_camera_plugin.py', 'Prime BSI sCMOS Camera')
+        ("test_elliptec_plugin.py", "Elliptec Rotation Mount Controller"),
+        ("test_maitai_plugin.py", "MaiTai Ti:Sapphire Laser Controller"),
+        ("test_camera_plugin.py", "Prime BSI sCMOS Camera"),
     ]
 
     results = {}
@@ -149,6 +161,7 @@ def run_plugin_tests():
     total_duration = total_end_time - total_start_time
 
     return results, total_duration
+
 
 def generate_test_report(results, total_duration):
     """Generate comprehensive test report"""
@@ -178,30 +191,30 @@ def generate_test_report(results, total_duration):
     print("-" * 80)
 
     plugin_validations = {
-        'Elliptec Rotation Mount Controller': [
-            '3 axes (HWP_inc, QWP, HWP_ana)',
-            '13 error codes defined',
-            '25 commands in reference',
-            'Serial communication simulation',
-            'Position conversion accuracy',
-            'Multi-axis operation'
+        "Elliptec Rotation Mount Controller": [
+            "3 axes (HWP_inc, QWP, HWP_ana)",
+            "13 error codes defined",
+            "25 commands in reference",
+            "Serial communication simulation",
+            "Position conversion accuracy",
+            "Multi-axis operation",
         ],
-        'MaiTai Ti:Sapphire Laser Controller': [
-            'Wavelength and shutter control',
-            'Background status monitoring',
-            'Serial communication protocol',
-            'Threading safety',
-            'Command reference validation',
-            'Safety system simulation'
+        "MaiTai Ti:Sapphire Laser Controller": [
+            "Wavelength and shutter control",
+            "Background status monitoring",
+            "Serial communication protocol",
+            "Threading safety",
+            "Command reference validation",
+            "Safety system simulation",
         ],
-        'Prime BSI sCMOS Camera': [
-            'PyVCAM integration simulation',
-            'Parameter discovery and configuration',
-            'ROI functionality',
-            'Data acquisition simulation',
-            'Advanced settings handling',
-            'Temperature monitoring'
-        ]
+        "Prime BSI sCMOS Camera": [
+            "PyVCAM integration simulation",
+            "Parameter discovery and configuration",
+            "ROI functionality",
+            "Data acquisition simulation",
+            "Advanced settings handling",
+            "Temperature monitoring",
+        ],
     }
 
     for plugin_name, validations in plugin_validations.items():
@@ -213,6 +226,7 @@ def generate_test_report(results, total_duration):
             print(f"    • {validation}")
 
     return passed_tests == total_tests
+
 
 def run_integration_tests():
     """Run basic integration tests"""
@@ -231,31 +245,40 @@ def run_integration_tests():
         from unittest.mock import Mock
 
         # Mock PyMoDAQ base modules
-        sys.modules['pymodaq.control_modules.move_utility_classes'] = Mock()
-        sys.modules['pymodaq.control_modules.viewer_utility_classes'] = Mock()
-        sys.modules['pymodaq.utils.daq_utils'] = Mock()
-        sys.modules['pymodaq.utils.parameter'] = Mock()
-        sys.modules['pymodaq.utils.data'] = Mock()
-        sys.modules['serial'] = Mock()
-        sys.modules['pyvcam'] = Mock()
+        sys.modules["pymodaq.control_modules.move_utility_classes"] = Mock()
+        sys.modules["pymodaq.control_modules.viewer_utility_classes"] = Mock()
+        sys.modules["pymodaq.utils.daq_utils"] = Mock()
+        sys.modules["pymodaq.utils.parameter"] = Mock()
+        sys.modules["pymodaq.utils.data"] = Mock()
+        sys.modules["serial"] = Mock()
+        sys.modules["pyvcam"] = Mock()
 
         # Try importing all plugins
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_Elliptec import DAQ_Move_Elliptec
+            from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_Elliptec import (
+                DAQ_Move_Elliptec,
+            )
+
             print("[OK] Elliptec plugin import successful")
         except Exception as e:
             print(f"ERROR: Elliptec plugin import failed: {e}")
             return False
 
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai import DAQ_Move_MaiTai
+            from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai import (
+                DAQ_Move_MaiTai,
+            )
+
             print("[OK] MaiTai plugin import successful")
         except Exception as e:
             print(f"ERROR: MaiTai plugin import failed: {e}")
             return False
 
         try:
-            from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
+            from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI import (
+                DAQ_2DViewer_PrimeBSI,
+            )
+
             print("[OK] Camera plugin import successful")
         except Exception as e:
             print(f"ERROR: Camera plugin import failed: {e}")
@@ -268,16 +291,21 @@ def run_integration_tests():
         print(f"ERROR: Integration test failed: {e}")
         return False
 
+
 def main():
     """Main test execution function"""
     print_header("PyMoDAQ URASHG Plugin Test Suite")
-    print("This test suite validates all plugins in mock mode without requiring hardware.")
+    print(
+        "This test suite validates all plugins in mock mode without requiring hardware."
+    )
 
     start_time = time.time()
 
     # Step 1: Environment check
     if not check_environment():
-        print("\n[ERROR] Environment check failed. Please set up the test environment first.")
+        print(
+            "\n[ERROR] Environment check failed. Please set up the test environment first."
+        )
         return 1
 
     # Step 2: Integration tests
@@ -299,26 +327,34 @@ def main():
 
     if all_passed:
         print("SUCCESS: ALL TESTS PASSED!")
-        print("\nAll PyMoDAQ URASHG plugins have been successfully validated in mock mode.")
+        print(
+            "\nAll PyMoDAQ URASHG plugins have been successfully validated in mock mode."
+        )
         print("The plugins are ready for integration with actual hardware.")
         print("\nNext steps:")
-        print("1. Connect actual hardware (Elliptec mounts, MaiTai laser, Prime BSI camera)")
+        print(
+            "1. Connect actual hardware (Elliptec mounts, MaiTai laser, Prime BSI camera)"
+        )
         print("2. Test plugins with real hardware in PyMoDAQ Dashboard")
         print("3. Calibrate hardware-specific parameters")
         print("4. Validate full system integration")
     else:
         print("[FAILED] SOME TESTS FAILED!")
-        print("\nPlease review the test results above and fix any issues before proceeding.")
+        print(
+            "\nPlease review the test results above and fix any issues before proceeding."
+        )
         print("Check the individual test outputs for detailed error information.")
 
     print(f"\nTotal execution time: {total_time:.1f} seconds")
 
     return 0 if all_passed else 1
 
+
 def setup_help():
     """Print setup instructions"""
     print_header("Setup Instructions")
-    print("""
+    print(
+        """
 To set up the test environment, run these commands:
 
 1. Install PyMoDAQ v5:
@@ -340,15 +376,17 @@ For individual plugin testing:
    python test_elliptec_plugin.py
    python test_maitai_plugin.py
    python test_camera_plugin.py
-""")
+"""
+    )
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] in ['--help', '-h', 'help']:
+    if len(sys.argv) > 1 and sys.argv[1] in ["--help", "-h", "help"]:
         setup_help()
         sys.exit(0)
-    elif len(sys.argv) > 1 and sys.argv[1] in ['--setup', 'setup']:
+    elif len(sys.argv) > 1 and sys.argv[1] in ["--setup", "setup"]:
         # Run setup script
-        setup_script = Path(__file__).parent / 'setup_test_environment.py'
+        setup_script = Path(__file__).parent / "setup_test_environment.py"
         if setup_script.exists():
             subprocess.run([sys.executable, str(setup_script)])
         else:

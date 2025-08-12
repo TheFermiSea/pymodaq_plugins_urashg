@@ -292,12 +292,14 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             data_from_plugins = DataFromPlugins(
                 name="Newport1830C_Power",
                 data=[power_data],
-                dim='Data0D',
-                labels=["Power"]
+                dim="Data0D",
+                labels=["Power"],
             )
 
             # Emit data using correct PyMoDAQ format
-            self.dte_signal.emit(DataToExport("Newport1830C_data", data=[data_from_plugins]))
+            self.dte_signal.emit(
+                DataToExport("Newport1830C_data", data=[data_from_plugins])
+            )
 
         except Exception as e:
             self.emit_status(
@@ -307,8 +309,8 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             zero_data = DataFromPlugins(
                 name="Newport1830C_Power",
                 data=[np.array([0.0])],
-                dim='Data0D',
-                labels=["Power"]
+                dim="Data0D",
+                labels=["Power"],
             )
             self.dte_signal.emit(DataToExport("Newport1830C_data", data=[zero_data]))
 

@@ -42,7 +42,9 @@ from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
 
 # Test utilities
 from tests.mock_modules.mock_devices import (
-    MockMovePlugin, MockViewerPlugin, MockDeviceManager
+    MockMovePlugin,
+    MockViewerPlugin,
+    MockDeviceManager,
 )
 
 logger = set_logger(get_module_name(__file__))
@@ -56,50 +58,62 @@ class TestPluginDiscoveryIntegration:
         eps = importlib.metadata.entry_points()
 
         # Get all plugin entry points
-        if hasattr(eps, 'select'):
-            move_plugins = list(eps.select(group='pymodaq.move_plugins'))
-            viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins'))
+        if hasattr(eps, "select"):
+            move_plugins = list(eps.select(group="pymodaq.move_plugins"))
+            viewer_plugins = list(eps.select(group="pymodaq.viewer_plugins"))
         else:
-            move_plugins = eps.get('pymodaq.move_plugins', [])
-            viewer_plugins = eps.get('pymodaq.viewer_plugins', [])
+            move_plugins = eps.get("pymodaq.move_plugins", [])
+            viewer_plugins = eps.get("pymodaq.viewer_plugins", [])
 
         # Expected URASHG plugins
         expected_move_plugins = [
-            'DAQ_Move_MaiTai',
-            'DAQ_Move_Elliptec',
-            'DAQ_Move_ESP300'
+            "DAQ_Move_MaiTai",
+            "DAQ_Move_Elliptec",
+            "DAQ_Move_ESP300",
         ]
 
-        expected_viewer_plugins = [
-            'DAQ_2DViewer_PrimeBSI',
-            'DAQ_0DViewer_Newport1830C'
-        ]
+        expected_viewer_plugins = ["DAQ_2DViewer_PrimeBSI", "DAQ_0DViewer_Newport1830C"]
 
         # Check move plugins
-        found_move = [ep.name for ep in move_plugins if ep.name in expected_move_plugins]
-        assert len(found_move) == len(expected_move_plugins), \
-            f"Missing move plugins: {set(expected_move_plugins) - set(found_move)}"
+        found_move = [
+            ep.name for ep in move_plugins if ep.name in expected_move_plugins
+        ]
+        assert len(found_move) == len(
+            expected_move_plugins
+        ), f"Missing move plugins: {set(expected_move_plugins) - set(found_move)}"
 
         # Check viewer plugins
-        found_viewer = [ep.name for ep in viewer_plugins if ep.name in expected_viewer_plugins]
-        assert len(found_viewer) == len(expected_viewer_plugins), \
-            f"Missing viewer plugins: {set(expected_viewer_plugins) - set(found_viewer)}"
+        found_viewer = [
+            ep.name for ep in viewer_plugins if ep.name in expected_viewer_plugins
+        ]
+        assert len(found_viewer) == len(
+            expected_viewer_plugins
+        ), f"Missing viewer plugins: {set(expected_viewer_plugins) - set(found_viewer)}"
 
     def test_plugin_loading_compatibility(self):
         """Test all URASHG plugins can be loaded without errors."""
         expected_plugins = {
-            'pymodaq.move_plugins': ['DAQ_Move_MaiTai', 'DAQ_Move_Elliptec', 'DAQ_Move_ESP300'],
-            'pymodaq.viewer_plugins': ['DAQ_2DViewer_PrimeBSI', 'DAQ_0DViewer_Newport1830C']
+            "pymodaq.move_plugins": [
+                "DAQ_Move_MaiTai",
+                "DAQ_Move_Elliptec",
+                "DAQ_Move_ESP300",
+            ],
+            "pymodaq.viewer_plugins": [
+                "DAQ_2DViewer_PrimeBSI",
+                "DAQ_0DViewer_Newport1830C",
+            ],
         }
 
         eps = importlib.metadata.entry_points()
 
         for group, plugin_names in expected_plugins.items():
             for plugin_name in plugin_names:
-                if hasattr(eps, 'select'):
+                if hasattr(eps, "select"):
                     ep_list = list(eps.select(group=group, name=plugin_name))
                 else:
-                    ep_list = [ep for ep in eps.get(group, []) if ep.name == plugin_name]
+                    ep_list = [
+                        ep for ep in eps.get(group, []) if ep.name == plugin_name
+                    ]
 
                 assert len(ep_list) == 1, f"Plugin {plugin_name} not found in {group}"
 
@@ -107,18 +121,40 @@ class TestPluginDiscoveryIntegration:
                 try:
                     plugin_class = ep_list[0].load()
                     assert plugin_class is not None, f"Failed to load {plugin_name}"
-                    assert isinstance(plugin_class, type), f"{plugin_name} should be a class"
+                    assert isinstance(
+                        plugin_class, type
+                    ), f"{plugin_name} should be a class"
                 except Exception as e:
                     pytest.fail(f"Error loading {plugin_name}: {e}")
 
     def test_plugin_inheritance_compliance(self):
         """Test plugins inherit from correct PyMoDAQ base classes."""
         plugin_tests = [
-            ('DAQ_Move_MaiTai', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai', DAQ_Move_base),
-            ('DAQ_Move_Elliptec', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec', DAQ_Move_base),
-            ('DAQ_Move_ESP300', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300', DAQ_Move_base),
-            ('DAQ_2DViewer_PrimeBSI', 'pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI', DAQ_Viewer_base),
-            ('DAQ_0DViewer_Newport1830C', 'pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C', DAQ_Viewer_base)
+            (
+                "DAQ_Move_MaiTai",
+                "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai",
+                DAQ_Move_base,
+            ),
+            (
+                "DAQ_Move_Elliptec",
+                "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec",
+                DAQ_Move_base,
+            ),
+            (
+                "DAQ_Move_ESP300",
+                "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300",
+                DAQ_Move_base,
+            ),
+            (
+                "DAQ_2DViewer_PrimeBSI",
+                "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI",
+                DAQ_Viewer_base,
+            ),
+            (
+                "DAQ_0DViewer_Newport1830C",
+                "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C",
+                DAQ_Viewer_base,
+            ),
         ]
 
         for plugin_name, module_path, expected_base in plugin_tests:
@@ -128,13 +164,16 @@ class TestPluginDiscoveryIntegration:
                 plugin_class = getattr(module, plugin_name)
 
                 # Check inheritance
-                assert issubclass(plugin_class, expected_base), \
-                    f"{plugin_name} should inherit from {expected_base.__name__}"
+                assert issubclass(
+                    plugin_class, expected_base
+                ), f"{plugin_name} should inherit from {expected_base.__name__}"
 
             except ImportError as e:
                 pytest.fail(f"Cannot import {plugin_name} from {module_path}: {e}")
             except AttributeError as e:
-                pytest.fail(f"Plugin class {plugin_name} not found in module {module_path}: {e}")
+                pytest.fail(
+                    f"Plugin class {plugin_name} not found in module {module_path}: {e}"
+                )
 
 
 class TestPluginParameterIntegration:
@@ -146,20 +185,29 @@ class TestPluginParameterIntegration:
         plugins = {}
 
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_MaiTai
-            plugins['MaiTai'] = DAQ_Move_MaiTai
+            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+                DAQ_Move_MaiTai,
+            )
+
+            plugins["MaiTai"] = DAQ_Move_MaiTai
         except ImportError:
             pass
 
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import DAQ_Move_Elliptec
-            plugins['Elliptec'] = DAQ_Move_Elliptec
+            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import (
+                DAQ_Move_Elliptec,
+            )
+
+            plugins["Elliptec"] = DAQ_Move_Elliptec
         except ImportError:
             pass
 
         try:
-            from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
-            plugins['PrimeBSI'] = DAQ_2DViewer_PrimeBSI
+            from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import (
+                DAQ_2DViewer_PrimeBSI,
+            )
+
+            plugins["PrimeBSI"] = DAQ_2DViewer_PrimeBSI
         except ImportError:
             pass
 
@@ -169,7 +217,9 @@ class TestPluginParameterIntegration:
         """Test plugin parameter trees follow PyMoDAQ standards."""
         for plugin_name, plugin_class in plugin_classes.items():
             # Should have params attribute
-            assert hasattr(plugin_class, 'params'), f"{plugin_name} missing params attribute"
+            assert hasattr(
+                plugin_class, "params"
+            ), f"{plugin_name} missing params attribute"
 
             params = plugin_class.params
             assert isinstance(params, list), f"{plugin_name} params should be a list"
@@ -177,37 +227,46 @@ class TestPluginParameterIntegration:
             # Check parameter structure
             for param in params:
                 if isinstance(param, dict):
-                    assert 'name' in param, f"{plugin_name} parameter missing 'name'"
-                    assert 'type' in param, f"{plugin_name} parameter missing 'type'"
+                    assert "name" in param, f"{plugin_name} parameter missing 'name'"
+                    assert "type" in param, f"{plugin_name} parameter missing 'type'"
 
     def test_plugin_units_compliance(self, plugin_classes):
         """Test plugin units follow PyMoDAQ standards."""
         for plugin_name, plugin_class in plugin_classes.items():
             # Should have controller_units attribute
-            if hasattr(plugin_class, '_controller_units'):
+            if hasattr(plugin_class, "_controller_units"):
                 units = plugin_class._controller_units
 
                 # Units should be string, list, or dict
-                assert isinstance(units, (str, list, dict)), \
-                    f"{plugin_name} controller_units should be str, list, or dict"
+                assert isinstance(
+                    units, (str, list, dict)
+                ), f"{plugin_name} controller_units should be str, list, or dict"
 
                 # Test units are valid (basic check)
                 if isinstance(units, str):
-                    assert len(units) > 0, f"{plugin_name} units string should not be empty"
+                    assert (
+                        len(units) > 0
+                    ), f"{plugin_name} units string should not be empty"
                 elif isinstance(units, list):
-                    assert len(units) > 0, f"{plugin_name} units list should not be empty"
+                    assert (
+                        len(units) > 0
+                    ), f"{plugin_name} units list should not be empty"
                     for unit in units:
-                        assert isinstance(unit, str), f"{plugin_name} unit should be string"
+                        assert isinstance(
+                            unit, str
+                        ), f"{plugin_name} unit should be string"
 
     def test_plugin_initialization_parameters(self, plugin_classes):
         """Test plugin initialization parameters are valid."""
         for plugin_name, plugin_class in plugin_classes.items():
             # Should be able to create parameter tree
             try:
-                if hasattr(plugin_class, 'params'):
+                if hasattr(plugin_class, "params"):
                     # Create parameter tree (mock the parent widget)
-                    with patch('pymodaq.utils.parameter.Parameter'):
-                        param_tree = Parameter.create(name='test', type='group', children=plugin_class.params)
+                    with patch("pymodaq.utils.parameter.Parameter"):
+                        param_tree = Parameter.create(
+                            name="test", type="group", children=plugin_class.params
+                        )
                         assert param_tree is not None
 
             except Exception as e:
@@ -216,28 +275,31 @@ class TestPluginParameterIntegration:
     def test_plugin_parameter_validation(self, plugin_classes):
         """Test plugin parameters have proper validation."""
         for plugin_name, plugin_class in plugin_classes.items():
-            params = getattr(plugin_class, 'params', [])
+            params = getattr(plugin_class, "params", [])
 
             def validate_param(param):
                 if isinstance(param, dict):
-                    param_type = param.get('type')
+                    param_type = param.get("type")
 
                     # Check numeric parameter constraints
-                    if param_type in ['int', 'float']:
-                        if 'min' in param and 'max' in param:
-                            assert param['min'] <= param['max'], \
-                                f"{plugin_name} invalid min/max for {param.get('name')}"
+                    if param_type in ["int", "float"]:
+                        if "min" in param and "max" in param:
+                            assert (
+                                param["min"] <= param["max"]
+                            ), f"{plugin_name} invalid min/max for {param.get('name')}"
 
                     # Check list parameter options
-                    if param_type == 'list' and 'limits' in param:
-                        assert isinstance(param['limits'], list), \
-                            f"{plugin_name} list limits should be a list"
-                        assert len(param['limits']) > 0, \
-                            f"{plugin_name} list limits should not be empty"
+                    if param_type == "list" and "limits" in param:
+                        assert isinstance(
+                            param["limits"], list
+                        ), f"{plugin_name} list limits should be a list"
+                        assert (
+                            len(param["limits"]) > 0
+                        ), f"{plugin_name} list limits should not be empty"
 
                     # Recursively check children
-                    if 'children' in param:
-                        for child in param['children']:
+                    if "children" in param:
+                        for child in param["children"]:
                             validate_param(child)
 
             for param in params:
@@ -253,69 +315,80 @@ class TestPluginDataFormatCompliance:
         plugins = {}
 
         # Mock move plugins
-        for name in ['MaiTai', 'Elliptec', 'ESP300']:
+        for name in ["MaiTai", "Elliptec", "ESP300"]:
             mock_plugin = MockMovePlugin(name)
-            mock_plugin._controller_units = 'deg' if name == 'Elliptec' else 'nm'
+            mock_plugin._controller_units = "deg" if name == "Elliptec" else "nm"
             plugins[name] = mock_plugin
 
         # Mock viewer plugins
-        mock_camera = MockViewerPlugin('PrimeBSI')
-        mock_camera._controller_units = 'counts'
-        plugins['PrimeBSI'] = mock_camera
+        mock_camera = MockViewerPlugin("PrimeBSI")
+        mock_camera._controller_units = "counts"
+        plugins["PrimeBSI"] = mock_camera
 
-        mock_power_meter = MockViewerPlugin('Newport1830C')
-        mock_power_meter._controller_units = 'W'
-        plugins['Newport1830C'] = mock_power_meter
+        mock_power_meter = MockViewerPlugin("Newport1830C")
+        mock_power_meter._controller_units = "W"
+        plugins["Newport1830C"] = mock_power_meter
 
         return plugins
 
     def test_move_plugin_data_format(self, mock_plugins):
         """Test move plugins return data in correct format."""
-        move_plugins = ['MaiTai', 'Elliptec', 'ESP300']
+        move_plugins = ["MaiTai", "Elliptec", "ESP300"]
 
         for plugin_name in move_plugins:
             if plugin_name in mock_plugins:
                 plugin = mock_plugins[plugin_name]
 
                 # Test get_actuator_value returns proper format
-                if hasattr(plugin, 'get_actuator_value'):
+                if hasattr(plugin, "get_actuator_value"):
                     value = plugin.get_actuator_value()
 
                     # Should return DataActuator or numeric value
-                    assert isinstance(value, (int, float, np.number)), \
-                        f"{plugin_name} get_actuator_value should return numeric value"
+                    assert isinstance(
+                        value, (int, float, np.number)
+                    ), f"{plugin_name} get_actuator_value should return numeric value"
 
     def test_viewer_plugin_data_format(self, mock_plugins):
         """Test viewer plugins return data in PyMoDAQ format."""
-        viewer_plugins = ['PrimeBSI', 'Newport1830C']
+        viewer_plugins = ["PrimeBSI", "Newport1830C"]
 
         for plugin_name in viewer_plugins:
             if plugin_name in mock_plugins:
                 plugin = mock_plugins[plugin_name]
 
                 # Test grab_data returns proper format
-                if hasattr(plugin, 'grab_data'):
+                if hasattr(plugin, "grab_data"):
                     data = plugin.grab_data()
 
                     # Should return list of DataWithAxes
-                    assert isinstance(data, list), \
-                        f"{plugin_name} grab_data should return list"
+                    assert isinstance(
+                        data, list
+                    ), f"{plugin_name} grab_data should return list"
 
                     if len(data) > 0:
                         data_item = data[0]
-                        assert isinstance(data_item, DataWithAxes), \
-                            f"{plugin_name} should return DataWithAxes objects"
+                        assert isinstance(
+                            data_item, DataWithAxes
+                        ), f"{plugin_name} should return DataWithAxes objects"
 
                         # Check DataWithAxes structure
-                        assert hasattr(data_item, 'data'), "DataWithAxes should have 'data' attribute"
-                        assert hasattr(data_item, 'axes'), "DataWithAxes should have 'axes' attribute"
-                        assert hasattr(data_item, 'source'), "DataWithAxes should have 'source' attribute"
-                        assert data_item.source == DataSource.raw, "Source should be DataSource.raw"
+                        assert hasattr(
+                            data_item, "data"
+                        ), "DataWithAxes should have 'data' attribute"
+                        assert hasattr(
+                            data_item, "axes"
+                        ), "DataWithAxes should have 'axes' attribute"
+                        assert hasattr(
+                            data_item, "source"
+                        ), "DataWithAxes should have 'source' attribute"
+                        assert (
+                            data_item.source == DataSource.raw
+                        ), "Source should be DataSource.raw"
 
     def test_plugin_units_consistency(self, mock_plugins):
         """Test plugin units are consistent and valid."""
         for plugin_name, plugin in mock_plugins.items():
-            if hasattr(plugin, '_controller_units'):
+            if hasattr(plugin, "_controller_units"):
                 units = plugin._controller_units
 
                 # Units should be non-empty string or valid structure
@@ -326,7 +399,7 @@ class TestPluginDataFormatCompliance:
     def test_plugin_data_serialization(self, mock_plugins):
         """Test plugin data can be serialized for storage."""
         for plugin_name, plugin in mock_plugins.items():
-            if hasattr(plugin, 'grab_data'):
+            if hasattr(plugin, "grab_data"):
                 data = plugin.grab_data()
 
                 # Should be serializable to some extent
@@ -334,9 +407,13 @@ class TestPluginDataFormatCompliance:
                     data_item = data[0]
                     if isinstance(data_item, DataWithAxes):
                         # Data arrays should be numpy arrays
-                        assert isinstance(data_item.data, list), "DataWithAxes.data should be list"
+                        assert isinstance(
+                            data_item.data, list
+                        ), "DataWithAxes.data should be list"
                         for data_array in data_item.data:
-                            assert isinstance(data_array, np.ndarray), "Data should be numpy arrays"
+                            assert isinstance(
+                                data_array, np.ndarray
+                            ), "Data should be numpy arrays"
 
 
 class TestPluginLifecycleIntegration:
@@ -347,8 +424,8 @@ class TestPluginLifecycleIntegration:
         """Create plugins for lifecycle testing."""
         plugins = {}
 
-        for name in ['MaiTai', 'Elliptec', 'PrimeBSI']:
-            if 'PrimeBSI' in name:
+        for name in ["MaiTai", "Elliptec", "PrimeBSI"]:
+            if "PrimeBSI" in name:
                 plugin = MockViewerPlugin(name)
             else:
                 plugin = MockMovePlugin(name)
@@ -366,20 +443,28 @@ class TestPluginLifecycleIntegration:
         """Test plugin initialization follows proper sequence."""
         for plugin_name, plugin in lifecycle_test_plugins.items():
             # Should have initialization methods
-            assert hasattr(plugin, 'ini_attributes'), f"{plugin_name} missing ini_attributes"
-            assert callable(plugin.ini_attributes), f"{plugin_name} ini_attributes not callable"
+            assert hasattr(
+                plugin, "ini_attributes"
+            ), f"{plugin_name} missing ini_attributes"
+            assert callable(
+                plugin.ini_attributes
+            ), f"{plugin_name} ini_attributes not callable"
 
             # Should have stage/detector initialization
-            if hasattr(plugin, 'ini_stage'):
-                assert callable(plugin.ini_stage), f"{plugin_name} ini_stage not callable"
-            elif hasattr(plugin, 'ini_detector'):
-                assert callable(plugin.ini_detector), f"{plugin_name} ini_detector not callable"
+            if hasattr(plugin, "ini_stage"):
+                assert callable(
+                    plugin.ini_stage
+                ), f"{plugin_name} ini_stage not callable"
+            elif hasattr(plugin, "ini_detector"):
+                assert callable(
+                    plugin.ini_detector
+                ), f"{plugin_name} ini_detector not callable"
 
     def test_plugin_cleanup_sequence(self, lifecycle_test_plugins):
         """Test plugin cleanup follows proper sequence."""
         for plugin_name, plugin in lifecycle_test_plugins.items():
             # Should have close method
-            assert hasattr(plugin, 'close'), f"{plugin_name} missing close method"
+            assert hasattr(plugin, "close"), f"{plugin_name} missing close method"
             assert callable(plugin.close), f"{plugin_name} close not callable"
 
             # Test cleanup
@@ -390,12 +475,16 @@ class TestPluginLifecycleIntegration:
         """Test plugins handle parameter changes properly."""
         for plugin_name, plugin in lifecycle_test_plugins.items():
             # Should have commit_settings method
-            assert hasattr(plugin, 'commit_settings'), f"{plugin_name} missing commit_settings"
-            assert callable(plugin.commit_settings), f"{plugin_name} commit_settings not callable"
+            assert hasattr(
+                plugin, "commit_settings"
+            ), f"{plugin_name} missing commit_settings"
+            assert callable(
+                plugin.commit_settings
+            ), f"{plugin_name} commit_settings not callable"
 
             # Should handle parameter changes without errors
             try:
-                plugin.commit_settings({'test_param': 'test_value'})
+                plugin.commit_settings({"test_param": "test_value"})
             except Exception as e:
                 pytest.fail(f"{plugin_name} commit_settings failed: {e}")
 
@@ -406,16 +495,17 @@ class TestPluginLifecycleIntegration:
             plugin.simulate_error = True
 
             try:
-                if hasattr(plugin, 'get_actuator_value'):
+                if hasattr(plugin, "get_actuator_value"):
                     value = plugin.get_actuator_value()
-                elif hasattr(plugin, 'grab_data'):
+                elif hasattr(plugin, "grab_data"):
                     data = plugin.grab_data()
 
                 # Should not raise unhandled exceptions
             except Exception as e:
                 # Should be controlled exceptions, not crashes
-                assert isinstance(e, (ValueError, RuntimeError, ConnectionError)), \
-                    f"{plugin_name} should raise controlled exceptions"
+                assert isinstance(
+                    e, (ValueError, RuntimeError, ConnectionError)
+                ), f"{plugin_name} should raise controlled exceptions"
 
 
 class TestExtensionPluginCommunication:
@@ -425,23 +515,33 @@ class TestExtensionPluginCommunication:
     def extension_with_plugins(self):
         """Create extension with mock plugins for communication testing."""
         mock_plugins = {
-            'MaiTai': MockMovePlugin('MaiTai'),
-            'Elliptec': MockMovePlugin('Elliptec'),
-            'PrimeBSI': MockViewerPlugin('PrimeBSI')
+            "MaiTai": MockMovePlugin("MaiTai"),
+            "Elliptec": MockMovePlugin("Elliptec"),
+            "PrimeBSI": MockViewerPlugin("PrimeBSI"),
         }
 
         with patch.multiple(
-            'pymodaq_plugins_urashg.extensions.device_manager',
-            **{f'DAQ_Move_{name}' if name != 'PrimeBSI' else 'DAQ_2DViewer_PrimeBSI':
-               lambda p=plugin: p for name, plugin in mock_plugins.items()}
+            "pymodaq_plugins_urashg.extensions.device_manager",
+            **{
+                (
+                    f"DAQ_Move_{name}"
+                    if name != "PrimeBSI"
+                    else "DAQ_2DViewer_PrimeBSI"
+                ): lambda p=plugin: p
+                for name, plugin in mock_plugins.items()
+            },
         ):
             # Mock the extension and device manager
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager') as MockDM:
+            with patch(
+                "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
+            ) as MockDM:
                 mock_dm = MockDeviceManager()
                 mock_dm.devices = mock_plugins
                 MockDM.return_value = mock_dm
 
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+                    URASHGMicroscopyExtension,
+                )
 
                 if not QtWidgets.QApplication.instance():
                     app = QtWidgets.QApplication([])
@@ -456,11 +556,11 @@ class TestExtensionPluginCommunication:
         extension, plugins = extension_with_plugins
 
         # Extension should be able to discover plugins
-        if hasattr(extension, 'initialize_devices'):
+        if hasattr(extension, "initialize_devices"):
             extension.initialize_devices()
 
         # Should have reference to device manager
-        assert hasattr(extension, 'device_manager')
+        assert hasattr(extension, "device_manager")
         assert extension.device_manager is not None
 
     def test_extension_plugin_coordination(self, extension_with_plugins):
@@ -468,12 +568,12 @@ class TestExtensionPluginCommunication:
         extension, plugins = extension_with_plugins
 
         # Should coordinate device operations
-        if hasattr(extension, 'move_rotator'):
+        if hasattr(extension, "move_rotator"):
             # Should be able to command rotator movement
-            extension.move_rotator('QWP', 45.0)
+            extension.move_rotator("QWP", 45.0)
 
         # Should handle multi-device measurements
-        if hasattr(extension, 'start_measurement'):
+        if hasattr(extension, "start_measurement"):
             # Should coordinate all devices for measurement
             try:
                 extension.start_measurement()
@@ -487,28 +587,28 @@ class TestExtensionPluginCommunication:
 
         # Plugins should report status changes
         for plugin_name, plugin in plugins.items():
-            if hasattr(plugin, 'emit_status'):
+            if hasattr(plugin, "emit_status"):
                 # Mock status emission
                 plugin.emit_status(f"{plugin_name} ready")
 
         # Extension should receive and process status updates
-        if hasattr(extension, 'update_device_status'):
-            extension.update_device_status('MaiTai', 'READY')
+        if hasattr(extension, "update_device_status"):
+            extension.update_device_status("MaiTai", "READY")
 
     def test_plugin_data_forwarding(self, extension_with_plugins):
         """Test plugins forward data to extension."""
         extension, plugins = extension_with_plugins
 
         # Plugins should forward data to extension
-        if 'PrimeBSI' in plugins:
-            camera = plugins['PrimeBSI']
+        if "PrimeBSI" in plugins:
+            camera = plugins["PrimeBSI"]
 
             # Simulate data acquisition
-            if hasattr(camera, 'grab_data'):
+            if hasattr(camera, "grab_data"):
                 data = camera.grab_data()
 
                 # Extension should receive and process data
-                if hasattr(extension, '_on_data_acquired'):
+                if hasattr(extension, "_on_data_acquired"):
                     extension._on_data_acquired(data)
 
     def test_plugin_parameter_synchronization(self, extension_with_plugins):
@@ -516,13 +616,13 @@ class TestExtensionPluginCommunication:
         extension, plugins = extension_with_plugins
 
         # Extension should synchronize parameters with plugins
-        if hasattr(extension, 'sync_power_meter_wavelength'):
+        if hasattr(extension, "sync_power_meter_wavelength"):
             # Should synchronize wavelength settings
             extension.sync_power_meter_wavelength(850.0)
 
         # Changes should propagate to relevant plugins
-        if 'Newport1830C' in plugins:
-            power_meter = plugins['Newport1830C']
+        if "Newport1830C" in plugins:
+            power_meter = plugins["Newport1830C"]
             # Check if wavelength was synchronized (implementation dependent)
 
 
@@ -532,9 +632,18 @@ class TestPluginHardwareAbstraction:
     def test_plugin_hardware_independence(self):
         """Test plugins work with and without hardware."""
         plugin_tests = [
-            ('DAQ_Move_MaiTai', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai'),
-            ('DAQ_Move_Elliptec', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec'),
-            ('DAQ_2DViewer_PrimeBSI', 'pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI')
+            (
+                "DAQ_Move_MaiTai",
+                "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai",
+            ),
+            (
+                "DAQ_Move_Elliptec",
+                "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec",
+            ),
+            (
+                "DAQ_2DViewer_PrimeBSI",
+                "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI",
+            ),
         ]
 
         for plugin_name, module_path in plugin_tests:
@@ -558,22 +667,25 @@ class TestPluginHardwareAbstraction:
         plugin_classes = []
 
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_MaiTai
+            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+                DAQ_Move_MaiTai,
+            )
+
             plugin_classes.append(DAQ_Move_MaiTai)
         except ImportError:
             pass
 
         for plugin_class in plugin_classes:
             # Check if plugin has mock mode parameters
-            params = getattr(plugin_class, 'params', [])
+            params = getattr(plugin_class, "params", [])
 
             def has_mock_mode(param_list):
                 for param in param_list:
                     if isinstance(param, dict):
-                        if param.get('name') == 'mock_mode':
+                        if param.get("name") == "mock_mode":
                             return True
-                        if 'children' in param:
-                            if has_mock_mode(param['children']):
+                        if "children" in param:
+                            if has_mock_mode(param["children"]):
                                 return True
                 return False
 
@@ -587,7 +699,7 @@ class TestPluginHardwareAbstraction:
     def test_plugin_error_handling_abstraction(self):
         """Test plugins abstract hardware errors properly."""
         # Test that plugins convert hardware-specific errors to standard exceptions
-        mock_plugin = MockMovePlugin('TestDevice')
+        mock_plugin = MockMovePlugin("TestDevice")
         mock_plugin.simulate_error = True
 
         # Should convert hardware errors to standard exceptions
@@ -604,13 +716,13 @@ class TestPluginConfigurationManagement:
     def test_plugin_configuration_persistence(self):
         """Test plugin configurations can be saved and loaded."""
         mock_plugins = {
-            'MaiTai': MockMovePlugin('MaiTai'),
-            'Elliptec': MockMovePlugin('Elliptec')
+            "MaiTai": MockMovePlugin("MaiTai"),
+            "Elliptec": MockMovePlugin("Elliptec"),
         }
 
         for plugin_name, plugin in mock_plugins.items():
             # Should be able to get current settings
-            if hasattr(plugin, 'get_settings'):
+            if hasattr(plugin, "get_settings"):
                 settings = plugin.get_settings()
                 assert isinstance(settings, dict)
 
@@ -622,14 +734,14 @@ class TestPluginConfigurationManagement:
 
     def test_plugin_parameter_validation(self):
         """Test plugin parameter validation is robust."""
-        mock_plugin = MockMovePlugin('TestDevice')
+        mock_plugin = MockMovePlugin("TestDevice")
 
         # Should handle invalid parameters gracefully
-        if hasattr(mock_plugin, 'commit_settings'):
+        if hasattr(mock_plugin, "commit_settings"):
             # Test with invalid parameter values
             invalid_settings = {
-                'invalid_param': 'invalid_value',
-                'numeric_param': 'not_a_number'
+                "invalid_param": "invalid_value",
+                "numeric_param": "not_a_number",
             }
 
             try:
@@ -643,27 +755,30 @@ class TestPluginConfigurationManagement:
         plugin_tests = []
 
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_MaiTai
+            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+                DAQ_Move_MaiTai,
+            )
+
             plugin_tests.append(DAQ_Move_MaiTai)
         except ImportError:
             pass
 
         for plugin_class in plugin_tests:
-            params = getattr(plugin_class, 'params', [])
+            params = getattr(plugin_class, "params", [])
 
             def check_defaults(param_list):
                 for param in param_list:
                     if isinstance(param, dict):
                         # Should have default values where appropriate
-                        if param.get('type') in ['int', 'float', 'str', 'bool']:
+                        if param.get("type") in ["int", "float", "str", "bool"]:
                             # Should have 'value' key for basic types
-                            if 'value' not in param:
+                            if "value" not in param:
                                 # Some parameters might not need defaults
                                 pass
 
                         # Recursively check children
-                        if 'children' in param:
-                            check_defaults(param['children'])
+                        if "children" in param:
+                            check_defaults(param["children"])
 
             check_defaults(params)
 
@@ -674,73 +789,95 @@ class TestPluginPyMoDAQStandardsCompliance:
     def test_plugin_naming_conventions(self):
         """Test plugin naming follows PyMoDAQ conventions."""
         expected_patterns = [
-            ('DAQ_Move_MaiTai', r'^DAQ_Move_\w+$'),
-            ('DAQ_Move_Elliptec', r'^DAQ_Move_\w+$'),
-            ('DAQ_Move_ESP300', r'^DAQ_Move_\w+$'),
-            ('DAQ_2DViewer_PrimeBSI', r'^DAQ_\dDViewer_\w+$'),
-            ('DAQ_0DViewer_Newport1830C', r'^DAQ_\dDViewer_\w+$')
+            ("DAQ_Move_MaiTai", r"^DAQ_Move_\w+$"),
+            ("DAQ_Move_Elliptec", r"^DAQ_Move_\w+$"),
+            ("DAQ_Move_ESP300", r"^DAQ_Move_\w+$"),
+            ("DAQ_2DViewer_PrimeBSI", r"^DAQ_\dDViewer_\w+$"),
+            ("DAQ_0DViewer_Newport1830C", r"^DAQ_\dDViewer_\w+$"),
         ]
 
         import re
+
         for plugin_name, pattern in expected_patterns:
-            assert re.match(pattern, plugin_name), \
-                f"Plugin {plugin_name} doesn't match naming pattern {pattern}"
+            assert re.match(
+                pattern, plugin_name
+            ), f"Plugin {plugin_name} doesn't match naming pattern {pattern}"
 
     def test_plugin_method_compliance(self):
         """Test plugins implement required PyMoDAQ methods."""
         # Required methods for move plugins
         move_methods = [
-            'ini_attributes', 'get_actuator_value', 'close', 'commit_settings',
-            'ini_stage', 'move_abs', 'move_home', 'move_rel', 'stop_motion'
+            "ini_attributes",
+            "get_actuator_value",
+            "close",
+            "commit_settings",
+            "ini_stage",
+            "move_abs",
+            "move_home",
+            "move_rel",
+            "stop_motion",
         ]
 
         # Required methods for viewer plugins
         viewer_methods = [
-            'ini_attributes', 'grab_data', 'close', 'commit_settings', 'ini_detector'
+            "ini_attributes",
+            "grab_data",
+            "close",
+            "commit_settings",
+            "ini_detector",
         ]
 
         # Test move plugins
         move_plugin_classes = []
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_MaiTai
+            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+                DAQ_Move_MaiTai,
+            )
+
             move_plugin_classes.append(DAQ_Move_MaiTai)
         except ImportError:
             pass
 
         for plugin_class in move_plugin_classes:
             for method_name in move_methods:
-                assert hasattr(plugin_class, method_name), \
-                    f"Move plugin {plugin_class.__name__} missing method {method_name}"
+                assert hasattr(
+                    plugin_class, method_name
+                ), f"Move plugin {plugin_class.__name__} missing method {method_name}"
 
     def test_plugin_documentation_standards(self):
         """Test plugins have proper documentation."""
         plugin_classes = []
 
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_MaiTai
+            from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+                DAQ_Move_MaiTai,
+            )
+
             plugin_classes.append(DAQ_Move_MaiTai)
         except ImportError:
             pass
 
         for plugin_class in plugin_classes:
             # Should have class docstring
-            assert plugin_class.__doc__ is not None, \
-                f"Plugin {plugin_class.__name__} should have docstring"
+            assert (
+                plugin_class.__doc__ is not None
+            ), f"Plugin {plugin_class.__name__} should have docstring"
 
             # Docstring should be substantial
-            assert len(plugin_class.__doc__.strip()) > 50, \
-                f"Plugin {plugin_class.__name__} docstring should be comprehensive"
+            assert (
+                len(plugin_class.__doc__.strip()) > 50
+            ), f"Plugin {plugin_class.__name__} docstring should be comprehensive"
 
     def test_plugin_signal_compliance(self):
         """Test plugin signals follow PyMoDAQ patterns."""
-        mock_plugins = [MockMovePlugin('Test'), MockViewerPlugin('Test')]
+        mock_plugins = [MockMovePlugin("Test"), MockViewerPlugin("Test")]
 
         for plugin in mock_plugins:
             # Should inherit from appropriate base class
             assert isinstance(plugin, (DAQ_Move_base, DAQ_Viewer_base))
 
             # Should have PyMoDAQ standard signals
-            expected_signals = ['status_sig', 'settings_tree']
+            expected_signals = ["status_sig", "settings_tree"]
 
             for signal_name in expected_signals:
                 if hasattr(plugin, signal_name):
@@ -753,27 +890,34 @@ class TestPluginPyMoDAQStandardsCompliance:
 @pytest.mark.plugin_integration
 class TestPluginIntegrationUnit:
     """Unit tests for plugin integration."""
+
     pass
+
 
 @pytest.mark.integration
 @pytest.mark.plugin_integration
 class TestPluginIntegrationIntegration:
     """Integration tests for plugin integration."""
+
     pass
+
 
 @pytest.mark.pymodaq_standards
 @pytest.mark.plugin_integration
 class TestPluginIntegrationStandards:
     """PyMoDAQ standards compliance tests for plugin integration."""
+
     pass
+
 
 @pytest.mark.extension
 @pytest.mark.plugin_integration
 class TestPluginIntegrationExtension:
     """Extension-specific plugin integration tests."""
+
     pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Run tests when executed directly
-    pytest.main([__file__, '-v', '-m', 'plugin_integration'])
+    pytest.main([__file__, "-v", "-m", "plugin_integration"])

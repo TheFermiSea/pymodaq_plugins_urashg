@@ -381,7 +381,9 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             to extract the numerical value (PyMoDAQ 5.x single-axis pattern).
         """
         self.emit_status(
-            ThreadCommand("Update_Status", [f"DEBUG: move_rel called with {type(value)}", "log"])
+            ThreadCommand(
+                "Update_Status", [f"DEBUG: move_rel called with {type(value)}", "log"]
+            )
         )
         try:
             # Extract numerical value from DataActuator using .value() method
