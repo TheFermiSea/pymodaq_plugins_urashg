@@ -87,8 +87,8 @@ hardware = [
     "pyvcam>=2.0.0",        # Photometrics camera support
 ]
 pyrpl = [
-    # PyRPL Red Pitaya control integration (optional)
-    "pyrpl>=0.9.3", # PyRPL library
+    # PyRPL Red Pitaya control integration (optional - under development)
+    "pyrpl>=0.9.3", # PyRPL library for advanced features
 ]
 mock = [
     "pymodaq-plugins-mock>=1.0.0", # For testing without hardware

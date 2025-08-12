@@ -22,18 +22,38 @@ License: MIT
 
 from pathlib import Path
 
-from pymodaq_utils.logger import get_module_name, set_logger
-from pymodaq_utils.utils import PackageNotFoundError, get_version
-
-from .utils import Config
-
-config = Config()
+# Handle missing PyMoDAQ dependencies gracefully for CI/test environments
 try:
-    __version__ = get_version(__package__)
-except PackageNotFoundError:
+    from pymodaq_utils.logger import get_module_name, set_logger
+    from pymodaq_utils.utils import PackageNotFoundError, get_version
+
+    from .utils import Config
+
+    config = Config()
+    try:
+        __version__ = get_version(__package__)
+    except PackageNotFoundError:
+        __version__ = "0.0.0dev"
+
+    # Hardware abstraction layers
+    from .hardware import urashg
+
+    __all__ = ["__version__", "config", "urashg"]
+
+except ImportError as e:
+    # PyMoDAQ not available - minimal fallback for CI/testing
+    import logging
+    logging.warning(f"PyMoDAQ not available: {e}. Using minimal fallback.")
+
     __version__ = "0.0.0dev"
+    config = None
+    urashg = None
 
-# Hardware abstraction layers
-from .hardware import urashg
+    # Mock logger functions
+    def get_module_name(name):
+        return name.split('.')[-1] if '.' in name else name
 
-__all__ = ["__version__", "config", "urashg"]
+    def set_logger(name, level=logging.INFO, add_to_console=True, **kwargs):
+        return logging.getLogger(name)
+
+    __all__ = ["__version__", "config", "urashg", "get_module_name", "set_logger"]
