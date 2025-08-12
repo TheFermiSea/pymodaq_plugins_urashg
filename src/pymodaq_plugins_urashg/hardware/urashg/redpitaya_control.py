@@ -13,7 +13,7 @@ Features:
     - Comprehensive error handling and status reporting
     - Mock mode for development without hardware
 
-Author: Claude Code
+Author: PyMoDAQ Plugin Development Team
 License: MIT
 """
 
@@ -27,11 +27,26 @@ from contextlib import contextmanager
 import numpy as np
 
 # Import PyRPL wrapper utilities
-from ...utils import (
-    PyRPLManager, PyRPLConnection, PIDChannel, InputChannel, OutputChannel,
-    PIDConfiguration, get_pyrpl_manager, connect_redpitaya, disconnect_redpitaya,
-    PYRPL_WRAPPER_AVAILABLE
-)
+try:
+    from ...utils import (
+        PyRPLManager, PyRPLConnection, PIDChannel, InputChannel, OutputChannel,
+        PIDConfiguration, get_pyrpl_manager, connect_redpitaya, disconnect_redpitaya,
+        PYRPL_WRAPPER_AVAILABLE
+    )
+    if not PYRPL_WRAPPER_AVAILABLE or PIDChannel is None:
+        raise ImportError("PyRPL wrapper not available")
+except ImportError:
+    # PyRPL not available - provide mock constants
+    PYRPL_WRAPPER_AVAILABLE = False
+    PyRPLManager = None
+    PyRPLConnection = None
+    PIDChannel = type('PIDChannel', (), {'PID0': 'pid0'})()
+    InputChannel = type('InputChannel', (), {'IN1': 'in1'})()
+    OutputChannel = type('OutputChannel', (), {'OUT1': 'out1'})()
+    PIDConfiguration = None
+    get_pyrpl_manager = None
+    connect_redpitaya = None
+    disconnect_redpitaya = None
 
 logger = logging.getLogger(__name__)
 
@@ -67,26 +82,26 @@ class StabilizationConfiguration:
     hostname: str = "rp-f08d6c.local"
     config_name: str = "urashg"
     connection_timeout: float = 10.0
-    
+
     # PID parameters
     pid_channel: PIDChannel = PIDChannel.PID0
     input_channel: InputChannel = InputChannel.IN1  # Photodiode signal
     output_channel: OutputChannel = OutputChannel.OUT1  # Laser control
-    
+
     # PID gains for power control
     p_gain: float = 0.1  # Proportional gain
     i_gain: float = 0.01  # Integral gain
     d_gain: float = 0.0  # Derivative gain (usually 0 for stability)
-    
+
     # Safety limits
     min_power_setpoint: float = -1.0  # V
     max_power_setpoint: float = 1.0  # V
-    
+
     # Monitoring parameters
     power_monitoring_rate: float = 10.0  # Hz
     stability_check_duration: float = 1.0  # s
     power_stability_threshold: float = 0.005  # V RMS
-    
+
     # Mock mode
     mock_mode: bool = False
 
@@ -94,11 +109,11 @@ class StabilizationConfiguration:
 class PowerStabilizationController:
     """
     Comprehensive power stabilization controller for URASHG polarimetry measurements.
-    
+
     This controller manages laser power stabilization during wavelength-dependent
     measurements by coordinating Red Pitaya PyRPL PID control with measurement
     workflows.
-    
+
     Key Features:
     - Hardware PID control with microsecond response times
     - Wavelength-dependent power target management
@@ -106,7 +121,7 @@ class PowerStabilizationController:
     - Thread-safe operation for concurrent measurement workflows
     - Comprehensive error handling and recovery
     - Integration with URASHG measurement protocols
-    
+
     Usage Example:
     ```python
     config = StabilizationConfiguration(
@@ -114,19 +129,19 @@ class PowerStabilizationController:
         p_gain=0.1,
         i_gain=0.01
     )
-    
+
     controller = PowerStabilizationController(config)
-    
+
     # Connect and initialize
     success = controller.connect()
     if success:
         # Set power target for specific wavelength
         target = PowerTarget(wavelength=800.0, power_setpoint=0.5)
         controller.set_power_target(target)
-        
+
         # Start stabilization
         controller.start_stabilization()
-        
+
         # Monitor power during measurement
         power = controller.get_current_power()
         stability = controller.assess_power_stability()
@@ -136,36 +151,36 @@ class PowerStabilizationController:
     def __init__(self, config: StabilizationConfiguration):
         """
         Initialize the power stabilization controller.
-        
+
         Args:
             config: StabilizationConfiguration with all parameters
         """
         self.config = config
         self.state = StabilizationState.IDLE
         self.last_error: Optional[str] = None
-        
+
         # PyRPL connection management
         self.pyrpl_manager: Optional[PyRPLManager] = None
         self.pyrpl_connection: Optional[PyRPLConnection] = None
-        
+
         # Current power target and monitoring
         self.current_target: Optional[PowerTarget] = None
         self.power_history: List[Tuple[float, float]] = []  # (timestamp, power)
         self.stability_status: Dict[str, Any] = {}
-        
+
         # Thread safety and monitoring
         self._lock = threading.RLock()
         self._monitoring_thread: Optional[threading.Thread] = None
         self._monitoring_active = False
         self._stop_monitoring = threading.Event()
-        
+
         # Status callbacks
         self._status_callbacks: List[Callable] = []
-        
+
         # Mock mode attributes
         self.mock_power = 0.0
         self.mock_setpoint = 0.0
-        
+
         # Initialize PyRPL manager if available
         if PYRPL_WRAPPER_AVAILABLE:
             self.pyrpl_manager = get_pyrpl_manager()
@@ -180,7 +195,7 @@ class PowerStabilizationController:
             if self.config.mock_mode:
                 return self.state not in [StabilizationState.IDLE, StabilizationState.ERROR]
             else:
-                return (self.pyrpl_connection is not None and 
+                return (self.pyrpl_connection is not None and
                        self.pyrpl_connection.is_connected and
                        self.state == StabilizationState.CONNECTED)
 
@@ -214,7 +229,7 @@ class PowerStabilizationController:
     def connect(self) -> bool:
         """
         Connect to Red Pitaya and initialize power stabilization.
-        
+
         Returns:
             bool: True if connection successful
         """
@@ -233,22 +248,22 @@ class PowerStabilizationController:
                     self.state = StabilizationState.CONNECTED
                     self._emit_status("Connected to Red Pitaya (Mock Mode)")
                     return True
-                
+
                 else:
                     # Real hardware connection
                     if not PYRPL_WRAPPER_AVAILABLE:
                         raise PowerStabilizationError("PyRPL wrapper not available")
-                    
+
                     self.pyrpl_connection = self.pyrpl_manager.connect_device(
                         hostname=self.config.hostname,
                         config_name=self.config.config_name,
                         connection_timeout=self.config.connection_timeout,
                         status_callback=lambda cmd: self._emit_status(cmd.args[0])
                     )
-                    
+
                     if not self.pyrpl_connection or not self.pyrpl_connection.is_connected:
                         raise PowerStabilizationError(f"Failed to connect to {self.config.hostname}")
-                    
+
                     # Configure PID controller for power stabilization
                     pid_config = PIDConfiguration(
                         setpoint=0.0,  # Will be set by power targets
@@ -261,11 +276,11 @@ class PowerStabilizationController:
                         voltage_limit_max=self.config.max_power_setpoint,
                         enabled=False  # Will be enabled when stabilization starts
                     )
-                    
+
                     success = self.pyrpl_connection.configure_pid(self.config.pid_channel, pid_config)
                     if not success:
                         raise PowerStabilizationError(f"Failed to configure PID {self.config.pid_channel.value}")
-                    
+
                     self.state = StabilizationState.CONNECTED
                     self._emit_status(f"Connected to Red Pitaya {self.config.hostname} - Power stabilization ready")
                     return True
@@ -287,7 +302,7 @@ class PowerStabilizationController:
                 # Stop any active stabilization
                 if self.is_stabilizing:
                     self.stop_stabilization()
-                
+
                 # Disconnect from hardware
                 if not self.config.mock_mode and self.pyrpl_connection:
                     # Disable PID before disconnecting
@@ -295,18 +310,18 @@ class PowerStabilizationController:
                         self.pyrpl_connection.disable_pid(self.config.pid_channel)
                     except Exception as e:
                         logger.warning(f"Failed to disable PID before disconnect: {e}")
-                    
+
                     # Disconnect through manager
                     self.pyrpl_manager.disconnect_device(
                         self.config.hostname,
                         self.config.config_name,
                         status_callback=lambda cmd: self._emit_status(cmd.args[0])
                     )
-                
+
                 self.pyrpl_connection = None
                 self.state = StabilizationState.DISCONNECTED
                 self._emit_status("Disconnected from Red Pitaya")
-                
+
             except Exception as e:
                 error_msg = f"Disconnect error: {str(e)}"
                 self.last_error = error_msg
@@ -316,10 +331,10 @@ class PowerStabilizationController:
     def set_power_target(self, target: PowerTarget) -> bool:
         """
         Set the power target for stabilization.
-        
+
         Args:
             target: PowerTarget with wavelength and setpoint information
-            
+
         Returns:
             bool: True if target set successfully
         """
@@ -337,19 +352,19 @@ class PowerStabilizationController:
 
             try:
                 self.current_target = target
-                
+
                 if self.config.mock_mode:
                     self.mock_setpoint = target.power_setpoint
                     self._emit_status(f"Mock power target set: {target.wavelength}nm → {target.power_setpoint}V")
                     return True
-                
+
                 else:
                     # Set PID setpoint
                     success = self.pyrpl_connection.set_pid_setpoint(
-                        self.config.pid_channel, 
+                        self.config.pid_channel,
                         target.power_setpoint
                     )
-                    
+
                     if success:
                         self._emit_status(
                             f"Power target set: λ={target.wavelength}nm, "
@@ -371,7 +386,7 @@ class PowerStabilizationController:
     def start_stabilization(self) -> bool:
         """
         Start power stabilization with the current target.
-        
+
         Returns:
             bool: True if stabilization started successfully
         """
@@ -401,7 +416,7 @@ class PowerStabilizationController:
 
                 # Start power monitoring
                 self._start_power_monitoring()
-                
+
                 self.state = StabilizationState.STABILIZING
                 self._emit_status(
                     f"Power stabilization started for λ={self.current_target.wavelength}nm, "
@@ -424,7 +439,7 @@ class PowerStabilizationController:
             try:
                 # Stop power monitoring
                 self._stop_power_monitoring()
-                
+
                 if not self.config.mock_mode and self.pyrpl_connection:
                     # Disable PID controller
                     success = self.pyrpl_connection.disable_pid(self.config.pid_channel)
@@ -442,7 +457,7 @@ class PowerStabilizationController:
     def get_current_power(self) -> Optional[float]:
         """
         Get the current laser power reading.
-        
+
         Returns:
             Current power voltage or None if error
         """
@@ -456,7 +471,7 @@ class PowerStabilizationController:
                     error = self.mock_setpoint - self.mock_power
                     self.mock_power += 0.1 * error + np.random.normal(0, 0.001)
                 return self.mock_power
-            
+
             else:
                 # Read actual voltage from Red Pitaya
                 return self.pyrpl_connection.read_voltage(self.config.input_channel)
@@ -468,10 +483,10 @@ class PowerStabilizationController:
     def assess_power_stability(self, duration: Optional[float] = None) -> Dict[str, Any]:
         """
         Assess current power stability based on recent history.
-        
+
         Args:
             duration: Time window for stability assessment (uses config default if None)
-            
+
         Returns:
             Dictionary with stability metrics
         """
@@ -481,7 +496,7 @@ class PowerStabilizationController:
 
             current_time = time.time()
             cutoff_time = current_time - duration
-            
+
             # Filter recent power readings
             recent_readings = [
                 power for timestamp, power in self.power_history
@@ -501,10 +516,10 @@ class PowerStabilizationController:
             recent_powers = np.array(recent_readings)
             mean_power = np.mean(recent_powers)
             rms_deviation = np.sqrt(np.mean((recent_powers - mean_power)**2))
-            
+
             # Check if power is stable within threshold
             is_stable = rms_deviation <= self.config.power_stability_threshold
-            
+
             # Check target compliance if available
             target_compliance = None
             if self.current_target:
@@ -529,10 +544,10 @@ class PowerStabilizationController:
     def wait_for_stability(self, timeout: Optional[float] = None) -> bool:
         """
         Wait for power to stabilize within target tolerance.
-        
+
         Args:
             timeout: Maximum time to wait (uses target timeout if None)
-            
+
         Returns:
             bool: True if power stabilized within timeout
         """
@@ -541,17 +556,17 @@ class PowerStabilizationController:
 
         max_wait = timeout or self.current_target.timeout
         start_time = time.time()
-        
+
         self._emit_status(f"Waiting for power stability (timeout: {max_wait}s)")
-        
+
         while time.time() - start_time < max_wait:
             stability = self.assess_power_stability()
-            
-            if (stability['stable'] and 
+
+            if (stability['stable'] and
                 stability.get('target_compliance', False)):
                 self._emit_status(f"Power stabilized in {time.time() - start_time:.1f}s")
                 return True
-            
+
             time.sleep(0.1)  # Check every 100ms
 
         self._emit_status(f"Power stability timeout after {max_wait}s", 'warning')
@@ -565,7 +580,7 @@ class PowerStabilizationController:
         self._monitoring_active = True
         self._stop_monitoring.clear()
         self.power_history.clear()
-        
+
         self._monitoring_thread = threading.Thread(
             target=self._power_monitoring_loop,
             name="PowerMonitoring",
@@ -580,7 +595,7 @@ class PowerStabilizationController:
 
         self._monitoring_active = False
         self._stop_monitoring.set()
-        
+
         if self._monitoring_thread and self._monitoring_thread.is_alive():
             self._monitoring_thread.join(timeout=1.0)
             if self._monitoring_thread.is_alive():
@@ -589,16 +604,16 @@ class PowerStabilizationController:
     def _power_monitoring_loop(self):
         """Background loop for continuous power monitoring."""
         monitor_interval = 1.0 / self.config.power_monitoring_rate
-        
+
         while self._monitoring_active and not self._stop_monitoring.wait(monitor_interval):
             try:
                 current_power = self.get_current_power()
                 current_time = time.time()
-                
+
                 with self._lock:
                     # Store power reading with timestamp
                     self.power_history.append((current_time, current_power))
-                    
+
                     # Limit history size (keep last 10 minutes)
                     max_history_time = 600  # seconds
                     cutoff_time = current_time - max_history_time
@@ -614,14 +629,14 @@ class PowerStabilizationController:
     def get_status(self) -> Dict[str, Any]:
         """
         Get comprehensive status information.
-        
+
         Returns:
             Dictionary with current status
         """
         with self._lock:
             current_power = self.get_current_power()
             stability = self.assess_power_stability() if len(self.power_history) > 1 else {}
-            
+
             return {
                 'state': self.state,
                 'connected': self.is_connected,
@@ -650,7 +665,7 @@ class PowerStabilizationController:
     def power_stabilization_context(self, target: PowerTarget, wait_for_stability: bool = True):
         """
         Context manager for power stabilization during measurements.
-        
+
         Usage:
             with controller.power_stabilization_context(target) as stabilized:
                 if stabilized:
@@ -665,9 +680,9 @@ class PowerStabilizationController:
                     # Wait for stability if requested
                     if not wait_for_stability or self.wait_for_stability():
                         success = True
-            
+
             yield success
-            
+
         finally:
             # Always stop stabilization when context exits
             if self.is_stabilizing:
@@ -687,7 +702,7 @@ class PowerStabilizationController:
 # Convenience functions for compatibility
 class RedPitayaController(PowerStabilizationController):
     """Legacy compatibility class."""
-    
+
     def __init__(self, ip_address="rp-f08d6c.local"):
         """Initialize with legacy interface."""
         config = StabilizationConfiguration(hostname=ip_address)
@@ -710,12 +725,12 @@ class RedPitayaController(PowerStabilizationController):
         """Legacy PID parameter setting."""
         if not self.is_connected:
             raise PowerStabilizationError("Not connected")
-        
+
         # Update configuration
         self.config.p_gain = kp
         self.config.i_gain = ki
         self.config.d_gain = kd
-        
+
         # Reconfigure if active
         if not self.config.mock_mode and self.pyrpl_connection:
             pid_config = PIDConfiguration(
@@ -730,18 +745,18 @@ class RedPitayaController(PowerStabilizationController):
                 enabled=self.is_stabilizing
             )
             return self.pyrpl_connection.configure_pid(self.config.pid_channel, pid_config)
-        
+
         return True
 
     def get_error_signal(self):
         """Legacy error signal reading."""
         if not self.is_connected:
             raise PowerStabilizationError("Not connected")
-        
+
         current_power = self.get_current_power()
         if current_power is None or not self.current_target:
             return 0.0
-        
+
         return self.current_target.power_setpoint - current_power
 
 

@@ -1,13 +1,13 @@
 import time
-from typing import Optional, Union
+from typing import Union
 import numpy as np
 
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,
 )
-from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataActuator
+from pymodaq_utils.utils import ThreadCommand
+from pymodaq.control_modules.move_utility_classes import DataActuator
 from qtpy.QtCore import QTimer
 
 
@@ -285,14 +285,14 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             )
             return self.current_position if hasattr(self, "current_position") else 0.0
 
-    def move_abs(self, position: Union[float, DataActuator]):
+    def move_abs(self, value: Union[float, DataActuator]):
         """
         Move to absolute wavelength position.
 
         Parameters
         ----------
-        position : Union[float, DataActuator]
-            Target wavelength in nm. For DataActuator objects, use position.value()
+        value : Union[float, DataActuator]
+            Target wavelength in nm. For DataActuator objects, use value.value()
             to extract the numerical value (PyMoDAQ 5.x single-axis pattern).
         """
         if not self.controller or not self.controller.connected:
@@ -303,13 +303,13 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
         try:
             # Extract numerical value from DataActuator using .value() method
-            if isinstance(position, DataActuator):
-                target_wavelength = float(position.value())
+            if isinstance(value, DataActuator):
+                target_wavelength = float(value.value())
                 self.emit_status(
                     ThreadCommand("Update_Status", [f"DEBUG: DataActuator wavelength: {target_wavelength} nm", "log"])
                 )
             else:
-                target_wavelength = float(position)
+                target_wavelength = float(value)
 
             # Validate wavelength range
             min_wl = self.settings.child("wavelength_group", "min_wavelength").value()
@@ -361,31 +361,32 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 ThreadCommand("Update_Status", [f"Error moving: {str(e)}", "log"])
             )
 
-    def move_rel(self, position: Union[float, DataActuator]):
+    def move_rel(self, value: Union[float, DataActuator]):
         """
         Move to relative wavelength position.
 
         Parameters
         ----------
-        position : Union[float, DataActuator]
-            Relative wavelength change in nm. For DataActuator objects, use position.value()
+        value : Union[float, DataActuator]
+            Relative wavelength change in nm. For DataActuator objects, use value.value()
             to extract the numerical value (PyMoDAQ 5.x single-axis pattern).
         """
         self.emit_status(
-            ThreadCommand("Update_Status", [f"DEBUG: move_rel called with {type(position)}", "log"])
+            ThreadCommand("Update_Status", [f"DEBUG: move_rel called with {type(value)}", "log"])
         )
         try:
             # Extract numerical value from DataActuator using .value() method
-            if isinstance(position, DataActuator):
-                relative_move = float(position.value())
+            if isinstance(value, DataActuator):
+                relative_move = float(value.value())
             else:
                 # Fallback for direct numerical input (backward compatibility)
-                relative_move = float(position)
+                relative_move = float(value)
 
             self.emit_status(
                 ThreadCommand("Update_Status", [f"DEBUG: Relative move of {relative_move} nm requested", "log"])
             )
 
+            # Get current wavelength
             current = self.get_actuator_value()
             target = current + relative_move
 
@@ -594,45 +595,24 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 ThreadCommand("Update_Status", [f"Home move error: {str(e)}", "log"])
             )
 
-    def stop_motion(self):
-        """Stop any ongoing wavelength movement."""
-        try:
-            if self.controller:
-                # MaiTai doesn't have explicit stop command
-                # Just report current status
-                self.emit_status(
-                    ThreadCommand("Update_Status", ["Motion stop requested (MaiTai has no explicit stop)", "log"])
-                )
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Stop motion error: {str(e)}", "log"])
-            )
+
 
 if __name__ == "__main__":
     # This part is for testing the plugin independently
     import sys
-
-    from pymodaq.dashboard import DashBoard
-    from pymodaq.utils import daq_utils as utils
     from qtpy import QtWidgets
 
-    app = utils.get_qapp()
+    app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
 
-    # It's good practice to have a mock version for development without hardware
-    # For this example, we assume the hardware is connected.
-    # To run, you would need a virtual COM port pair (e.g., com0com)
-    # and a script simulating the MaiTai on the other end.
+    # Simple test - just import and instantiate the plugin
+    print("Testing MaiTai plugin import...")
+    plugin = DAQ_Move_MaiTai()
+    print("✓ MaiTai plugin imported and instantiated successfully")
 
-    win = QtWidgets.QMainWindow()
-    area = utils.DockArea()
-    win.setCentralWidget(area)
-    win.resize(1000, 500)
-    win.setWindowTitle("PyMoDAQ Dashboard")
-
-    prog = DashBoard(area)
-    win.show()
+    # For GUI testing, you would need proper PyMoDAQ dashboard setup
+    print("For full testing, use PyMoDAQ dashboard")
 
     # To test, you would manually add the DAQ_Move module in the dashboard GUI
     # and select this DAQ_Move_MaiTai plugin.

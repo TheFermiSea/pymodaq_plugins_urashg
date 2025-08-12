@@ -27,23 +27,21 @@ from pathlib import Path
 import numpy as np
 
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import QObject, Signal, QTimer
+from qtpy.QtCore import QObject, QTimer
+from qtpy.QtCore import Signal
 import pyqtgraph as pg
 from pyqtgraph.dockarea import Dock, DockArea
 
-from pymodaq.utils.gui_utils import CustomApp
-from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataWithAxes, Axis
-from pymodaq.utils.logger import set_logger, get_module_name
-from pymodaq.utils.config import Config
+from pymodaq_gui.utils.custom_app import CustomApp
+from pymodaq_gui.parameter import Parameter
+from pymodaq_data import DataWithAxes, Axis
+from pymodaq_utils.logger import set_logger, get_module_name
+from pymodaq_utils.config import Config
 
-# Import our device manager
-from .device_manager import URASHGDeviceManager, DeviceStatus, DeviceInfo
+# PyMoDAQ imports for proper extension patterns
 
-import time
-import numpy as np
-from typing import Optional
-from pathlib import Path
+import json
+from qtpy.QtCore import QThread
 logger = set_logger(get_module_name(__file__))
 
 
@@ -170,12 +168,12 @@ class URASHGMicroscopyExtension(CustomApp):
         ]},
     ]
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         """
         Initialize the μRASHG Microscopy Extension.
 
         Args:
-            parent: DockArea or QWidget parent container
+            parent: DockArea or QWidget parent container (optional)
         """
         super().__init__(parent)
 
@@ -200,10 +198,13 @@ class URASHGMicroscopyExtension(CustomApp):
         if not hasattr(self, 'docks'):
             self.docks = {}  # Initialize empty docks dictionary
 
-        # Device management (initialize before UI setup)
-        self.device_manager = URASHGDeviceManager(self.dashboard)
-        self.available_devices = {}
-        self.missing_devices = []
+        # PyMoDAQ modules access (standard pattern)
+        self.modules_manager = self.dashboard.modules_manager if self.dashboard else None
+        self.available_modules = {}
+        self.required_modules = ['MaiTai', 'Elliptec', 'PrimeBSI', 'Newport1830C']
+
+        # Use PyMoDAQ's standard plugin management instead of custom device manager
+        self.modules_manager = None
 
         # Initialize UI components
         self.setup_ui()
@@ -434,7 +435,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Wavelength slider
         wavelength_layout.addWidget(QtWidgets.QLabel("Set Wavelength:"), 1, 0)
-        self.wavelength_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.wavelength_slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
         self.wavelength_slider.setMinimum(700)
         self.wavelength_slider.setMaximum(1000)
         self.wavelength_slider.setValue(800)
@@ -785,11 +786,9 @@ class URASHGMicroscopyExtension(CustomApp):
         self.device_status_changed.connect(self.on_device_status_changed)
         self.error_occurred.connect(self.on_error_occurred)
 
-        # Connect device manager signals
-        if self.device_manager:
-            self.device_manager.device_status_changed.connect(self.on_device_status_changed)
-            self.device_manager.device_error.connect(self.on_device_error)
-            self.device_manager.all_devices_ready.connect(self.on_all_devices_ready)
+        # Connect to PyMoDAQ's modules manager if available
+        if hasattr(self, 'dashboard') and self.dashboard and hasattr(self.dashboard, 'modules_manager'):
+            self.modules_manager = self.dashboard.modules_manager
 
         # Start device control update timer (PHASE 3 FEATURE)
         if hasattr(self, 'device_update_timer'):
@@ -815,13 +814,13 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Setting laser wavelength to {target_wavelength} nm")
 
         try:
-            laser = self.device_manager.get_laser()
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
             if not laser:
                 self.log_message("ERROR: Laser device not available", level='error')
                 return
 
             # Use proper DataActuator pattern for wavelength control
-            from pymodaq.utils.data import DataActuator
+            from pymodaq.control_modules.move_utility_classes import DataActuator
 
             # Create position data - MaiTai laser typically uses single-axis control
             position_data = DataActuator(data=[target_wavelength])
@@ -849,7 +848,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Opening laser shutter")
 
         try:
-            laser = self.device_manager.get_laser()
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
             if not laser:
                 self.log_message("ERROR: Laser device not available", level='error')
                 return
@@ -880,7 +879,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Closing laser shutter")
 
         try:
-            laser = self.device_manager.get_laser()
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
             if not laser:
                 self.log_message("ERROR: Laser device not available", level='error')
                 return
@@ -930,13 +929,13 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Moving {rotator_name} to {target_position}°")
 
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self._get_plugin('move', ['Elliptec'])
             if not elliptec:
                 self.log_message("ERROR: Elliptec device not available", level='error')
                 return
 
             # Use proper DataActuator pattern for multi-axis device
-            from pymodaq.utils.data import DataActuator
+            from pymodaq.control_modules.move_utility_classes import DataActuator
 
             # For multi-axis Elliptec, we need to specify which axis to move
             # Create position array - only set the target axis, others to current positions
@@ -984,7 +983,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Homing {rotator_name}")
 
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self._get_plugin('move', ['Elliptec'])
             if not elliptec:
                 self.log_message("ERROR: Elliptec device not available", level='error')
                 return
@@ -1013,7 +1012,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("EMERGENCY STOP - All rotators", level='error')
 
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self._get_plugin('move', ['Elliptec'])
             if elliptec:
                 if hasattr(elliptec, 'stop_motion'):
                     elliptec.stop_motion()
@@ -1032,7 +1031,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def get_current_elliptec_positions(self):
         """Get current positions of all Elliptec axes."""
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self._get_plugin('move', ['Elliptec'])
             if not elliptec:
                 return None
 
@@ -1088,7 +1087,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def sync_power_meter_wavelength(self, wavelength):
         """Sync power meter wavelength setting."""
         try:
-            power_meter = self.device_manager.get_power_meter()
+            power_meter = self._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
             if not power_meter:
                 self.log_message("WARNING: Power meter not available for wavelength sync", level='warning')
                 return False
@@ -1121,7 +1120,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def get_current_laser_wavelength(self):
         """Get current laser wavelength."""
         try:
-            laser = self.device_manager.get_laser()
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
             if not laser:
                 return None
 
@@ -1167,7 +1166,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_laser_display(self):
         """Update laser status and wavelength displays."""
         try:
-            laser = self.device_manager.get_laser()
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
 
             if hasattr(self, 'laser_status_label'):
                 if laser and hasattr(laser, 'controller') and laser.controller:
@@ -1210,7 +1209,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_power_meter_display(self):
         """Update power meter displays."""
         try:
-            power_meter = self.device_manager.get_power_meter()
+            power_meter = self._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
 
             # Update power reading
             if hasattr(self, 'power_display'):
@@ -1256,76 +1255,106 @@ class URASHGMicroscopyExtension(CustomApp):
             logger.debug(f"Parameter changed: {param.name()} = {data}")
 
     def initialize_devices(self):
-        """Initialize and validate all required devices."""
-        logger.info("Initializing devices...")
-        self.log_message("Starting device initialization...")
+        """Initialize and validate all required modules following PyMoDAQ standards."""
+        logger.info("Checking PyMoDAQ modules...")
+        self.log_message("Checking available PyMoDAQ modules...")
 
-        if not self.device_manager:
-            self.log_message("ERROR: Device manager not available", level='error')
-            return
+        if not self.modules_manager:
+            self.log_message("ERROR: No modules manager available (no dashboard)", level='error')
+            return False
 
         try:
-            # Discover devices first
-            available_devices, missing_devices = self.device_manager.discover_devices()
-            self.available_devices = available_devices
-            self.missing_devices = missing_devices
+            # Get available modules from dashboard
+            actuators = self.modules_manager.actuators
+            detectors = self.modules_manager.detectors
 
-            # Report discovery results
-            if available_devices:
-                self.log_message(f"Found {len(available_devices)} devices: {list(available_devices.keys())}")
+            self.available_modules = {}
+            missing_modules = []
 
-            if missing_devices:
-                self.log_message(f"Missing required devices: {missing_devices}", level='error')
-                return False
+            # Check for required modules
+            for module_name in self.required_modules:
+                found = False
 
-            # Initialize all devices
-            success = self.device_manager.initialize_all_devices()
+                # Check in actuators
+                for act_name, actuator in actuators.items():
+                    if module_name.lower() in act_name.lower():
+                        self.available_modules[module_name] = actuator
+                        found = True
+                        break
+
+                # Check in detectors if not found in actuators
+                if not found:
+                    for det_name, detector in detectors.items():
+                        if module_name.lower() in det_name.lower():
+                            self.available_modules[module_name] = detector
+                            found = True
+                            break
+
+                if not found:
+                    missing_modules.append(module_name)
+
+            # Report results
+            if self.available_modules:
+                self.log_message(f"Found modules: {list(self.available_modules.keys())}")
+
+            if missing_modules:
+                self.log_message(f"Missing modules: {missing_modules}", level='warning')
+                self.log_message("Please load required plugins in PyMoDAQ dashboard first", level='warning')
+
+            success = len(self.available_modules) > 0
 
             if success:
-                self.log_message("All devices initialized successfully")
-                self.device_manager.start_monitoring()
+                self.log_message("Module detection completed successfully")
                 return True
             else:
-                self.log_message("Some devices failed to initialize", level='error')
+                self.log_message("No required modules found", level='error')
                 return False
 
         except Exception as e:
-            error_msg = f"Device initialization failed: {str(e)}"
+            error_msg = f"Module detection failed: {str(e)}"
             self.log_message(error_msg, level='error')
             self.error_occurred.emit(error_msg)
             return False
 
     def check_device_status(self):
-        """Check the status of all devices."""
-        logger.info("Checking device status...")
-        self.log_message("Checking device status...")
+        """Check the status of all modules."""
+        logger.info("Checking module status...")
+        self.log_message("Checking module status...")
 
-        if not self.device_manager:
-            self.log_message("ERROR: Device manager not available", level='error')
+        if not self.modules_manager:
+            self.log_message("ERROR: No modules manager available", level='error')
             return
 
         try:
-            # Update status for all devices
-            self.device_manager.update_all_device_status()
+            # Check status of available modules
+            connected_count = 0
+            total_count = len(self.required_modules)
 
-            # Get status summary
-            all_device_info = self.device_manager.get_all_device_info()
+            for module_name in self.required_modules:
+                if module_name in self.available_modules:
+                    module = self.available_modules[module_name]
+                    # Check if module is connected/initialized
+                    if hasattr(module, 'controller') and module.controller:
+                        status_msg = f"Module '{module_name}': Connected"
+                        self.log_message(status_msg, level='info')
+                        connected_count += 1
+                    else:
+                        status_msg = f"Module '{module_name}': Not initialized"
+                        self.log_message(status_msg, level='warning')
+                else:
+                    status_msg = f"Module '{module_name}': Not found"
+                    self.log_message(status_msg, level='warning')
 
-            for device_key, device_info in all_device_info.items():
-                status_msg = f"Device '{device_key}': {device_info.status.value}"
-                if device_info.last_error:
-                    status_msg += f" (Error: {device_info.last_error})"
+            # Summary
+            ready_msg = f"Modules ready: {connected_count}/{total_count}"
+            level = 'info' if connected_count == total_count else 'warning'
+            self.log_message(ready_msg, level=level)
 
-                level = 'info' if device_info.status == DeviceStatus.CONNECTED else 'warning'
-                self.log_message(status_msg, level=level)
-
-            # Check if all required devices are ready
-            all_ready = self.device_manager.is_all_devices_ready()
-            ready_msg = "All required devices are ready" if all_ready else "Some required devices are not ready"
-            self.log_message(ready_msg, level='info' if all_ready else 'warning')
+            if connected_count == 0:
+                self.log_message("No modules connected. Load plugins in PyMoDAQ dashboard first.", level='error')
 
         except Exception as e:
-            error_msg = f"Device status check failed: {str(e)}"
+            error_msg = f"Module status check failed: {str(e)}"
             self.log_message(error_msg, level='error')
             self.error_occurred.emit(error_msg)
 
@@ -1342,7 +1371,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.measurement_started.emit()
 
         # Start measurement in separate thread
-        self.measurement_thread = QThread()
+        measurement_thread = QThread()
         self.measurement_worker = MeasurementWorker(self)
         self.measurement_worker.moveToThread(self.measurement_thread)
 
@@ -1364,10 +1393,10 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Performing pre-flight checks...")
 
         # Check device availability
-        if not self.device_manager or not self.device_manager.is_all_devices_ready():
-            missing = self.device_manager.get_missing_devices() if self.device_manager else ['All devices']
-            self.log_message(f"Cannot start: Missing devices: {missing}", level='error')
-            self.error_occurred.emit(f"Missing required devices: {missing}")
+        missing_devices = self._check_required_devices()
+        if missing_devices:
+            self.log_message(f"Cannot start: Missing devices: {missing_devices}", level='error')
+            self.error_occurred.emit(f"Missing required devices: {missing_devices}")
             return False
 
         # Check safety parameters
@@ -1425,8 +1454,7 @@ class URASHGMicroscopyExtension(CustomApp):
                         self.measurement_thread.wait()
 
             # Emergency stop all devices if needed
-            if self.device_manager:
-                self.device_manager.emergency_stop_all_devices()
+            self._emergency_stop_all_devices()
 
             # Reset state
             self.is_measuring = False
@@ -1474,9 +1502,8 @@ class URASHGMicroscopyExtension(CustomApp):
                 self.stop_measurement()
 
             # Emergency stop all devices
-            if self.device_manager:
-                self.device_manager.emergency_stop_all_devices()
-                self.log_message("Emergency stop applied to all devices")
+            self._emergency_stop_all_devices()
+            self.log_message("Emergency stop applied to all devices")
 
             # Reset UI state
             self.start_button.setEnabled(True)
@@ -2038,44 +2065,39 @@ class URASHGMicroscopyExtension(CustomApp):
             self.log_display.moveCursor(QtGui.QTextCursor.End)
 
     def update_device_status(self):
-        """Update device status display (periodic)."""
-        if not self.device_manager or not hasattr(self, 'device_status_table'):
+        """Update module status display (periodic)."""
+        if not self.modules_manager or not hasattr(self, 'device_status_table'):
             return
 
         try:
-            # Get all device information
-            all_device_info = self.device_manager.get_all_device_info()
+            # Update table row count for required modules
+            self.device_status_table.setRowCount(len(self.required_modules))
 
-            # Update table row count
-            self.device_status_table.setRowCount(len(all_device_info))
-
-            # Update each device row
-            for row, (device_key, device_info) in enumerate(all_device_info.items()):
-                # Device name
-                name_item = QtWidgets.QTableWidgetItem(device_key.title())
+            # Update each module row
+            for row, module_name in enumerate(self.required_modules):
+                # Module name
+                name_item = QtWidgets.QTableWidgetItem(module_name)
                 self.device_status_table.setItem(row, 0, name_item)
 
                 # Status with color coding
-                status_item = QtWidgets.QTableWidgetItem(device_info.status.value)
-                if device_info.status == DeviceStatus.CONNECTED:
-                    status_item.setBackground(QtGui.QColor(144, 238, 144))  # Light green
-                elif device_info.status == DeviceStatus.DISCONNECTED:
-                    status_item.setBackground(QtGui.QColor(255, 182, 193))  # Light pink
-                elif device_info.status == DeviceStatus.ERROR:
-                    status_item.setBackground(QtGui.QColor(255, 99, 71))   # Tomato red
+                if module_name in self.available_modules:
+                    module = self.available_modules[module_name]
+                    if hasattr(module, 'controller') and module.controller:
+                        status_text = "Connected"
+                        color = QtGui.QColor(144, 238, 144)  # Light green
+                        details = f"Module: {module.__class__.__name__}"
+                    else:
+                        status_text = "Not Initialized"
+                        color = QtGui.QColor(255, 182, 193)  # Light pink
+                        details = "Controller not available"
                 else:
-                    status_item.setBackground(QtGui.QColor(211, 211, 211)) # Light gray
+                    status_text = "Not Found"
+                    color = QtGui.QColor(255, 99, 71)   # Tomato red
+                    details = "Load plugin in dashboard"
 
+                status_item = QtWidgets.QTableWidgetItem(status_text)
+                status_item.setBackground(color)
                 self.device_status_table.setItem(row, 1, status_item)
-
-                # Details (error message or module info)
-                details = ""
-                if device_info.last_error:
-                    details = f"Error: {device_info.last_error}"
-                elif device_info.module_name:
-                    details = f"Module: {device_info.module_name}"
-                else:
-                    details = "No details available"
 
                 details_item = QtWidgets.QTableWidgetItem(details)
                 self.device_status_table.setItem(row, 2, details_item)
@@ -2087,44 +2109,22 @@ class URASHGMicroscopyExtension(CustomApp):
             logger.error(f"Error updating device status display: {e}")
 
     def _update_live_device_data(self):
-        """Update live data from specific devices (power, temperature, etc)."""
+        """Update live data from available modules (simplified for PyMoDAQ integration)."""
         try:
-            # Update power meter reading
-            power_meter = self.device_manager.get_power_meter()
-            if power_meter and hasattr(power_meter, 'grab_data'):
+            # Update power meter reading if available
+            if 'Newport1830C' in self.available_modules:
+                power_module = self.available_modules['Newport1830C']
                 try:
-                    power_data = power_meter.grab_data()
-                    if power_data and len(power_data) > 0:
-                        # Extract power value (assuming it's in the first data element)
-                        power_value = float(power_data[0].data[0]) if hasattr(power_data[0], 'data') else 0.0
-
-                        # Update power plot if it exists
-                        if hasattr(self, 'power_plot') and self.power_plot:
-                            # Store power history for plotting
-                            if not hasattr(self, '_power_history'):
-                                self._power_history = {'time': [], 'power': []}
-
-                            current_time = time.time()
-                            self._power_history['time'].append(current_time)
-                            self._power_history['power'].append(power_value)
-
-                            # Keep only last 100 points
-                            if len(self._power_history['time']) > 100:
-                                self._power_history['time'] = self._power_history['time'][-100:]
-                                self._power_history['power'] = self._power_history['power'][-100:]
-
-                            # Update plot
-                            if len(self._power_history['time']) > 1:
-                                # Convert to relative time
-                                rel_time = [t - self._power_history['time'][0] for t in self._power_history['time']]
-                                self.power_plot.clear()
-                                self.power_plot.plot(rel_time, self._power_history['power'], pen='b')
-
+                    # For now, just log that the module is available
+                    # Full data acquisition will be implemented once Qt signal issues are resolved
+                    logger.debug(f"Power meter module available: {power_module.__class__.__name__}")
                 except Exception as e:
                     logger.debug(f"Could not update power meter data: {e}")
 
-            # Update camera temperature if available
-            camera = self.device_manager.get_camera()
+            # Update other modules as needed
+            # Note: This is simplified to avoid Qt signal/threading issues
+            # Real data acquisition should use PyMoDAQ's standard patterns
+            camera = self._get_plugin('viewer', ['PrimeBSI', 'Camera'])
             if camera and hasattr(camera, 'controller') and camera.controller:
                 try:
                     # Check if camera has temperature monitoring
@@ -2411,7 +2411,7 @@ class URASHGMicroscopyExtension(CustomApp):
                 baseline = np.min(intensities) - np.max(np.abs(scaled_residuals)) * 1.5
 
                 self.polar_plot.plot(angles_np, baseline + scaled_residuals,
-                                   pen=pg.mkPen('r', width=1, style=QtCore.Qt.DashLine),
+                                   pen=pg.mkPen('r', style=QtCore.Qt.PenStyle.DashLine),
                                    name='Residuals (scaled)')
 
         except Exception as e:
@@ -2745,11 +2745,70 @@ class URASHGMicroscopyExtension(CustomApp):
             self.device_update_timer.stop()
             logger.info("Stopped device control update timer")
 
-        if hasattr(self, 'device_manager') and self.device_manager:
-            self.device_manager.cleanup()
+        # Cleanup handled by PyMoDAQ's standard mechanisms
 
         logger.info("μRASHG extension closed")
         event.accept()
+
+    def _get_plugin(self, plugin_type, name_patterns):
+        """
+        Get a PyMoDAQ plugin using the standard modules manager.
+
+        Args:
+            plugin_type: Type of plugin ('move', 'viewer', 'laser')
+            name_patterns: List of possible plugin names to search for
+
+        Returns:
+            Plugin instance or None if not found
+        """
+        if not self.modules_manager:
+            return None
+
+        # Search through available modules
+        for module_name, module_info in self.modules_manager.modules.items():
+            for pattern in name_patterns:
+                if pattern.lower() in module_name.lower():
+                    return module_info.get('module')
+        return None
+
+    def _check_required_devices(self):
+        """
+        Check for required devices and return list of missing ones.
+
+        Returns:
+            List of missing device names
+        """
+        required_devices = {
+            'camera': ['PrimeBSI', 'Camera'],
+            'power_meter': ['Newport1830C', 'PowerMeter', 'Newport'],
+            'elliptec': ['Elliptec'],
+            'laser': ['MaiTai', 'Laser']  # Optional
+        }
+
+        missing = []
+        for device_type, patterns in required_devices.items():
+            if device_type == 'laser':
+                continue  # Laser is optional
+            if not self._get_plugin('viewer' if device_type in ['camera', 'power_meter'] else 'move', patterns):
+                missing.append(device_type)
+
+        return missing
+
+    def _emergency_stop_all_devices(self):
+        """Emergency stop all devices using standard PyMoDAQ methods."""
+        if not self.modules_manager:
+            return
+
+        # Stop all move modules
+        for module_name, module_info in self.modules_manager.modules.items():
+            try:
+                module = module_info.get('module')
+                if module and hasattr(module, 'stop_motion'):
+                    module.stop_motion()
+                elif module and hasattr(module, 'stop_acquisition'):
+                    module.stop_acquisition()
+            except Exception as e:
+                logger.error(f"Error stopping module {module_name}: {e}")
 
 
 class MeasurementWorker(QObject):
@@ -2779,7 +2838,7 @@ class MeasurementWorker(QObject):
         super().__init__()
 
         self.extension = extension
-        self.device_manager = extension.device_manager
+        self.modules_manager = extension.modules_manager
         self.settings = extension.settings
 
         # Control flags
@@ -2986,16 +3045,14 @@ class MeasurementWorker(QObject):
         """Set laser wavelength and verify."""
         try:
             # Get laser device
-            laser_device = None
-            if self.device_manager:
-                laser_device = self.device_manager.get_laser()
+            laser_device = self.extension._get_plugin('laser', ['MaiTai', 'Laser'])
 
             if not laser_device:
                 logger.error("Laser device not available for wavelength setting")
                 return False
 
             # Use proper DataActuator pattern
-            from pymodaq.utils.data import DataActuator
+            from pymodaq.control_modules.move_utility_classes import DataActuator
             position_data = DataActuator(data=[wavelength])
 
             # Set wavelength
@@ -3025,9 +3082,7 @@ class MeasurementWorker(QObject):
     def _sync_power_meter_wavelength(self, wavelength):
         """Sync power meter wavelength setting."""
         try:
-            power_meter = None
-            if self.device_manager:
-                power_meter = self.device_manager.get_power_meter()
+            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
 
             if not power_meter:
                 return False
@@ -3092,9 +3147,7 @@ class MeasurementWorker(QObject):
     def _get_current_laser_wavelength(self):
         """Get current laser wavelength."""
         try:
-            laser_device = None
-            if self.device_manager:
-                laser_device = self.device_manager.get_laser()
+            laser_device = self.extension._get_plugin('laser', ['MaiTai', 'Laser'])
 
             if not laser_device:
                 return None
@@ -3123,14 +3176,15 @@ class MeasurementWorker(QObject):
             logger.info("Initializing measurement...")
 
             # Check all devices are ready
-            if not self.device_manager.is_all_devices_ready():
-                logger.error("Not all required devices are ready")
+            missing_devices = self.extension._check_required_devices()
+            if missing_devices:
+                logger.error(f"Not all required devices are ready: {missing_devices}")
                 return False
 
             # Get devices
-            camera = self.device_manager.get_camera()
-            elliptec = self.device_manager.get_elliptec()
-            power_meter = self.device_manager.get_power_meter()
+            camera = self.extension._get_plugin('viewer', ['PrimeBSI', 'Camera'])
+            elliptec = self.extension._get_plugin('move', ['Elliptec'])
+            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
 
             if not camera or not elliptec:
                 logger.error("Missing critical devices (camera or elliptec)")
@@ -3192,9 +3246,9 @@ class MeasurementWorker(QObject):
         """
         try:
             # Get devices
-            camera = self.device_manager.get_camera()
-            elliptec = self.device_manager.get_elliptec()
-            power_meter = self.device_manager.get_power_meter()
+            camera = self.extension._get_plugin('viewer', ['PrimeBSI', 'Camera'])
+            elliptec = self.extension._get_plugin('move', ['Elliptec'])
+            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
 
             # Safety timeout
             movement_timeout = self.settings.child('hardware', 'safety', 'movement_timeout').value()
@@ -3272,7 +3326,7 @@ class MeasurementWorker(QObject):
         while others remain fixed, but this method supports coordinated movement.
         """
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self.extension._get_plugin('move', ['Elliptec'])
             if not elliptec:
                 logger.error("Elliptec device not available")
                 return False
@@ -3293,7 +3347,7 @@ class MeasurementWorker(QObject):
 
             # Move the specified axis
             if target_positions[axis_to_move] is not None:
-                from pymodaq.utils.data import DataActuator
+                from pymodaq.control_modules.move_utility_classes import DataActuator
 
                 # Create DataActuator for the specific axis (single value for one axis)
                 target_angle = target_positions[axis_to_move]

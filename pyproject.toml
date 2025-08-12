@@ -1,43 +1,16 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+[features] # defines the plugin features contained into this plugin
+instruments = true  # true if plugin contains instrument classes (else false, notice the lowercase for toml files)
+extensions = true   # true if plugins contains dashboard extensions
+models = false      # true if plugins contains pid models
+h5exporters = false # true if plugin contains custom h5 file exporters
+scanners = false    # true if plugin contains custom scan layout (daq_scan extensions)
+
+[urls]
+package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_urashg'
 
 [project]
-name = "pymodaq-plugins-urashg"
-version = "0.1.0"
-description = "PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems"
-readme = "README.md"
-license = { text = "MIT" }
-authors = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
-maintainers = [
-    { name = "PyMoDAQ Plugin Development Team", email = "contact@pymodaq.org" },
-]
-keywords = [
-    "PyMoDAQ",
-    "plugin",
-    "μRASHG",
-    "SHG",
-    "microscopy",
-    "second harmonic generation",
-    "polarimetry",
-    "optics",
-    "laser control",
-    "automation",
-]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Topic :: Scientific/Engineering :: Physics",
-    "Topic :: Scientific/Engineering :: Visualization",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-requires-python = ">=3.9"
+name = "pymodaq_plugins_urashg"
+description = 'PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems'
 dependencies = [
     "pymodaq>=5.0.0",
     "pymodaq-gui>=5.0.0",
@@ -50,8 +23,36 @@ dependencies = [
     "scipy>=1.7.0",
     "matplotlib>=3.3.0",
     "pyserial>=3.4",
-    "pyvcam",
+    "pyvcam>=2.0.0",
     "elliptec>=0.0.6",
+]
+
+authors = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
+maintainers = [
+    { name = "PyMoDAQ Plugin Development Team", email = "contact@pymodaq.org" },
+]
+
+# nottodo: leave everything below as is!
+
+dynamic = ["version", "urls", "entry-points"]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: User Interfaces",
 ]
 
 [project.optional-dependencies]
@@ -94,46 +95,18 @@ galvo = [
     "nidaqmx>=0.6.0",               # National Instruments DAQ
 ]
 
-[project.urls]
-Homepage = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg"
-Documentation = "https://pymodaq-plugins-urashg.readthedocs.io/"
-Repository = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg"
-Issues = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg/issues"
-Changelog = "https://github.com/PyMoDAQ/pymodaq_plugins_urashg/blob/main/CHANGELOG.md"
+[build-system]
+requires = ["hatchling>=1.9.0", "hatch-vcs", "toml", "pymodaq_utils>=0.0.14"]
+build-backend = "hatchling.build"
 
-[project.entry-points."pymodaq.plugins"]
-urashg = "pymodaq_plugins_urashg"
+[tool.hatch.metadata.hooks.custom]
 
-[project.entry-points."pymodaq.move_plugins"]
-"DAQ_Move_Elliptec" = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
-"DAQ_Move_MaiTai" = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"
-"DAQ_Move_ESP300" = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300:DAQ_Move_ESP300"
-
-[project.entry-points."pymodaq.viewer_plugins"]
-"DAQ_2DViewer_PrimeBSI" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
-"DAQ_0DViewer_Newport1830C" = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
-
-[project.entry-points."pymodaq.extensions"]
-# Primary comprehensive extension for multi-device coordination
-"URASHGMicroscopyExtension" = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
-
-[tool.setuptools]
-packages = ["pymodaq_plugins_urashg"]
-package-dir = { "" = "src" }
-
-[tool.setuptools.package-data]
-pymodaq_plugins_urashg = [
-    "resources/*",
-    "examples/*",
-    "docs/*",
-    "*.yaml",
-    "*.json",
-    "*.xml",
-]
+[tool.hatch.version]
+source = "vcs"
 
 [tool.black]
 line-length = 88
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py39', 'py310', 'py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -188,28 +161,3 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
-
-# UV-specific configuration
-[tool.uv]
-dev-dependencies = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
-    "black>=21.0",
-    "flake8>=3.9",
-    "isort>=5.0",
-    "pre-commit>=2.15",
-    "sphinx>=4.0",
-    "sphinx-rtd-theme>=1.0",
-    "myst-parser>=0.15",
-]
-
-# UV workspace configuration
-[tool.uv.workspace]
-members = [".", "examples/*"]
-
-# UV sources for development dependencies
-[tool.uv.sources]
-pyvcam = { git = "https://github.com/Photometrics/PyVCAM.git" }
-# Hardware packages can be installed manually when needed:
-# uv add "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git"
-# uv add "elliptec @ git+https://github.com/roesel/elliptec.git"
