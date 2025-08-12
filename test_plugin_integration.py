@@ -45,34 +45,35 @@ def test_plugin_discovery():
     print("=" * 60)
 
     try:
-        # Import PyMoDAQ's plugin utilities
-        from pymodaq.daq_utils import daq_utils
+        # Import PyMoDAQ's plugin utilities - use v5.x API
+        from pymodaq import get_instrument_plugins
+        all_plugins = get_instrument_plugins()
+        
+        # Extract our URASHG plugins
+        move_plugins = []
+        viewer_plugins = []
+        
+        for plugin_info in all_plugins:
+            if 'urashg' in plugin_info['parent_module'].__name__:
+                if plugin_info['type'] == 'daq_move':
+                    move_plugins.append(plugin_info['name'])
+                elif plugin_info['type'] in ['daq_0Dviewer', 'daq_1Dviewer', 'daq_2Dviewer']:
+                    viewer_plugins.append(plugin_info['name'])
 
-        # Get available plugins
-        move_plugins = daq_utils.get_plugins('move')
-        viewer_plugins = daq_utils.get_plugins('viewer')
-
-        # Filter for URASHG plugins
-        urashg_move = [p for p in move_plugins if 'urashg' in p.lower()]
-        urashg_viewer = [p for p in viewer_plugins if 'urashg' in p.lower()]
-
-        print(f"✓ Found {len(urashg_move)} URASHG move plugins:")
-        for plugin in urashg_move:
+        print(f"✓ Found {len(move_plugins)} URASHG move plugins:")
+        for plugin in move_plugins:
             print(f"  - {plugin}")
 
-        print(f"✓ Found {len(urashg_viewer)} URASHG viewer plugins:")
-        for plugin in urashg_viewer:
+        print(f"✓ Found {len(viewer_plugins)} URASHG viewer plugins:")
+        for plugin in viewer_plugins:
             print(f"  - {plugin}")
 
         # Expected plugins
         expected_move = ['ESP300', 'Elliptec', 'MaiTai']
         expected_viewer = ['Newport1830C', 'PrimeBSI']
 
-        found_move = [p.split('/')[-1] for p in urashg_move]
-        found_viewer = [p.split('/')[-1] for p in urashg_viewer]
-
-        missing_move = set(expected_move) - set(found_move)
-        missing_viewer = set(expected_viewer) - set(found_viewer)
+        missing_move = set(expected_move) - set(move_plugins)
+        missing_viewer = set(expected_viewer) - set(viewer_plugins)
 
         if missing_move:
             print(f"⚠ Missing move plugins: {missing_move}")
@@ -82,7 +83,7 @@ def test_plugin_discovery():
         if not missing_move and not missing_viewer:
             print("✓ All expected plugins discovered!")
 
-        return len(urashg_move) > 0 or len(urashg_viewer) > 0
+        return len(move_plugins) > 0 or len(viewer_plugins) > 0
 
     except Exception as e:
         print(f"✗ Plugin discovery failed: {e}")
