@@ -17,7 +17,7 @@ dependencies = [
     "pymodaq-data>=5.0.0",
     "pymodaq-utils>=0.0.14",
     "numpy>=1.20.0",
-    "PySide6>=6.0.0",
+    "PyQt6>=6.0.0",
     "pyqtgraph>=0.12.0",
     "h5py>=3.0.0",
     "scipy>=1.7.0",
@@ -132,7 +132,7 @@ profile = "black"
 multi_line_output = 3
 line_length = 88
 known_first_party = ["pymodaq_plugins_urashg"]
-known_third_party = ["pymodaq", "numpy", "PySide6", "pyqtgraph"]
+known_third_party = ["pymodaq", "numpy", "PyQt6", "pyqtgraph"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
