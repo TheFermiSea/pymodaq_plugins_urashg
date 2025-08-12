@@ -30,15 +30,15 @@ import numpy as np
 try:
     from ...utils import (
         PYRPL_WRAPPER_AVAILABLE,
-        PyRPLManager,
-        PyRPLConnection,
-        PIDChannel,
         InputChannel,
         OutputChannel,
+        PIDChannel,
         PIDConfiguration,
-        get_pyrpl_manager,
+        PyRPLConnection,
+        PyRPLManager,
         connect_redpitaya,
         disconnect_redpitaya,
+        get_pyrpl_manager,
     )
 
     if not PYRPL_WRAPPER_AVAILABLE or PIDChannel is None:

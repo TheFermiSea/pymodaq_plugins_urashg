@@ -14,7 +14,7 @@ from pymodaq.control_modules.viewer_utility_classes import (
     comon_parameters,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataToExport, DataFromPlugins
+from pymodaq.utils.data import DataFromPlugins, DataToExport
 
 from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
     Newport1830CController,

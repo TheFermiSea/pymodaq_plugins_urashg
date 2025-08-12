@@ -9,7 +9,7 @@ Compatible with PyMoDAQ 5.0+ multi-axis architecture.
 """
 
 import time
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
@@ -17,8 +17,8 @@ from pymodaq.control_modules.move_utility_classes import (
     DataActuator,
     comon_parameters_fun,
 )
-from pymodaq.utils.parameter import Parameter
 from pymodaq.utils.daq_utils import ThreadCommand
+from pymodaq.utils.parameter import Parameter
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
     AxisConfig,
