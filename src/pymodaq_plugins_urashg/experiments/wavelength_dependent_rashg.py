@@ -41,7 +41,7 @@ from pymodaq_data import Axis, DataToExport, DataWithAxes
 from pymodaq_gui.parameter import Parameter
 from qtpy import QtCore
 
-from .base_experiment import ExperimentState, URASHGBaseExperiment
+from .base_experiment import ExperimentError, ExperimentState, URASHGBaseExperiment
 
 try:
     from ..hardware.urashg.redpitaya_control import (

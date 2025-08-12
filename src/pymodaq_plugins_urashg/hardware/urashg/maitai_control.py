@@ -5,6 +5,8 @@ This is a placeholder implementation for testing purposes.
 The full implementation would provide MaiTai laser control.
 """
 
+import time
+
 
 class MaiTaiError(Exception):
     """MaiTai specific exception"""

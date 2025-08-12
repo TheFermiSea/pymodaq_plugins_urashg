@@ -133,20 +133,6 @@ line_length = 88
 known_first_party = ["pymodaq_plugins_urashg"]
 known_third_party = ["pymodaq", "numpy", "PyQt6", "pyqtgraph"]
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-ra -q --strict-markers --cov=pymodaq_plugins_urashg --cov-report=term-missing"
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "hardware: marks tests that require hardware (deselect with '-m \"not hardware\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-    "camera: marks tests for camera functionality",
-]
 
 [tool.coverage.run]
 source = ["src/pymodaq_plugins_urashg"]
