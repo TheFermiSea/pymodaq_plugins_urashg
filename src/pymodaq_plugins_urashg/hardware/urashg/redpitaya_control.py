@@ -580,7 +580,7 @@ class PowerStabilizationController:
         while time.time() - start_time < max_wait:
             stability = self.assess_power_stability()
 
-                return True
+            return True
 
             time.sleep(0.1)  # Check every 100ms
 
@@ -618,24 +618,24 @@ class PowerStabilizationController:
         """Background loop for continuous power monitoring."""
         monitor_interval = 1.0 / self.config.power_monitoring_rate
 
-            try:
-                current_power = self.get_current_power()
-                current_time = time.time()
+        try:
+            current_power = self.get_current_power()
+            current_time = time.time()
 
-                with self._lock:
-                    # Store power reading with timestamp
-                    self.power_history.append((current_time, current_power))
+            with self._lock:
+                # Store power reading with timestamp
+                self.power_history.append((current_time, current_power))
 
-                    # Limit history size (keep last 10 minutes)
-                    max_history_time = 600  # seconds
-                    cutoff_time = current_time - max_history_time
-                    self.power_history = [
-                        (t, p) for t, p in self.power_history if t >= cutoff_time
-                    ]
+                # Limit history size (keep last 10 minutes)
+                max_history_time = 600  # seconds
+                cutoff_time = current_time - max_history_time
+                self.power_history = [
+                    (t, p) for t, p in self.power_history if t >= cutoff_time
+                ]
 
-            except Exception as e:
-                logger.error(f"Power monitoring error: {e}")
-                time.sleep(1.0)  # Wait before retry
+        except Exception as e:
+            logger.error(f"Power monitoring error: {e}")
+            time.sleep(1.0)  # Wait before retry
 
     def get_status(self) -> Dict[str, Any]:
         """
