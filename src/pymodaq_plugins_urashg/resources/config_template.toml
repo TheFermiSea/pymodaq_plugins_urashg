@@ -9,7 +9,8 @@
 
 [urashg.hardware.elliptec]
 # Elliptec rotation mounts configuration
-serial_port = "/dev/ttyUSB1"
+# Note: Adjust serial port based on actual hardware connection
+serial_port = "/dev/ttyUSB1"  # Typical: Linux, use COM port on Windows
 baudrate = 9600
 timeout = 2.0
 
@@ -37,7 +38,8 @@ roi_height = 2048
 
 [urashg.hardware.maitai]
 # MaiTai laser configuration
-serial_port = "/dev/ttyUSB0"
+# Note: Adjust serial port based on actual hardware connection
+serial_port = "/dev/ttyUSB0"  # Typical: Linux, use COM port on Windows
 baudrate = 9600
 timeout = 5.0
 wavelength_range_min = 700.0  # nm
@@ -47,7 +49,8 @@ power_range_max = 3.5         # watts
 
 [urashg.hardware.newport]
 # Newport 1830-C power meter configuration
-gpib_address = 1
+# Note: Adjust GPIB address based on actual hardware configuration
+gpib_address = 12  # Avoid common addresses 1-10, use 12-30 range
 timeout = 5.0
 wavelength = 800.0 # nm - default measurement wavelength
 auto_range = true
@@ -55,7 +58,8 @@ range_value = 1.0  # watts - manual range if auto_range = false
 
 [urashg.hardware.esp300]
 # Newport ESP300 motion controller
-serial_port = "/dev/ttyUSB2"
+# Note: Adjust serial port based on actual hardware connection
+serial_port = "/dev/ttyUSB2"  # Typical: Linux, use COM port on Windows
 baudrate = 19200
 timeout = 10.0
 axis_count = 3

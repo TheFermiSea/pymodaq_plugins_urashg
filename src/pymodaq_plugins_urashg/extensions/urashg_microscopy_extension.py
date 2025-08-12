@@ -203,8 +203,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.available_modules = {}
         self.required_modules = ['MaiTai', 'Elliptec', 'PrimeBSI', 'Newport1830C']
 
-        # Use PyMoDAQ's standard plugin management instead of custom device manager
-        self.modules_manager = None
+        # Note: Using PyMoDAQ's standard plugin management pattern
 
         # Initialize UI components
         self.setup_ui()
