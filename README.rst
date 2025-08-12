@@ -40,14 +40,7 @@ Installation
 Prerequisites
 ~~~~~~~~~~~~~
 
-1. **PVCAM SDK** (for camera support)::
-
-    # Download from Photometrics and install to /opt/pvcam
-    # Ensure the following files exist:
-    ls /opt/pvcam/sdk/include/pvcam.h
-    ls /etc/profile.d/pvcam-sdk.sh
-
-2. **Python Environment**::
+**Python Environment**::
 
     # Requires Python 3.9+
     python --version  # Should be 3.9 or higher
@@ -55,49 +48,58 @@ Prerequisites
 Installation Steps
 ~~~~~~~~~~~~~~~~~~
 
-1. **Clone and setup**::
+1. **Basic Installation** (all plugins except camera)::
+
+    pip install pymodaq-plugins-urashg
+
+2. **Development Installation**::
 
     git clone https://github.com/PyMoDAQ/pymodaq_plugins_urashg.git
     cd pymodaq_plugins_urashg
-
-2. **Install with UV** (recommended)::
-
-    # Install UV package manager if not already installed
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-
-    # Create virtual environment and install
-    uv venv
-    source .venv/bin/activate
-    source /etc/profile.d/pvcam-sdk.sh  # Load PVCAM environment
-    uv pip install -e .
-
-3. **Alternative: Install with pip**::
-
-    python -m venv .venv
-    source .venv/bin/activate
-    source /etc/profile.d/pvcam-sdk.sh
     pip install -e .
+
+3. **Full Installation with Hardware Support**::
+
+    # For camera support (Windows only)
+    pip install "pymodaq-plugins-urashg[hardware]"
+
+Optional Hardware Dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some plugins require platform-specific hardware libraries:
+
+**Photometrics Camera Support** (Windows only)::
+
+    # Install PVCAM SDK from Photometrics
+    # Then install with hardware dependencies:
+    pip install "pymodaq-plugins-urashg[hardware]"
+
+**Note**: On Linux/macOS, the camera plugin will run in simulation mode when PyVCAM is unavailable.
 
 Verify Installation
 ~~~~~~~~~~~~~~~~~~~
 
 ::
 
-    # Test PyVCAM integration
-    python -c "
-    import pyvcam
-    from pyvcam import pvc
-    print('✓ PyVCAM available')
-    pvc.init_pvcam()
-    print(f'✓ PVCAM initialized, {pvc.get_cam_total()} cameras found')
-    pvc.uninit_pvcam()
-    "
-
     # Test plugin discovery
     python -c "
     from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
     from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import DAQ_Move_Elliptec
     print('✓ All plugins import successfully')
+    "
+
+    # Test PyVCAM integration (if hardware dependencies installed)
+    python -c "
+    try:
+        import pyvcam
+        from pyvcam import pvc
+        print('✓ PyVCAM available')
+        pvc.init_pvcam()
+        print(f'✓ PVCAM initialized, {pvc.get_cam_total()} cameras found')
+        pvc.uninit_pvcam()
+    except ImportError:
+        print('ℹ PyVCAM not available - camera will run in simulation mode')
+    "
     "
 
 Quick Start
