@@ -20,28 +20,25 @@ Experiment Capabilities:
 - Automated calibration sequences
 """
 
+import json
 import logging
 import time
-from typing import Dict, List, Optional, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-
-from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import QObject, QTimer
-from qtpy.QtCore import Signal
 import pyqtgraph as pg
-from pyqtgraph.dockarea import Dock, DockArea
-
-from pymodaq_gui.utils.custom_app import CustomApp
+from pymodaq_data import Axis, DataWithAxes
 from pymodaq_gui.parameter import Parameter
-from pymodaq_data import DataWithAxes, Axis
-from pymodaq_utils.logger import set_logger, get_module_name
+from pymodaq_gui.utils.custom_app import CustomApp
 from pymodaq_utils.config import Config
+from pymodaq_utils.logger import get_module_name, set_logger
+from pyqtgraph.dockarea import Dock, DockArea
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import QObject, QThread, QTimer, Signal
 
 # PyMoDAQ imports for proper extension patterns
 
-import json
-from qtpy.QtCore import QThread
 
 logger = set_logger(get_module_name(__file__))
 
@@ -3284,8 +3281,8 @@ class URASHGMicroscopyExtension(CustomApp):
                 return
 
             # Create 3D scatter plot
-            import pyqtgraph.opengl as gl
             import numpy as np
+            import pyqtgraph.opengl as gl
 
             # Normalize data for visualization
             wl_norm = np.array(wavelengths) / np.max(wavelengths)

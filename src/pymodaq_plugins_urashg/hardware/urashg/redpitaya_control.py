@@ -18,27 +18,27 @@ License: MIT
 """
 
 import logging
-import time
 import threading
-from typing import Optional, Dict, Any, List, Tuple, Callable
-from dataclasses import dataclass, field
+import time
 from contextlib import contextmanager
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
 # Import PyRPL wrapper utilities
 try:
     from ...utils import (
-        PyRPLManager,
-        PyRPLConnection,
-        PIDChannel,
+        PYRPL_WRAPPER_AVAILABLE,
         InputChannel,
         OutputChannel,
+        PIDChannel,
         PIDConfiguration,
-        get_pyrpl_manager,
+        PyRPLConnection,
+        PyRPLManager,
         connect_redpitaya,
         disconnect_redpitaya,
-        PYRPL_WRAPPER_AVAILABLE,
+        get_pyrpl_manager,
     )
 
     if not PYRPL_WRAPPER_AVAILABLE or PIDChannel is None:

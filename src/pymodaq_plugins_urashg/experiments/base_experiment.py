@@ -11,23 +11,20 @@ This module provides the foundational URASHGBaseExperiment class that implements
 All specific μRASHG experiments inherit from this base class.
 """
 
-import os
-import numpy as np
-from typing import List, Dict, Optional, Union, Any
-from pathlib import Path
-from datetime import datetime
 import logging
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
-from qtpy import QtWidgets, QtCore
-from qtpy.QtCore import QThread
-
-from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataWithAxes, DataToExport, Axis
+import numpy as np
+from pymodaq.utils.data import Axis, DataActuator, DataToExport, DataWithAxes
 from pymodaq.utils.enums import BaseEnum
+from pymodaq.utils.parameter import Parameter
 from pymodaq_gui.utils.custom_app import CustomApp
 from pymodaq_gui.utils.dock import DockArea
-from pymodaq.utils.data import DataActuator
-
+from qtpy import QtCore, QtWidgets
+from qtpy.QtCore import QThread
 
 logger = logging.getLogger(__name__)
 

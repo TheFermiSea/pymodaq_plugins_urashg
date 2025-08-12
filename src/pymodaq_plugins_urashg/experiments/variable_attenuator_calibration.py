@@ -24,22 +24,21 @@ This calibration is essential for experiments requiring precise power control
 across wide dynamic ranges, particularly power-dependent studies.
 """
 
-import numpy as np
-import time
-from typing import Dict, List, Tuple, Optional, Union
-from pathlib import Path
-from datetime import datetime
-import h5py
-from scipy.optimize import curve_fit
-from scipy.interpolate import interp1d, interp2d
-
-from qtpy import QtWidgets, QtCore
-from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataWithAxes, DataToExport, Axis
-from pymodaq.utils.data import DataActuator
-
-from .base_experiment import URASHGBaseExperiment, ExperimentState, ExperimentError
 import logging
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
+import h5py
+import numpy as np
+from pymodaq.utils.data import Axis, DataActuator, DataToExport, DataWithAxes
+from pymodaq.utils.parameter import Parameter
+from qtpy import QtCore, QtWidgets
+from scipy.interpolate import interp1d, interp2d
+from scipy.optimize import curve_fit
+
+from .base_experiment import ExperimentError, ExperimentState, URASHGBaseExperiment
 
 logger = logging.getLogger(__name__)
 

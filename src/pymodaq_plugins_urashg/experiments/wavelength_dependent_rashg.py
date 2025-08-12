@@ -28,27 +28,27 @@ Author: PyMoDAQ Plugin Development Team
 License: MIT
 """
 
-import numpy as np
-import time
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
+import time
 from contextlib import contextmanager
-
-from qtpy import QtCore
-from pymodaq_gui.parameter import Parameter
-from pymodaq_data import DataWithAxes, DataToExport, Axis
+from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum as BaseEnum
+from typing import Any, Dict, List, Optional, Tuple
 
-from .base_experiment import URASHGBaseExperiment, ExperimentState
+import numpy as np
+from pymodaq_data import Axis, DataToExport, DataWithAxes
+from pymodaq_gui.parameter import Parameter
+from qtpy import QtCore
+
+from .base_experiment import ExperimentState, URASHGBaseExperiment
 
 try:
     from ..hardware.urashg.redpitaya_control import (
         PowerStabilizationController,
-        StabilizationConfiguration,
-        PowerTarget,
         PowerStabilizationError,
+        PowerTarget,
+        StabilizationConfiguration,
     )
 
     PYRPL_AVAILABLE = True

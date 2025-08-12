@@ -14,11 +14,11 @@ from typing import List, Union
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
+    DataActuator,
     comon_parameters_fun,
 )
-from pymodaq_utils.utils import ThreadCommand
 from pymodaq_gui.parameter import Parameter
-from pymodaq.control_modules.move_utility_classes import DataActuator
+from pymodaq_utils.utils import ThreadCommand
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
     AxisConfig,

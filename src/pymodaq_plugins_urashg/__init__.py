@@ -21,9 +21,11 @@ License: MIT
 """
 
 from pathlib import Path
+
+from pymodaq_utils.logger import get_module_name, set_logger
+from pymodaq_utils.utils import PackageNotFoundError, get_version
+
 from .utils import Config
-from pymodaq_utils.utils import get_version, PackageNotFoundError
-from pymodaq_utils.logger import set_logger, get_module_name
 
 config = Config()
 try:

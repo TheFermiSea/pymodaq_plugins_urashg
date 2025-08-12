@@ -15,9 +15,9 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
-from typing import Dict, Optional, Union, Any, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 try:
     # Python 3.10+ compatibility fix for collections.Mapping
-    import collections.abc
     import collections
+    import collections.abc
 
     if not hasattr(collections, "Mapping"):
         collections.Mapping = collections.abc.Mapping
@@ -76,8 +76,9 @@ except (ImportError, TypeError, AttributeError) as e:
 
     try:
         # Import our mock PyRPL implementation
-        from .pyrpl_mock import MockPyrpl, MockPID
         import pymodaq_plugins_urashg.utils.pyrpl_mock as pyrpl
+
+        from .pyrpl_mock import MockPID, MockPyrpl
 
         PYRPL_AVAILABLE = True  # Mock is available for development
         PYRPL_MOCK = True

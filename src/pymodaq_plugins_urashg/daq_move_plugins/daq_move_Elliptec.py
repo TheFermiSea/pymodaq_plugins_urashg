@@ -1,12 +1,12 @@
 from typing import Union
-import numpy as np
 
+import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
+    DataActuator,
     comon_parameters_fun,
 )
 from pymodaq_utils.utils import ThreadCommand
-from pymodaq.control_modules.move_utility_classes import DataActuator
 from qtpy.QtCore import QTimer
 
 
