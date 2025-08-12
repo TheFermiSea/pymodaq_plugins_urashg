@@ -226,3 +226,6 @@ calibration_*.log
 pymodaq_dev_guide_gemini.md
 pymodaq_development_guide.md
 .llm.env
+
+# Development cleanup folder
+old/

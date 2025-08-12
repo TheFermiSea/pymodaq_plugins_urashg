@@ -1,9 +1,0 @@
-# Constraints for PyRPL installation to resolve dependency conflicts
-# This file provides version constraints to avoid the Python 2/3 futures conflict
-
-# Exclude the problematic futures version that breaks on Python 3
-futures!=3.4.0
-futures>=3.0.0; python_version<"3.2"
-
-# Use specific PyRPL version that might have better dependency management
-pyrpl>=0.9.3,<1.0.0
