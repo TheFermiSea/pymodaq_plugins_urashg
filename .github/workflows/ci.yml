@@ -127,65 +127,68 @@ jobs:
 
                   eps = importlib.metadata.entry_points()
 
-                  # Check URASHG package entry points (simplified discovery)
+                  # Check for specific plugin entry points
                   if hasattr(eps, 'select'):
-                      plugins = list(eps.select(group='pymodaq.plugins'))
+                      move_plugins = list(eps.select(group='pymodaq.move_plugins'))
+                      viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins'))
                       extensions = list(eps.select(group='pymodaq.extensions'))
-                      instruments = list(eps.select(group='pymodaq.instruments'))
                   else:
-                      plugins = eps.get('pymodaq.plugins', [])
+                      move_plugins = eps.get('pymodaq.move_plugins', [])
+                      viewer_plugins = eps.get('pymodaq.viewer_plugins', [])
                       extensions = eps.get('pymodaq.extensions', [])
-                      instruments = eps.get('pymodaq.instruments', [])
 
-                  urashg_plugins = [ep for ep in plugins if 'urashg' in ep.name.lower() or 'urashg' in ep.value.lower()]
-                  urashg_extensions = [ep for ep in extensions if 'urashg' in ep.name.lower() or 'urashg' in ep.value.lower()]
-                  urashg_instruments = [ep for ep in instruments if 'urashg' in ep.name.lower() or 'urashg' in ep.value.lower()]
+                  # Check for URASHG specific plugins
+                  urashg_move = [ep for ep in move_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['maitai', 'elliptec', 'esp300'])]
+                  urashg_viewer = [ep for ep in viewer_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['newport', 'prime'])]
+                  urashg_extensions = [ep for ep in extensions if 'urashg' in ep.value.lower() or 'urashg' in ep.name.lower()]
 
-                  print(f'Found {len(urashg_plugins)} URASHG plugin packages')
+                  print(f'Found {len(urashg_move)} URASHG move plugins')
+                  for ep in urashg_move:
+                      print(f'  - {ep.name}: {ep.value}')
+
+                  print(f'Found {len(urashg_viewer)} URASHG viewer plugins')
+                  for ep in urashg_viewer:
+                      print(f'  - {ep.name}: {ep.value}')
+
                   print(f'Found {len(urashg_extensions)} URASHG extensions')
-                  print(f'Found {len(urashg_instruments)} URASHG instruments')
+                  for ep in urashg_extensions:
+                      print(f'  - {ep.name}: {ep.value}')
 
-                  # Check that we can import the main plugin modules
+                  # Test plugin files exist and are syntactically valid
                   try:
-                      # Test move plugins exist and are importable
-                      sys.path.insert(0, 'src')
-                      from pymodaq_plugins_urashg.daq_move_plugins import daq_move_Elliptec, daq_move_MaiTai, daq_move_ESP300
-                      from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D import daq_0Dviewer_Newport1830C
-                      from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D import daq_2Dviewer_PrimeBSI
-                      from pymodaq_plugins_urashg.extensions import urashg_microscopy_extension
-                      print('✅ All plugin modules importable')
-                      plugin_discovery_success = True
-                  except ImportError as e:
-                      print(f'⚠️  Plugin import failed (expected in CI without hardware deps): {e}')
-                      # Fallback: check if plugin files exist and are syntactically valid
-                      try:
-                          import ast
-                          plugin_files = [
-                              'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_Elliptec.py',
-                              'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_MaiTai.py',
-                              'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_ESP300.py',
-                              'src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_0D/daq_0Dviewer_Newport1830C.py',
-                              'src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_2D/daq_2Dviewer_PrimeBSI.py',
-                              'src/pymodaq_plugins_urashg/extensions/urashg_microscopy_extension.py'
-                          ]
-                          for plugin_file in plugin_files:
-                              if os.path.exists(plugin_file):
-                                  with open(plugin_file, 'r') as f:
-                                      ast.parse(f.read())  # Check syntax
-                              else:
-                                  raise FileNotFoundError(f'Plugin file missing: {plugin_file}')
-                          print('✅ Plugin files exist and are syntactically valid')
-                          plugin_discovery_success = True
-                      except Exception as fallback_error:
-                          print(f'❌ Plugin file validation failed: {fallback_error}')
-                          plugin_discovery_success = False
+                      import ast
+                      plugin_files = [
+                          'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_Elliptec.py',
+                          'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_MaiTai.py',
+                          'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_ESP300.py',
+                          'src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_0D/daq_0Dviewer_Newport1830C.py',
+                          'src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_2D/daq_2Dviewer_PrimeBSI.py',
+                          'src/pymodaq_plugins_urashg/extensions/urashg_microscopy_extension.py'
+                      ]
+                      for plugin_file in plugin_files:
+                          if os.path.exists(plugin_file):
+                              with open(plugin_file, 'r') as f:
+                                  ast.parse(f.read())  # Check syntax
+                          else:
+                              raise FileNotFoundError(f'Plugin file missing: {plugin_file}')
+                      print('✅ All plugin files exist and are syntactically valid')
+                      files_valid = True
+                  except Exception as e:
+                      print(f'❌ Plugin file validation failed: {e}')
+                      files_valid = False
 
-                  # Require at least the package-level entry points and importable modules
-                  if len(urashg_plugins) >= 1 and len(urashg_extensions) >= 1 and plugin_discovery_success:
+                  # Test that we have the expected number of plugins
+                  expected_move = 3  # MaiTai, Elliptec, ESP300
+                  expected_viewer = 2  # Newport1830C, PrimeBSI
+                  expected_extensions = 1  # URASHGMicroscopyExtension
+
+                  if len(urashg_move) >= expected_move and len(urashg_viewer) >= expected_viewer and len(urashg_extensions) >= expected_extensions and files_valid:
                       print('✅ Plugin discovery: SUCCESS')
                   else:
                       print('❌ Plugin discovery: FAILED')
-                      print(f'Package entry points: {len(urashg_plugins)}, Extensions: {len(urashg_extensions)}, Import success: {plugin_discovery_success}')
+                      print(f'Expected: {expected_move} move, {expected_viewer} viewer, {expected_extensions} extension plugins')
+                      print(f'Found: {len(urashg_move)} move, {len(urashg_viewer)} viewer, {len(urashg_extensions)} extension plugins')
+                      print(f'Files valid: {files_valid}')
                       exit(1)
                   "
 

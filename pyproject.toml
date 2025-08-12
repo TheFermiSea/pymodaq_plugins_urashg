@@ -57,6 +57,18 @@ classifiers = [
 [project.entry-points."pymodaq.plugins"]
 urashg = "pymodaq_plugins_urashg"
 
+[project.entry-points."pymodaq.move_plugins"]
+DAQ_Move_Elliptec = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
+DAQ_Move_MaiTai = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"
+DAQ_Move_ESP300 = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300:DAQ_Move_ESP300"
+
+[project.entry-points."pymodaq.viewer_plugins"]
+DAQ_2DViewer_PrimeBSI = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
+DAQ_0DViewer_Newport1830C = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
+
+[project.entry-points."pymodaq.extensions"]
+URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=6.0",
@@ -102,10 +114,10 @@ galvo = [
 requires = ["hatchling>=1.9.0", "hatch-vcs", "toml", "pymodaq_utils>=0.0.14"]
 build-backend = "hatchling.build"
 
-[tool.hatch.metadata.hooks.custom]
+# [tool.hatch.metadata.hooks.custom]  # Disabled to use direct entry points
 
-[tool.hatch.metadata]
-allow-direct-references = true
+# [tool.hatch.metadata]  # Disabled to use direct entry points
+# allow-direct-references = true
 
 [tool.hatch.version]
 source = "vcs"

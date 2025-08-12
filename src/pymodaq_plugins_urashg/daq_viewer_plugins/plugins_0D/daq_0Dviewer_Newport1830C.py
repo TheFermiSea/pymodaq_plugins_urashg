@@ -31,6 +31,36 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
 
     # Plugin metadata
     params = comon_parameters + [
+        # Settings group with multiaxes (required by PyMoDAQ)
+        {
+            "title": "Settings",
+            "name": "Settings",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Multi-axes",
+                    "name": "multiaxes",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "Is Multi-axes:",
+                            "name": "is_multiaxes",
+                            "type": "bool",
+                            "value": False,
+                            "readonly": True,
+                        },
+                        {
+                            "title": "Status:",
+                            "name": "multi_status",
+                            "type": "list",
+                            "value": "Single",
+                            "values": ["Single"],
+                            "readonly": True,
+                        },
+                    ],
+                },
+            ],
+        },
         # Connection settings
         {
             "title": "Connection:",
@@ -54,6 +84,12 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "name": "timeout",
                     "type": "float",
                     "value": 2.0,
+                },
+                {
+                    "title": "Mock Mode:",
+                    "name": "mock_mode",
+                    "type": "bool",
+                    "value": False,
                 },
             ],
         },
@@ -163,6 +199,15 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                 ThreadCommand("show_splash", "Initializing Newport 1830-C...")
             )
 
+            # Check if mock mode is enabled
+            mock_mode = self.settings.child("Settings", "mock_mode").value()
+
+            if mock_mode:
+                # Initialize mock controller
+                self.controller = self._create_mock_controller()
+                self.emit_status(ThreadCommand("close_splash"))
+                return self.get_status(etat="Mock Newport 1830-C initialized")
+
             # Get connection parameters
             port = self.settings.child("connection_group", "serial_port").value()
             baudrate = self.settings.child("connection_group", "baudrate").value()
@@ -201,6 +246,41 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                 self.controller.disconnect()
                 self.controller = None
             return error_msg, False
+
+    def _create_mock_controller(self):
+        """Create a mock controller for testing purposes."""
+
+        class MockNewport1830C:
+            def __init__(self):
+                self.connected = True
+                self.power = 0.0001  # 0.1 mW default
+
+            def connect(self, port, baudrate, timeout):
+                self.connected = True
+                return True
+
+            def disconnect(self):
+                self.connected = False
+
+            def read_power(self):
+                import random
+
+                # Return mock power reading with some noise
+                return self.power * (1 + 0.1 * (random.random() - 0.5))
+
+            def set_wavelength(self, wavelength):
+                pass
+
+            def set_units(self, units):
+                pass
+
+            def set_range(self, range_setting):
+                pass
+
+            def get_status(self):
+                return "Ready"
+
+        return MockNewport1830C()
 
     def _apply_measurement_settings(self):
         """Apply current measurement settings to the power meter."""

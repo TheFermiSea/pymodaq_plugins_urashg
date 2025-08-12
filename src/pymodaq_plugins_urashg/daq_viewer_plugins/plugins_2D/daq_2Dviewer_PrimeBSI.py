@@ -55,6 +55,42 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
     """
 
     params = comon_parameters + [
+        # Settings group with multiaxes (required by PyMoDAQ)
+        {
+            "title": "Settings",
+            "name": "Settings",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Multi-axes",
+                    "name": "multiaxes",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "Is Multi-axes:",
+                            "name": "is_multiaxes",
+                            "type": "bool",
+                            "value": False,
+                            "readonly": True,
+                        },
+                        {
+                            "title": "Status:",
+                            "name": "multi_status",
+                            "type": "list",
+                            "value": "Single",
+                            "values": ["Single"],
+                            "readonly": True,
+                        },
+                    ],
+                },
+                {
+                    "title": "Mock Mode:",
+                    "name": "mock_mode",
+                    "type": "bool",
+                    "value": False,
+                },
+            ],
+        },
         {
             "title": "Camera Settings",
             "name": "camera_settings",
@@ -166,39 +202,47 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         Initializes the camera connection and populates the GUI with all camera-specific parameters.
         """
         self.status.update(msg="Initializing Camera...", busy=True)
+
+        # Check if mock mode is enabled
+        mock_mode = self.settings.child("Settings", "mock_mode").value()
+
         try:
-            # Ensure clean PVCAM state
-            # Ensure clean PVCAM state - safely uninitialize if needed
-            try:
-                if pvc.get_cam_total() >= 0:  # Check if already initialized
-                    pvc.uninit_pvcam()
-            except:
-                pass  # PVCAM not initialized or other state issues
+            if mock_mode:
+                # Initialize mock camera
+                self.camera = self._create_mock_camera()
+                self.status.update(msg="Mock Camera Initialized.", busy=False)
+            else:
+                # Ensure clean PVCAM state - safely uninitialize if needed
+                try:
+                    if pvc.get_cam_total() >= 0:  # Check if already initialized
+                        pvc.uninit_pvcam()
+                except:
+                    pass  # PVCAM not initialized or other state issues
 
-            # Fresh initialization
-            pvc.init_pvcam()
+                # Fresh initialization
+                pvc.init_pvcam()
 
-            # Check camera availability
-            total_cams = pvc.get_cam_total()
-            if total_cams == 0:
-                raise RuntimeError("No cameras found by PVCAM")
+                # Check camera availability
+                total_cams = pvc.get_cam_total()
+                if total_cams == 0:
+                    raise RuntimeError("No cameras found by PVCAM")
 
-            cameras = list(Camera.detect_camera())
-            if len(cameras) == 0:
-                raise RuntimeError(
-                    "No cameras detected by PyVCAM Camera.detect_camera()"
+                cameras = list(Camera.detect_camera())
+                if len(cameras) == 0:
+                    raise RuntimeError(
+                        "No cameras detected by PyVCAM Camera.detect_camera()"
+                    )
+
+                self.camera = cameras[0]  # Use first camera
+                self.camera.open()
+                self.status.update(
+                    msg=f"Camera {self.camera.name} Initialized.", busy=False
                 )
-
-            self.camera = cameras[0]  # Use first camera
-            self.camera.open()
 
             self.update_camera_params()
             self.populate_advanced_params()
             self.populate_post_processing_params()
 
-            self.status.update(
-                msg=f"Camera {self.camera.name} Initialized.", busy=False
-            )
             self.initialized = True
             return self.status
 
@@ -208,10 +252,49 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             self.initialized = False
             return self.status
 
+    def _create_mock_camera(self):
+        """Create a mock camera for testing purposes."""
+
+        class MockCamera:
+            def __init__(self):
+                self.name = "Mock Prime BSI Camera"
+                self.sensor_size = (2048, 2048)
+                self.readout_ports = ["Port 1", "Port 2"]
+                self.speed_table = {0: 1000, 1: 2000}
+                self.gain_table = {0: 1, 1: 2, 2: 4}
+                self.temp = -20.0
+                self.is_open = True
+
+            def open(self):
+                self.is_open = True
+
+            def close(self):
+                self.is_open = False
+
+            def get_frame(self, exp_time=100, clear_mode=None, trigger_mode=None):
+                import numpy as np
+
+                # Return mock image data
+                return np.random.randint(0, 4096, self.sensor_size, dtype=np.uint16)
+
+            def start_live(self, exp_time=100):
+                pass
+
+            def stop_live(self):
+                pass
+
+            def poll_frame(self):
+                return {"pixel_data": self.get_frame()}
+
+        return MockCamera()
+
     def update_camera_params(self):
         """
         Queries the connected camera for its primary capabilities and updates the main settings panel.
         """
+        if self.camera is None:
+            return
+
         self.settings.child("camera_settings", "camera_name").setValue(self.camera.name)
         sensor_size = f"{self.camera.sensor_size[0]} x {self.camera.sensor_size[1]}"
         self.settings.child("camera_settings", "sensor_size").setValue(sensor_size)
@@ -469,13 +552,25 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         Performs ROI integration if enabled.
         """
         try:
+            if self.camera is None:
+                self.status.update(etat="Error", txt="Camera not initialized")
+                return
+
             self.settings.child("camera_settings", "temperature").setValue(
                 self.camera.temp
             )
 
             frame = self.camera.get_frame(
                 exp_time=self.settings.child("camera_settings", "exposure").value()
-            ).reshape(self.camera.rois[0].shape)
+            )
+
+            # Handle mock camera that doesn't have rois
+            if hasattr(self.camera, "rois") and self.camera.rois:
+                frame = frame.reshape(self.camera.rois[0].shape)
+            else:
+                # For mock camera, ensure proper 2D shape
+                if len(frame.shape) != 2:
+                    frame = frame.reshape(self.camera.sensor_size)
 
             # PyMoDAQ 5.0+ data structure
             dwa_2d = DataWithAxes(
