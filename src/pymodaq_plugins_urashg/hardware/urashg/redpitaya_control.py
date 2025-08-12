@@ -546,6 +546,7 @@ class PowerStabilizationController:
             # Calculate stability metrics
             recent_powers = np.array(recent_readings)
             mean_power = np.mean(recent_powers)
+            rms_deviation = np.sqrt(np.mean(np.square(recent_powers - mean_power)))
 
             # Check if power is stable within threshold
             is_stable = rms_deviation <= self.config.power_stability_threshold
@@ -676,7 +677,7 @@ class PowerStabilizationController:
                     if self.current_target
                     else None
                 ),
-                "stability": stability,
+                "stability": self.assess_power_stability(),
                 "monitoring_active": self._monitoring_active,
                 "history_size": len(self.power_history),
                 "pid_channel": self.config.pid_channel.value,
