@@ -69,6 +69,7 @@ except ImportError as e:
     disconnect_redpitaya = None
 
 __all__ = [
+<<<<<<< HEAD
     "set_logger",
     "get_module_name",
     "Config",
@@ -93,4 +94,13 @@ __all__ = [
     "connect_redpitaya",
     "disconnect_redpitaya",
     "PYRPL_WRAPPER_AVAILABLE",
+=======
+    'set_logger', 'get_module_name', 'Config',
+    'PyRPLManager', 'PyRPLConnection', 'PIDChannel', 'InputChannel', 'OutputChannel',
+    'PIDConfiguration', 'ASGConfiguration', 'IQConfiguration', 'ScopeConfiguration',
+    'ConnectionState', 'ASGChannel', 'ASGWaveform', 'ASGTriggerSource',
+    'IQChannel', 'IQOutputDirect', 'ScopeTriggerSource', 'ScopeDecimation',
+    'get_pyrpl_manager', 'connect_redpitaya', 'disconnect_redpitaya',
+    'PYRPL_WRAPPER_AVAILABLE'
+>>>>>>> architecture_compliance_fix
 ]

@@ -7,7 +7,7 @@ from pymodaq.control_modules.move_utility_classes import (
     DataActuator,
     comon_parameters_fun,
 )
-from pymodaq_utils.utils import ThreadCommand
+from pymodaq.utils.daq_utils import ThreadCommand
 from qtpy.QtCore import QTimer
 
 
@@ -381,9 +381,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             to extract the numerical value (PyMoDAQ 5.x single-axis pattern).
         """
         self.emit_status(
-            ThreadCommand(
-                "Update_Status", [f"DEBUG: move_rel called with {type(value)}", "log"]
-            )
+            ThreadCommand("Update_Status", [f"DEBUG: move_rel called with {type(value)}", "log"])
         )
         try:
             # Extract numerical value from DataActuator using .value() method

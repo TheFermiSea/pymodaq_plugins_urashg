@@ -26,7 +26,13 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+<<<<<<< HEAD
 import numpy as np
+=======
+from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtCore import QObject, QTimer
+from qtpy.QtCore import Signal
+>>>>>>> architecture_compliance_fix
 import pyqtgraph as pg
 from pymodaq_data import Axis, DataWithAxes
 from pymodaq_gui.parameter import Parameter
@@ -37,9 +43,22 @@ from pyqtgraph.dockarea import Dock, DockArea
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import QObject, QThread, QTimer, Signal
 
+<<<<<<< HEAD
 # PyMoDAQ imports for proper extension patterns
 
 
+=======
+from pymodaq_gui.utils.custom_app import CustomApp
+from pymodaq_gui.parameter import Parameter
+from pymodaq_data import DataWithAxes, Axis
+from pymodaq_utils.logger import set_logger, get_module_name
+from pymodaq_utils.config import Config
+
+# PyMoDAQ imports for proper extension patterns
+
+import json
+from qtpy.QtCore import QThread
+>>>>>>> architecture_compliance_fix
 logger = set_logger(get_module_name(__file__))
 
 
@@ -479,6 +498,7 @@ class URASHGMicroscopyExtension(CustomApp):
             self.docks = {}  # Initialize empty docks dictionary
 
         # PyMoDAQ modules access (standard pattern)
+<<<<<<< HEAD
         self.modules_manager = (
             self.dashboard.modules_manager if self.dashboard else None
         )
@@ -486,6 +506,14 @@ class URASHGMicroscopyExtension(CustomApp):
         self.required_modules = ["MaiTai", "Elliptec", "PrimeBSI", "Newport1830C"]
 
         # Note: Using PyMoDAQ's standard plugin management pattern
+=======
+        self.modules_manager = self.dashboard.modules_manager if self.dashboard else None
+        self.available_modules = {}
+        self.required_modules = ['MaiTai', 'Elliptec', 'PrimeBSI', 'Newport1830C']
+
+        # Use PyMoDAQ's standard plugin management instead of custom device manager
+        self.modules_manager = None
+>>>>>>> architecture_compliance_fix
 
         # Initialize UI components
         self.setup_ui()
@@ -1151,11 +1179,15 @@ class URASHGMicroscopyExtension(CustomApp):
         self.error_occurred.connect(self.on_error_occurred)
 
         # Connect to PyMoDAQ's modules manager if available
+<<<<<<< HEAD
         if (
             hasattr(self, "dashboard")
             and self.dashboard
             and hasattr(self.dashboard, "modules_manager")
         ):
+=======
+        if hasattr(self, 'dashboard') and self.dashboard and hasattr(self.dashboard, 'modules_manager'):
+>>>>>>> architecture_compliance_fix
             self.modules_manager = self.dashboard.modules_manager
 
         # Start device control update timer (PHASE 3 FEATURE)
@@ -1182,7 +1214,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Setting laser wavelength to {target_wavelength} nm")
 
         try:
+<<<<<<< HEAD
             laser = self._get_plugin("laser", ["MaiTai", "Laser"])
+=======
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+>>>>>>> architecture_compliance_fix
             if not laser:
                 self.log_message("ERROR: Laser device not available", level="error")
                 return
@@ -1223,7 +1259,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Opening laser shutter")
 
         try:
+<<<<<<< HEAD
             laser = self._get_plugin("laser", ["MaiTai", "Laser"])
+=======
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+>>>>>>> architecture_compliance_fix
             if not laser:
                 self.log_message("ERROR: Laser device not available", level="error")
                 return
@@ -1256,7 +1296,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Closing laser shutter")
 
         try:
+<<<<<<< HEAD
             laser = self._get_plugin("laser", ["MaiTai", "Laser"])
+=======
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+>>>>>>> architecture_compliance_fix
             if not laser:
                 self.log_message("ERROR: Laser device not available", level="error")
                 return
@@ -1314,7 +1358,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Moving {rotator_name} to {target_position}°")
 
         try:
+<<<<<<< HEAD
             elliptec = self._get_plugin("move", ["Elliptec"])
+=======
+            elliptec = self._get_plugin('move', ['Elliptec'])
+>>>>>>> architecture_compliance_fix
             if not elliptec:
                 self.log_message("ERROR: Elliptec device not available", level="error")
                 return
@@ -1373,7 +1421,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Homing {rotator_name}")
 
         try:
+<<<<<<< HEAD
             elliptec = self._get_plugin("move", ["Elliptec"])
+=======
+            elliptec = self._get_plugin('move', ['Elliptec'])
+>>>>>>> architecture_compliance_fix
             if not elliptec:
                 self.log_message("ERROR: Elliptec device not available", level="error")
                 return
@@ -1406,7 +1458,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("EMERGENCY STOP - All rotators", level="error")
 
         try:
+<<<<<<< HEAD
             elliptec = self._get_plugin("move", ["Elliptec"])
+=======
+            elliptec = self._get_plugin('move', ['Elliptec'])
+>>>>>>> architecture_compliance_fix
             if elliptec:
                 if hasattr(elliptec, "stop_motion"):
                     elliptec.stop_motion()
@@ -1428,7 +1484,11 @@ class URASHGMicroscopyExtension(CustomApp):
     def get_current_elliptec_positions(self):
         """Get current positions of all Elliptec axes."""
         try:
+<<<<<<< HEAD
             elliptec = self._get_plugin("move", ["Elliptec"])
+=======
+            elliptec = self._get_plugin('move', ['Elliptec'])
+>>>>>>> architecture_compliance_fix
             if not elliptec:
                 return None
 
@@ -1489,9 +1549,13 @@ class URASHGMicroscopyExtension(CustomApp):
     def sync_power_meter_wavelength(self, wavelength):
         """Sync power meter wavelength setting."""
         try:
+<<<<<<< HEAD
             power_meter = self._get_plugin(
                 "viewer", ["Newport1830C", "PowerMeter", "Newport"]
             )
+=======
+            power_meter = self._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+>>>>>>> architecture_compliance_fix
             if not power_meter:
                 self.log_message(
                     "WARNING: Power meter not available for wavelength sync",
@@ -1531,7 +1595,11 @@ class URASHGMicroscopyExtension(CustomApp):
     def get_current_laser_wavelength(self):
         """Get current laser wavelength."""
         try:
+<<<<<<< HEAD
             laser = self._get_plugin("laser", ["MaiTai", "Laser"])
+=======
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+>>>>>>> architecture_compliance_fix
             if not laser:
                 return None
 
@@ -1580,7 +1648,11 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_laser_display(self):
         """Update laser status and wavelength displays."""
         try:
+<<<<<<< HEAD
             laser = self._get_plugin("laser", ["MaiTai", "Laser"])
+=======
+            laser = self._get_plugin('laser', ['MaiTai', 'Laser'])
+>>>>>>> architecture_compliance_fix
 
             if hasattr(self, "laser_status_label"):
                 if laser and hasattr(laser, "controller") and laser.controller:
@@ -1632,9 +1704,13 @@ class URASHGMicroscopyExtension(CustomApp):
     def update_power_meter_display(self):
         """Update power meter displays."""
         try:
+<<<<<<< HEAD
             power_meter = self._get_plugin(
                 "viewer", ["Newport1830C", "PowerMeter", "Newport"]
             )
+=======
+            power_meter = self._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+>>>>>>> architecture_compliance_fix
 
             # Update power reading
             if hasattr(self, "power_display"):
@@ -1695,9 +1771,13 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Checking available PyMoDAQ modules...")
 
         if not self.modules_manager:
+<<<<<<< HEAD
             self.log_message(
                 "ERROR: No modules manager available (no dashboard)", level="error"
             )
+=======
+            self.log_message("ERROR: No modules manager available (no dashboard)", level='error')
+>>>>>>> architecture_compliance_fix
             return False
 
         try:
@@ -1732,6 +1812,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
             # Report results
             if self.available_modules:
+<<<<<<< HEAD
                 self.log_message(
                     f"Found modules: {list(self.available_modules.keys())}"
                 )
@@ -1742,6 +1823,13 @@ class URASHGMicroscopyExtension(CustomApp):
                     "Please load required plugins in PyMoDAQ dashboard first",
                     level="warning",
                 )
+=======
+                self.log_message(f"Found modules: {list(self.available_modules.keys())}")
+
+            if missing_modules:
+                self.log_message(f"Missing modules: {missing_modules}", level='warning')
+                self.log_message("Please load required plugins in PyMoDAQ dashboard first", level='warning')
+>>>>>>> architecture_compliance_fix
 
             success = len(self.available_modules) > 0
 
@@ -1749,12 +1837,20 @@ class URASHGMicroscopyExtension(CustomApp):
                 self.log_message("Module detection completed successfully")
                 return True
             else:
+<<<<<<< HEAD
                 self.log_message("No required modules found", level="error")
+=======
+                self.log_message("No required modules found", level='error')
+>>>>>>> architecture_compliance_fix
                 return False
 
         except Exception as e:
             error_msg = f"Module detection failed: {str(e)}"
+<<<<<<< HEAD
             self.log_message(error_msg, level="error")
+=======
+            self.log_message(error_msg, level='error')
+>>>>>>> architecture_compliance_fix
             self.error_occurred.emit(error_msg)
             return False
 
@@ -1764,7 +1860,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Checking module status...")
 
         if not self.modules_manager:
+<<<<<<< HEAD
             self.log_message("ERROR: No modules manager available", level="error")
+=======
+            self.log_message("ERROR: No modules manager available", level='error')
+>>>>>>> architecture_compliance_fix
             return
 
         try:
@@ -1776,6 +1876,7 @@ class URASHGMicroscopyExtension(CustomApp):
                 if module_name in self.available_modules:
                     module = self.available_modules[module_name]
                     # Check if module is connected/initialized
+<<<<<<< HEAD
                     if hasattr(module, "controller") and module.controller:
                         status_msg = f"Module '{module_name}': Connected"
                         self.log_message(status_msg, level="info")
@@ -1801,6 +1902,30 @@ class URASHGMicroscopyExtension(CustomApp):
         except Exception as e:
             error_msg = f"Module status check failed: {str(e)}"
             self.log_message(error_msg, level="error")
+=======
+                    if hasattr(module, 'controller') and module.controller:
+                        status_msg = f"Module '{module_name}': Connected"
+                        self.log_message(status_msg, level='info')
+                        connected_count += 1
+                    else:
+                        status_msg = f"Module '{module_name}': Not initialized"
+                        self.log_message(status_msg, level='warning')
+                else:
+                    status_msg = f"Module '{module_name}': Not found"
+                    self.log_message(status_msg, level='warning')
+
+            # Summary
+            ready_msg = f"Modules ready: {connected_count}/{total_count}"
+            level = 'info' if connected_count == total_count else 'warning'
+            self.log_message(ready_msg, level=level)
+
+            if connected_count == 0:
+                self.log_message("No modules connected. Load plugins in PyMoDAQ dashboard first.", level='error')
+
+        except Exception as e:
+            error_msg = f"Module status check failed: {str(e)}"
+            self.log_message(error_msg, level='error')
+>>>>>>> architecture_compliance_fix
             self.error_occurred.emit(error_msg)
 
     def start_measurement(self):
@@ -1842,9 +1967,13 @@ class URASHGMicroscopyExtension(CustomApp):
         # Check device availability
         missing_devices = self._check_required_devices()
         if missing_devices:
+<<<<<<< HEAD
             self.log_message(
                 f"Cannot start: Missing devices: {missing_devices}", level="error"
             )
+=======
+            self.log_message(f"Cannot start: Missing devices: {missing_devices}", level='error')
+>>>>>>> architecture_compliance_fix
             self.error_occurred.emit(f"Missing required devices: {missing_devices}")
             return False
 
@@ -2601,7 +2730,11 @@ class URASHGMicroscopyExtension(CustomApp):
 
     def update_device_status(self):
         """Update module status display (periodic)."""
+<<<<<<< HEAD
         if not self.modules_manager or not hasattr(self, "device_status_table"):
+=======
+        if not self.modules_manager or not hasattr(self, 'device_status_table'):
+>>>>>>> architecture_compliance_fix
             return
 
         try:
@@ -2617,7 +2750,11 @@ class URASHGMicroscopyExtension(CustomApp):
                 # Status with color coding
                 if module_name in self.available_modules:
                     module = self.available_modules[module_name]
+<<<<<<< HEAD
                     if hasattr(module, "controller") and module.controller:
+=======
+                    if hasattr(module, 'controller') and module.controller:
+>>>>>>> architecture_compliance_fix
                         status_text = "Connected"
                         color = QtGui.QColor(144, 238, 144)  # Light green
                         details = f"Module: {module.__class__.__name__}"
@@ -2627,7 +2764,11 @@ class URASHGMicroscopyExtension(CustomApp):
                         details = "Controller not available"
                 else:
                     status_text = "Not Found"
+<<<<<<< HEAD
                     color = QtGui.QColor(255, 99, 71)  # Tomato red
+=======
+                    color = QtGui.QColor(255, 99, 71)   # Tomato red
+>>>>>>> architecture_compliance_fix
                     details = "Load plugin in dashboard"
 
                 status_item = QtWidgets.QTableWidgetItem(status_text)
@@ -2647,6 +2788,7 @@ class URASHGMicroscopyExtension(CustomApp):
         """Update live data from available modules (simplified for PyMoDAQ integration)."""
         try:
             # Update power meter reading if available
+<<<<<<< HEAD
             if "Newport1830C" in self.available_modules:
                 power_module = self.available_modules["Newport1830C"]
                 try:
@@ -2655,14 +2797,27 @@ class URASHGMicroscopyExtension(CustomApp):
                     logger.debug(
                         f"Power meter module available: {power_module.__class__.__name__}"
                     )
+=======
+            if 'Newport1830C' in self.available_modules:
+                power_module = self.available_modules['Newport1830C']
+                try:
+                    # For now, just log that the module is available
+                    # Full data acquisition will be implemented once Qt signal issues are resolved
+                    logger.debug(f"Power meter module available: {power_module.__class__.__name__}")
+>>>>>>> architecture_compliance_fix
                 except Exception as e:
                     logger.debug(f"Could not update power meter data: {e}")
 
             # Update other modules as needed
             # Note: This is simplified to avoid Qt signal/threading issues
             # Real data acquisition should use PyMoDAQ's standard patterns
+<<<<<<< HEAD
             camera = self._get_plugin("viewer", ["PrimeBSI", "Camera"])
             if camera and hasattr(camera, "controller") and camera.controller:
+=======
+            camera = self._get_plugin('viewer', ['PrimeBSI', 'Camera'])
+            if camera and hasattr(camera, 'controller') and camera.controller:
+>>>>>>> architecture_compliance_fix
                 try:
                     # Check if camera has temperature monitoring
                     if hasattr(camera.controller, "get_temperature"):
@@ -2980,12 +3135,18 @@ class URASHGMicroscopyExtension(CustomApp):
                 )
                 baseline = np.min(intensities) - np.max(np.abs(scaled_residuals)) * 1.5
 
+<<<<<<< HEAD
                 self.polar_plot.plot(
                     angles_np,
                     baseline + scaled_residuals,
                     pen=pg.mkPen("r", style=QtCore.Qt.PenStyle.DashLine),
                     name="Residuals (scaled)",
                 )
+=======
+                self.polar_plot.plot(angles_np, baseline + scaled_residuals,
+                                   pen=pg.mkPen('r', style=QtCore.Qt.PenStyle.DashLine),
+                                   name='Residuals (scaled)')
+>>>>>>> architecture_compliance_fix
 
         except Exception as e:
             logger.error(f"Error plotting fit curve: {e}")
@@ -3372,7 +3533,11 @@ class URASHGMicroscopyExtension(CustomApp):
         for module_name, module_info in self.modules_manager.modules.items():
             for pattern in name_patterns:
                 if pattern.lower() in module_name.lower():
+<<<<<<< HEAD
                     return module_info.get("module")
+=======
+                    return module_info.get('module')
+>>>>>>> architecture_compliance_fix
         return None
 
     def _check_required_devices(self):
@@ -3383,20 +3548,33 @@ class URASHGMicroscopyExtension(CustomApp):
             List of missing device names
         """
         required_devices = {
+<<<<<<< HEAD
             "camera": ["PrimeBSI", "Camera"],
             "power_meter": ["Newport1830C", "PowerMeter", "Newport"],
             "elliptec": ["Elliptec"],
             "laser": ["MaiTai", "Laser"],  # Optional
+=======
+            'camera': ['PrimeBSI', 'Camera'],
+            'power_meter': ['Newport1830C', 'PowerMeter', 'Newport'],
+            'elliptec': ['Elliptec'],
+            'laser': ['MaiTai', 'Laser']  # Optional
+>>>>>>> architecture_compliance_fix
         }
 
         missing = []
         for device_type, patterns in required_devices.items():
+<<<<<<< HEAD
             if device_type == "laser":
                 continue  # Laser is optional
             if not self._get_plugin(
                 "viewer" if device_type in ["camera", "power_meter"] else "move",
                 patterns,
             ):
+=======
+            if device_type == 'laser':
+                continue  # Laser is optional
+            if not self._get_plugin('viewer' if device_type in ['camera', 'power_meter'] else 'move', patterns):
+>>>>>>> architecture_compliance_fix
                 missing.append(device_type)
 
         return missing
@@ -3409,10 +3587,17 @@ class URASHGMicroscopyExtension(CustomApp):
         # Stop all move modules
         for module_name, module_info in self.modules_manager.modules.items():
             try:
+<<<<<<< HEAD
                 module = module_info.get("module")
                 if module and hasattr(module, "stop_motion"):
                     module.stop_motion()
                 elif module and hasattr(module, "stop_acquisition"):
+=======
+                module = module_info.get('module')
+                if module and hasattr(module, 'stop_motion'):
+                    module.stop_motion()
+                elif module and hasattr(module, 'stop_acquisition'):
+>>>>>>> architecture_compliance_fix
                     module.stop_acquisition()
             except Exception as e:
                 logger.error(f"Error stopping module {module_name}: {e}")
@@ -3686,7 +3871,11 @@ class MeasurementWorker(QObject):
         """Set laser wavelength and verify."""
         try:
             # Get laser device
+<<<<<<< HEAD
             laser_device = self.extension._get_plugin("laser", ["MaiTai", "Laser"])
+=======
+            laser_device = self.extension._get_plugin('laser', ['MaiTai', 'Laser'])
+>>>>>>> architecture_compliance_fix
 
             if not laser_device:
                 logger.error("Laser device not available for wavelength setting")
@@ -3694,7 +3883,10 @@ class MeasurementWorker(QObject):
 
             # Use proper DataActuator pattern
             from pymodaq.control_modules.move_utility_classes import DataActuator
+<<<<<<< HEAD
 
+=======
+>>>>>>> architecture_compliance_fix
             position_data = DataActuator(data=[wavelength])
 
             # Set wavelength
@@ -3726,9 +3918,13 @@ class MeasurementWorker(QObject):
     def _sync_power_meter_wavelength(self, wavelength):
         """Sync power meter wavelength setting."""
         try:
+<<<<<<< HEAD
             power_meter = self.extension._get_plugin(
                 "viewer", ["Newport1830C", "PowerMeter", "Newport"]
             )
+=======
+            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+>>>>>>> architecture_compliance_fix
 
             if not power_meter:
                 return False
@@ -3797,7 +3993,11 @@ class MeasurementWorker(QObject):
     def _get_current_laser_wavelength(self):
         """Get current laser wavelength."""
         try:
+<<<<<<< HEAD
             laser_device = self.extension._get_plugin("laser", ["MaiTai", "Laser"])
+=======
+            laser_device = self.extension._get_plugin('laser', ['MaiTai', 'Laser'])
+>>>>>>> architecture_compliance_fix
 
             if not laser_device:
                 return None
@@ -3835,11 +4035,17 @@ class MeasurementWorker(QObject):
                 return False
 
             # Get devices
+<<<<<<< HEAD
             camera = self.extension._get_plugin("viewer", ["PrimeBSI", "Camera"])
             elliptec = self.extension._get_plugin("move", ["Elliptec"])
             power_meter = self.extension._get_plugin(
                 "viewer", ["Newport1830C", "PowerMeter", "Newport"]
             )
+=======
+            camera = self.extension._get_plugin('viewer', ['PrimeBSI', 'Camera'])
+            elliptec = self.extension._get_plugin('move', ['Elliptec'])
+            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+>>>>>>> architecture_compliance_fix
 
             if not camera or not elliptec:
                 logger.error("Missing critical devices (camera or elliptec)")
@@ -3928,11 +4134,17 @@ class MeasurementWorker(QObject):
         """
         try:
             # Get devices
+<<<<<<< HEAD
             camera = self.extension._get_plugin("viewer", ["PrimeBSI", "Camera"])
             elliptec = self.extension._get_plugin("move", ["Elliptec"])
             power_meter = self.extension._get_plugin(
                 "viewer", ["Newport1830C", "PowerMeter", "Newport"]
             )
+=======
+            camera = self.extension._get_plugin('viewer', ['PrimeBSI', 'Camera'])
+            elliptec = self.extension._get_plugin('move', ['Elliptec'])
+            power_meter = self.extension._get_plugin('viewer', ['Newport1830C', 'PowerMeter', 'Newport'])
+>>>>>>> architecture_compliance_fix
 
             # Safety timeout
             movement_timeout = self.settings.child(
@@ -4021,7 +4233,11 @@ class MeasurementWorker(QObject):
         while others remain fixed, but this method supports coordinated movement.
         """
         try:
+<<<<<<< HEAD
             elliptec = self.extension._get_plugin("move", ["Elliptec"])
+=======
+            elliptec = self.extension._get_plugin('move', ['Elliptec'])
+>>>>>>> architecture_compliance_fix
             if not elliptec:
                 logger.error("Elliptec device not available")
                 return False

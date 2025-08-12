@@ -23,6 +23,7 @@ dependencies = [
     "scipy>=1.7.0",
     "matplotlib>=3.3.0",
     "pyserial>=3.4",
+    "pyvcam>=2.0.0",
     "elliptec>=0.0.6",
     "pip>=25.2",
 ]
@@ -34,7 +35,7 @@ maintainers = [
 
 # nottodo: leave everything below as is!
 
-dynamic = ["version", "urls", "entry-points"]
+dynamic = ["version", "urls"]
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
@@ -54,6 +55,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: User Interfaces",
 ]
+
+[project.entry-points."pymodaq.plugins"]
+urashg = "pymodaq_plugins_urashg"
 
 [project.optional-dependencies]
 dev = [
@@ -80,8 +84,8 @@ test = [
 ]
 hardware = [
     # Hardware-specific dependencies (optional for basic functionality)
-    "opencv-python>=4.5.0", # Image processing
-    "scikit-image>=0.18.0", # Advanced image analysis
+    "opencv-python>=4.5.0",                                           # Image processing
+    "scikit-image>=0.18.0",                                           # Advanced image analysis
     "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git@master", # Photometrics camera support
 ]
 pyrpl = [

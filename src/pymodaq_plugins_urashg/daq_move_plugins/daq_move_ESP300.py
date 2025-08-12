@@ -17,8 +17,8 @@ from pymodaq.control_modules.move_utility_classes import (
     DataActuator,
     comon_parameters_fun,
 )
-from pymodaq_gui.parameter import Parameter
-from pymodaq_utils.utils import ThreadCommand
+from pymodaq.utils.parameter import Parameter
+from pymodaq.utils.daq_utils import ThreadCommand
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
     AxisConfig,
@@ -620,11 +620,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if isinstance(value, DataActuator):
                     if self.is_multiaxes:
                         target_positions_array = value.data[0]
-                        target_positions_list = (
-                            target_positions_array.tolist()
-                            if hasattr(target_positions_array, "tolist")
-                            else list(target_positions_array)
-                        )
+                        target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
                     else:
                         target_positions_list = float(value.value())
                 else:
@@ -665,11 +661,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if self.is_multiaxes:
                     # Multi-axis: value.data[0] is numpy array with multiple values
                     target_positions_array = value.data[0]
-                    target_positions_list = (
-                        target_positions_array.tolist()
-                        if hasattr(target_positions_array, "tolist")
-                        else list(target_positions_array)
-                    )
+                    target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
                     target_positions_list = float(value.value())
@@ -753,11 +745,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if self.is_multiaxes:
                     # Multi-axis: value.data[0] is numpy array with multiple values
                     relative_moves_array = value.data[0]
-                    relative_moves_list = (
-                        relative_moves_array.tolist()
-                        if hasattr(relative_moves_array, "tolist")
-                        else list(relative_moves_array)
-                    )
+                    relative_moves_list = relative_moves_array.tolist() if hasattr(relative_moves_array, 'tolist') else list(relative_moves_array)
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
                     relative_moves_list = float(value.value())
