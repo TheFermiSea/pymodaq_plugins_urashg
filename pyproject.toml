@@ -23,8 +23,9 @@ dependencies = [
     "scipy>=1.7.0",
     "matplotlib>=3.3.0",
     "pyserial>=3.4",
-    "pyvcam>=2.0.0",
+    "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git@master", # Photometrics camera support
     "elliptec>=0.0.6",
+    "pip>=25.2",
 ]
 
 authors = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
@@ -82,6 +83,7 @@ hardware = [
     # Hardware-specific dependencies (optional for basic functionality)
     "opencv-python>=4.5.0", # Image processing
     "scikit-image>=0.18.0", # Advanced image analysis
+    "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git@master", # Photometrics camera support
 ]
 pyrpl = [
     # PyRPL Red Pitaya control integration (optional)
@@ -100,6 +102,9 @@ requires = ["hatchling>=1.9.0", "hatch-vcs", "toml", "pymodaq_utils>=0.0.14"]
 build-backend = "hatchling.build"
 
 [tool.hatch.metadata.hooks.custom]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.version]
 source = "vcs"
