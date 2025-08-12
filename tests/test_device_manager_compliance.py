@@ -1,18 +1,17 @@
 """
 Device Manager Compliance Test Suite for URASHG Extension
 
-This test suite ensures the URASHGDeviceManager follows PyMoDAQ standards
-for device coordination, status management, and multi-device orchestration.
+This test suite ensures the URASHGDeviceManager stub maintains compatibility
+while encouraging migration to the extension-based architecture.
+
+Note: This tests the compatibility layer only. Production code should use
+URASHGMicroscopyExtension for actual device coordination.
 
 Test Categories:
-- Device Manager Initialization
-- Device Status Management
-- Multi-Device Coordination
-- Error Handling & Recovery
-- Thread Safety
-- Plugin Integration
-- Configuration Management
-- PyMoDAQ Standards Compliance
+- Device Manager Stub Compatibility
+- Basic Interface Compliance
+- Extension Integration
+- Migration Support
 """
 
 import pytest
@@ -60,28 +59,21 @@ class TestDeviceManagerInitialization:
 
     @pytest.fixture
     def device_manager(self, mock_plugins):
-        """Create device manager with mock plugins."""
-        with patch.multiple(
-            "pymodaq_plugins_urashg.extensions.device_manager",
-            DAQ_Move_MaiTai=lambda: mock_plugins["MaiTai"],
-            DAQ_Move_Elliptec=lambda: mock_plugins["Elliptec"],
-            DAQ_Move_ESP300=lambda: mock_plugins["ESP300"],
-            DAQ_2DViewer_PrimeBSI=lambda: mock_plugins["PrimeBSI"],
-            DAQ_0DViewer_Newport1830C=lambda: mock_plugins["Newport1830C"],
-        ):
-            from pymodaq_plugins_urashg.extensions.device_manager import (
-                URASHGDeviceManager,
-            )
-
-            return URASHGDeviceManager()
+        """Create device manager stub for compatibility testing."""
+        from pymodaq_plugins_urashg.extensions.device_manager import (
+            URASHGDeviceManager,
+        )
+        return URASHGDeviceManager()
 
     def test_device_manager_initialization(self, device_manager):
-        """Test device manager initializes properly."""
+        """Test device manager stub initializes properly."""
         assert device_manager is not None
         assert hasattr(device_manager, "devices")
         assert hasattr(device_manager, "device_status")
+        assert hasattr(device_manager, "supported_devices")
         assert isinstance(device_manager.devices, dict)
         assert isinstance(device_manager.device_status, dict)
+        assert isinstance(device_manager.supported_devices, list)
 
     def test_device_manager_inherits_qobject(self):
         """Test device manager inherits from QObject for signal support."""
@@ -131,22 +123,15 @@ class TestDeviceStatusManagement:
 
     @pytest.fixture
     def device_manager_with_status(self):
-        """Create device manager with status tracking."""
-        with patch(
-            "pymodaq_plugins_urashg.extensions.device_manager.URASHGDeviceManager"
-        ):
-            from pymodaq_plugins_urashg.extensions.device_manager import (
-                URASHGDeviceManager,
-                DeviceStatus,
-            )
+        """Create device manager stub with status tracking."""
+        from pymodaq_plugins_urashg.extensions.device_manager import (
+            URASHGDeviceManager,
+            DeviceStatus,
+        )
 
-            dm = URASHGDeviceManager()
-            dm.device_status = {
-                "MaiTai": DeviceStatus.DISCONNECTED,
-                "Elliptec": DeviceStatus.CONNECTED,
-                "PrimeBSI": DeviceStatus.READY,
-            }
-            return dm
+        dm = URASHGDeviceManager()
+        # Status is already initialized in the stub
+        return dm
 
     def test_device_status_enum_exists(self):
         """Test DeviceStatus enum is properly defined."""
@@ -193,15 +178,14 @@ class TestDeviceStatusManagement:
         dm = device_manager_with_status
 
         # Should be able to get status dict
-        if hasattr(dm, "get_all_device_status"):
-            status_dict = dm.get_all_device_status()
-            assert isinstance(status_dict, dict)
+        status_dict = dm.get_all_device_status()
+        assert isinstance(status_dict, dict)
 
-            # Should be JSON serializable
-            try:
-                json.dumps(status_dict, default=str)
-            except (TypeError, ValueError) as e:
-                pytest.fail(f"Device status not serializable: {e}")
+        # Should be JSON serializable
+        try:
+            json.dumps(status_dict, default=str)
+        except (TypeError, ValueError) as e:
+            pytest.fail(f"Device status not serializable: {e}")
 
     def test_device_readiness_check(self, device_manager_with_status):
         """Test device readiness checking."""
@@ -217,53 +201,44 @@ class TestDeviceStatusManagement:
 
 
 class TestMultiDeviceCoordination:
-    """Test coordination of multiple devices."""
+    """Test coordination of multiple devices through extension architecture."""
 
     @pytest.fixture
-    def coordinated_device_manager(self):
-        """Create device manager with multiple coordinated devices."""
-        mock_devices = {
-            "MaiTai": MockMovePlugin("MaiTai"),
-            "Elliptec": MockMovePlugin("Elliptec"),
-            "PrimeBSI": MockViewerPlugin("PrimeBSI"),
-        }
+    def device_manager_stub(self):
+        """Create device manager stub for basic coordination testing."""
+        from pymodaq_plugins_urashg.extensions.device_manager import (
+            URASHGDeviceManager,
+        )
+        return URASHGDeviceManager()
 
-        with patch.multiple(
-            "pymodaq_plugins_urashg.extensions.device_manager",
-            **{
-                (
-                    f"DAQ_Move_{name}"
-                    if name != "PrimeBSI"
-                    else "DAQ_2DViewer_PrimeBSI"
-                ): lambda d=device: d
-                for name, device in mock_devices.items()
-            },
-        ):
-            from pymodaq_plugins_urashg.extensions.device_manager import (
-                URASHGDeviceManager,
-            )
+    def test_device_registration_interface(self, device_manager_stub):
+        """Test device registration interface exists."""
+        dm = device_manager_stub
 
-            dm = URASHGDeviceManager()
-            dm.devices = mock_devices
-            return dm
+        # Should have methods for device registration
+        assert hasattr(dm, "register_device")
+        assert callable(dm.register_device)
+        assert hasattr(dm, "unregister_device")
+        assert callable(dm.unregister_device)
 
-    def test_simultaneous_device_operations(self, coordinated_device_manager):
-        """Test coordination of simultaneous device operations."""
-        dm = coordinated_device_manager
+    def test_supported_devices_list(self, device_manager_stub):
+        """Test device manager knows about supported devices."""
+        dm = device_manager_stub
+        expected_devices = ["MaiTai", "Elliptec", "ESP300", "PrimeBSI", "Newport1830C"]
 
-        # Should have method for coordinated moves
-        if hasattr(dm, "coordinate_devices"):
-            assert callable(dm.coordinate_devices)
+        assert hasattr(dm, "supported_devices")
+        for device in expected_devices:
+            assert device in dm.supported_devices
 
-        # Should handle simultaneous operations without conflicts
-        assert hasattr(dm, "emergency_stop_all")
-        assert callable(dm.emergency_stop_all)
+    def test_extension_integration_note(self, device_manager_stub):
+        """Test that device manager encourages extension usage."""
+        dm = device_manager_stub
 
-    def test_device_synchronization(self, coordinated_device_manager):
-        """Test device synchronization capabilities."""
-        dm = coordinated_device_manager
-
-        # Should have synchronization methods
+        # Should have initialization and cleanup methods that delegate to extension
+        assert hasattr(dm, "initialize_devices")
+        assert callable(dm.initialize_devices)
+        assert hasattr(dm, "cleanup_devices")
+        assert callable(dm.cleanup_devices)
         if hasattr(dm, "synchronize_devices"):
             assert callable(dm.synchronize_devices)
 
