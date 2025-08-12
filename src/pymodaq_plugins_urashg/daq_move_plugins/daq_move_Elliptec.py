@@ -394,10 +394,15 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
             target = [c + p for c, p in zip(current_list, relative_moves_list)]
 
-            # For relative move, just call move_abs with first target value
-            # This avoids type issues with DataActuator in relative moves
+            # For relative move, call move_abs with proper DataActuator for multi-axis
             if target:
-                self.move_abs(target[0])
+                plugin_name = getattr(self, 'title', self.__class__.__name__)
+                target_data = DataActuator(
+                    name=plugin_name,
+                    data=[np.array(target)],
+                    units=self._controller_units
+                )
+                self.move_abs(target_data)
             else:
                 self.emit_status(ThreadCommand("Update_Status", ["No target calculated for relative move", "warning"]))
         except Exception as e:

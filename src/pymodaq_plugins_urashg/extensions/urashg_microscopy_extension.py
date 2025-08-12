@@ -28,7 +28,7 @@ import numpy as np
 
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import QObject, QTimer
-from PySide6.QtCore import Signal
+from qtpy.QtCore import Signal
 import pyqtgraph as pg
 from pyqtgraph.dockarea import Dock, DockArea
 
@@ -41,7 +41,7 @@ from pymodaq_utils.config import Config
 # PyMoDAQ imports for proper extension patterns
 
 import json
-from PySide6.QtCore import QThread
+from qtpy.QtCore import QThread
 logger = set_logger(get_module_name(__file__))
 
 
