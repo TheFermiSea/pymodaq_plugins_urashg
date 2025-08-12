@@ -6,8 +6,7 @@ Updated for PyMoDAQ 5.0+ with DataWithAxes format.
 Provides power measurement capability for URASHG calibration.
 """
 
-import time
-from typing import List
+from typing import Optional
 
 import numpy as np
 from pymodaq.control_modules.viewer_utility_classes import (
@@ -15,14 +14,7 @@ from pymodaq.control_modules.viewer_utility_classes import (
     comon_parameters,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataToExport, DataWithAxes
-from pymodaq_data.data import DataSource
-
-try:
-    from pymodaq.control_modules.thread_commands import ThreadStatusViewer
-except ImportError:
-    # PyMoDAQ 5.x compatibility
-    from pymodaq.utils.daq_utils import ThreadCommand as ThreadStatusViewer
+from pymodaq.utils.data import DataToExport, DataFromPlugins
 
 from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
     Newport1830CController,
@@ -158,7 +150,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
         super().__init__(parent, params_state)
 
         # Hardware controller
-        self.controller: Newport1830CController = None
+        self.controller: Optional[Newport1830CController] = None
 
         # Data configuration
         self.x_axis = None
@@ -188,15 +180,8 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             # Apply measurement settings
             self._apply_measurement_settings()
 
-            # Set up data structure
+            # Set up data structure - removed DataWithAxes as it's handled in grab_data
             current_units = self.settings.child("measurement_group", "units").value()
-            self.x_axis = DataWithAxes(
-                name="Power",
-                source=DataSource.raw,
-                data=[np.array([0])],
-                labels=["Power"],
-                units=current_units,
-            )
 
             # Update status
             self.settings.child("status_group", "device_status").setValue("Connected")
@@ -303,29 +288,27 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             # Get current units for labeling
             units = self.settings.child("measurement_group", "units").value()
 
-            # Create DataWithAxes object
-            data_export = DataWithAxes(
+            # Create DataFromPlugins object for 0D data
+            data_from_plugins = DataFromPlugins(
                 name="Newport1830C_Power",
-                source=DataSource.raw,
                 data=[power_data],
-                labels=["Power"],
-                units=units,
+                dim='Data0D',
+                labels=["Power"]
             )
 
-            # Emit data using PyMoDAQ 5.x format
-            self.dte_signal.emit(DataToExport("Newport1830C_data", data=[data_export]))
+            # Emit data using correct PyMoDAQ format
+            self.dte_signal.emit(DataToExport("Newport1830C_data", data=[data_from_plugins]))
 
         except Exception as e:
             self.emit_status(
                 ThreadCommand("Update_Status", [f"Error during measurement: {e}"])
             )
             # Emit zero data on error
-            zero_data = DataWithAxes(
+            zero_data = DataFromPlugins(
                 name="Newport1830C_Power",
-                source=DataSource.raw,
                 data=[np.array([0.0])],
-                labels=["Power"],
-                units="W",
+                dim='Data0D',
+                labels=["Power"]
             )
             self.dte_signal.emit(DataToExport("Newport1830C_data", data=[zero_data]))
 

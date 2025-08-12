@@ -9,7 +9,7 @@ Compatible with PyMoDAQ 5.0+ multi-axis architecture.
 """
 
 import time
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
@@ -44,7 +44,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
     # Plugin metadata
     _controller_units = "millimeter"  # Default units
     _axis_names = ["X Stage", "Y Stage", "Z Focus"]  # Default axis names
-    _epsilon = [0.001, 0.001, 0.0001]  # Position tolerances (mm, mm, μm)
+    _epsilon = 0.001  # Position tolerance (mm)
 
     is_multiaxes = True  # Enable multi-axis support
 
@@ -339,7 +339,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
         super().__init__(parent, params_state)
 
         # Hardware controller
-        self.controller: ESP300Controller = None
+        self.controller: Optional[ESP300Controller] = None
 
         # Current configuration
         self._current_axes = []
@@ -695,7 +695,9 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if not axis:
                     raise RuntimeError("Axis 1 not available")
 
-                if not axis.move_absolute(float(target_positions_list)):
+                # target_positions_list should be a single float for single axis
+                position = target_positions_list if isinstance(target_positions_list, (int, float)) else target_positions_list[0]
+                if not axis.move_absolute(float(position)):
                     raise RuntimeError("Move command failed")
 
                 # Wait for motion if enabled
@@ -775,7 +777,10 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 )
                 self.move_abs(target_data)
             else:
-                target_position = current_positions + relative_moves_list
+                # Handle single axis case - ensure we're working with scalar values
+                current_pos = current_positions if isinstance(current_positions, (int, float)) else current_positions[0]
+                relative_move = relative_moves_list if isinstance(relative_moves_list, (int, float)) else relative_moves_list[0]
+                target_position = current_pos + relative_move
 
                 # Create DataActuator for target position
                 plugin_name = getattr(self, "title", self.__class__.__name__)
