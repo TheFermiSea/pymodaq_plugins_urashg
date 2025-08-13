@@ -229,3 +229,6 @@ pymodaq_development_guide.md
 
 # Development cleanup folder
 old/
+uv.lock
+
+docs/ai_docs

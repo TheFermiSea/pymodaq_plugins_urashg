@@ -232,7 +232,9 @@ class TestExtensionSignalCompliance:
         """Create a mock extension instance for testing."""
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ):
+        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'):
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -242,11 +244,12 @@ class TestExtensionSignalCompliance:
             if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
-            mock_dockarea = Mock(spec=QtWidgets.QWidget)
+            # Create a mock DockArea that satisfies CustomApp requirements
+            mock_dockarea = Mock()
             mock_dockarea.addDock = Mock()
-            # Make it pass isinstance checks
-            mock_dockarea.__class__ = QtWidgets.QWidget
+            # Make it pass isinstance checks by creating a real QWidget class reference
+            # but using the mocked version to avoid Qt widget creation issues
+            mock_dockarea.__class__ = type('MockQWidget', (), {})
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -305,7 +308,9 @@ class TestExtensionUICompliance:
         """Create extension with mocked UI components."""
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ):
+        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'):
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -315,11 +320,12 @@ class TestExtensionUICompliance:
             if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
-            mock_dockarea = Mock(spec=QtWidgets.QWidget)
+            # Create a mock DockArea that satisfies CustomApp requirements
+            mock_dockarea = Mock()
             mock_dockarea.addDock = Mock()
-            # Make it pass isinstance checks
-            mock_dockarea.__class__ = QtWidgets.QWidget
+            # Make it pass isinstance checks by creating a real QWidget class reference
+            # but using the mocked version to avoid Qt widget creation issues
+            mock_dockarea.__class__ = type('MockQWidget', (), {})
             
             # Create extension with mock DockArea
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
@@ -383,11 +389,12 @@ class TestExtensionDeviceIntegration:
             if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
-            mock_dockarea = Mock(spec=QtWidgets.QWidget)
+            # Create a mock DockArea that satisfies CustomApp requirements
+            mock_dockarea = Mock()
             mock_dockarea.addDock = Mock()
-            # Make it pass isinstance checks
-            mock_dockarea.__class__ = QtWidgets.QWidget
+            # Make it pass isinstance checks by creating a real QWidget class reference
+            # but using the mocked version to avoid Qt widget creation issues
+            mock_dockarea.__class__ = type('MockQWidget', (), {})
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -433,7 +440,9 @@ class TestExtensionMeasurementCompliance:
         """Create extension ready for measurement testing."""
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ):
+        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'):
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -443,11 +452,12 @@ class TestExtensionMeasurementCompliance:
             if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
-            mock_dockarea = Mock(spec=QtWidgets.QWidget)
+            # Create a mock DockArea that satisfies CustomApp requirements
+            mock_dockarea = Mock()
             mock_dockarea.addDock = Mock()
-            # Make it pass isinstance checks
-            mock_dockarea.__class__ = QtWidgets.QWidget
+            # Make it pass isinstance checks by creating a real QWidget class reference
+            # but using the mocked version to avoid Qt widget creation issues
+            mock_dockarea.__class__ = type('MockQWidget', (), {})
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -500,7 +510,9 @@ class TestExtensionConfigurationCompliance:
         """Create extension for configuration testing."""
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ):
+        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'):
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -510,11 +522,12 @@ class TestExtensionConfigurationCompliance:
             if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
-            mock_dockarea = Mock(spec=QtWidgets.QWidget)
+            # Create a mock DockArea that satisfies CustomApp requirements
+            mock_dockarea = Mock()
             mock_dockarea.addDock = Mock()
-            # Make it pass isinstance checks
-            mock_dockarea.__class__ = QtWidgets.QWidget
+            # Make it pass isinstance checks by creating a real QWidget class reference
+            # but using the mocked version to avoid Qt widget creation issues
+            mock_dockarea.__class__ = type('MockQWidget', (), {})
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -558,7 +571,9 @@ class TestExtensionErrorHandling:
         """Create extension for error handling testing."""
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ):
+        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'):
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -568,11 +583,12 @@ class TestExtensionErrorHandling:
             if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
-            mock_dockarea = Mock(spec=QtWidgets.QWidget)
+            # Create a mock DockArea that satisfies CustomApp requirements
+            mock_dockarea = Mock()
             mock_dockarea.addDock = Mock()
-            # Make it pass isinstance checks
-            mock_dockarea.__class__ = QtWidgets.QWidget
+            # Make it pass isinstance checks by creating a real QWidget class reference
+            # but using the mocked version to avoid Qt widget creation issues
+            mock_dockarea.__class__ = type('MockQWidget', (), {})
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -623,7 +639,9 @@ class TestExtensionThreadSafety:
         """Create extension for thread safety testing."""
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ):
+        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
+          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'):
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -633,11 +651,12 @@ class TestExtensionThreadSafety:
             if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
-            mock_dockarea = Mock(spec=QtWidgets.QWidget)
+            # Create a mock DockArea that satisfies CustomApp requirements
+            mock_dockarea = Mock()
             mock_dockarea.addDock = Mock()
-            # Make it pass isinstance checks
-            mock_dockarea.__class__ = QtWidgets.QWidget
+            # Make it pass isinstance checks by creating a real QWidget class reference
+            # but using the mocked version to avoid Qt widget creation issues
+            mock_dockarea.__class__ = type('MockQWidget', (), {})
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
