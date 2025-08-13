@@ -1,0 +1,436 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for proper versioning
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install sphinx sphinx-rtd-theme myst-parser sphinx-autodoc-typehints
+    
+    - name: Create docs directory structure
+      run: |
+        mkdir -p docs/{_static,_templates,api,user_guide,developer_guide}
+    
+    - name: Generate API documentation
+      run: |
+        python -c "
+        import os
+        import importlib
+        
+        # Generate API documentation
+        api_content = '''
+API Reference
+=============
+
+This section contains the complete API reference for the URASHG PyMoDAQ plugins.
+
+Hardware Controllers
+-------------------
+
+.. automodule:: pymodaq_plugins_urashg.hardware.urashg.maitai_control
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper  
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pymodaq_plugins_urashg.hardware.urashg.esp300_controller
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Move Plugins
+-----------
+
+.. automodule:: pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_Elliptec
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_ESP300
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Viewer Plugins
+-------------
+
+.. automodule:: pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI
+   :members:
+   :undoc-members:
+   :show-inheritance:
+'''
+        
+        with open('docs/api/index.rst', 'w') as f:
+            f.write(api_content)
+        "
+    
+    - name: Generate user guide
+      run: |
+        python -c "
+        user_guide = '''
+User Guide
+==========
+
+Installation
+-----------
+
+Install the URASHG PyMoDAQ plugins package:
+
+.. code-block:: bash
+
+    pip install pymodaq-plugins-urashg
+
+For development installation:
+
+.. code-block:: bash
+
+    git clone https://github.com/PyMoDAQ/pymodaq_plugins_urashg.git
+    cd pymodaq_plugins_urashg
+    pip install -e .
+
+Hardware Setup
+--------------
+
+The URASHG system consists of the following hardware components:
+
+MaiTai Laser
+~~~~~~~~~~~
+
+- **Model**: Spectra-Physics MaiTai HP
+- **Connection**: Serial (RS-232), typically /dev/ttyUSB0
+- **Baud Rate**: 115200
+- **Function**: Wavelength tuning (700-900 nm)
+
+Elliptec Rotation Mounts
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Model**: Thorlabs ELL14 (3 units)
+- **Connection**: Serial (RS-232), typically /dev/ttyUSB1
+- **Baud Rate**: 9600
+- **Function**: Polarization control (QWP, HWP incident, HWP analyzer)
+
+Newport Power Meter
+~~~~~~~~~~~~~~~~~~
+
+- **Model**: Newport 1830-C
+- **Connection**: Serial (RS-232), typically /dev/ttyUSB2
+- **Baud Rate**: 9600
+- **Function**: Power measurement for calibration
+
+Newport ESP300 Motion Controller
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Model**: Newport ESP300
+- **Connection**: Serial (RS-232), typically /dev/ttyUSB3
+- **Baud Rate**: 19200
+- **Function**: XYZ stage positioning
+
+PrimeBSI Camera
+~~~~~~~~~~~~~~
+
+- **Model**: Photometrics Prime BSI
+- **Connection**: USB 3.0
+- **Function**: 2D SHG detection
+
+Plugin Usage
+-----------
+
+After installation, the plugins will be automatically discovered by PyMoDAQ.
+
+1. Launch PyMoDAQ Dashboard:
+
+.. code-block:: bash
+
+    python -m pymodaq.dashboard
+
+2. Add move controllers for:
+   - MaiTai Laser (wavelength control)
+   - Elliptec Mounts (polarization control)
+   - ESP300 (sample positioning)
+
+3. Add detectors for:
+   - Newport 1830C (power measurement)
+   - PrimeBSI Camera (2D detection)
+
+Configuration
+------------
+
+Each plugin provides comprehensive configuration options:
+
+- Serial port settings
+- Hardware-specific parameters
+- Mock mode for testing
+- Real-time status monitoring
+
+For detailed configuration options, see the API reference.
+'''
+        
+        with open('docs/user_guide/index.rst', 'w') as f:
+            f.write(user_guide)
+        "
+    
+    - name: Generate developer guide
+      run: |
+        python -c "
+        dev_guide = '''
+Developer Guide
+==============
+
+Architecture
+-----------
+
+The URASHG plugin package follows PyMoDAQ 5.x architecture standards:
+
+- **Hardware Layer**: Low-level device communication
+- **Plugin Layer**: PyMoDAQ-compatible interfaces
+- **Testing Layer**: Comprehensive validation
+
+Package Structure
+----------------
+
+.. code-block::
+
+    pymodaq_plugins_urashg/
+    ├── src/pymodaq_plugins_urashg/
+    │   ├── hardware/urashg/           # Hardware controllers
+    │   ├── daq_move_plugins/          # Move plugins
+    │   ├── daq_viewer_plugins/        # Viewer plugins
+    │   └── utils/                     # Utility functions
+    ├── tests/                         # Test suite
+    └── docs/                          # Documentation
+
+Hardware Controllers
+------------------
+
+Each hardware component has a dedicated controller in the hardware layer:
+
+- ``maitai_control.py``: MaiTai laser control
+- ``elliptec_wrapper.py``: Elliptec rotation mount control
+- ``newport1830c_controller.py``: Newport power meter control
+- ``esp300_controller.py``: ESP300 motion controller
+
+PyMoDAQ Plugins
+--------------
+
+PyMoDAQ plugins provide the interface between hardware controllers and the PyMoDAQ framework:
+
+Move Plugins:
+- ``DAQ_Move_MaiTai``: Laser wavelength control
+- ``DAQ_Move_Elliptec``: Multi-axis rotation control
+- ``DAQ_Move_ESP300``: XYZ positioning control
+
+Viewer Plugins:
+- ``DAQ_0DViewer_Newport1830C``: 0D power measurements
+- ``DAQ_2DViewer_PrimeBSI``: 2D camera detection
+
+Testing
+-------
+
+The package includes comprehensive testing:
+
+.. code-block:: bash
+
+    # Run all tests
+    pytest
+
+    # Run with coverage
+    pytest --cov=pymodaq_plugins_urashg
+
+    # Run comprehensive system test
+    python test_comprehensive_system.py
+
+Contributing
+-----------
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes with tests
+4. Ensure all tests pass
+5. Submit a pull request
+
+Code Style
+----------
+
+- Use Black for code formatting
+- Use isort for import sorting
+- Follow PEP 8 guidelines
+- Include comprehensive docstrings
+'''
+        
+        with open('docs/developer_guide/index.rst', 'w') as f:
+            f.write(dev_guide)
+        "
+    
+    - name: Generate main documentation index
+      run: |
+        python -c "
+        index_content = '''
+URASHG PyMoDAQ Plugins Documentation
+===================================
+
+Welcome to the documentation for the URASHG (micro Rotational Anisotropy Second Harmonic Generation) PyMoDAQ plugins package.
+
+This package provides comprehensive hardware control for URASHG microscopy systems, including:
+
+- **MaiTai Laser**: Wavelength tuning and power control
+- **Elliptec Rotation Mounts**: Polarization control (3 mounts)  
+- **Newport Power Meter**: Calibration measurements
+- **Newport ESP300**: XYZ sample positioning
+- **PrimeBSI Camera**: 2D SHG detection
+
+Features
+-------
+
+- **PyMoDAQ 5.x Compatible**: Full integration with latest PyMoDAQ
+- **Hardware Abstraction**: Clean separation of hardware and plugin layers
+- **Mock Mode Support**: Testing without physical hardware
+- **Comprehensive Testing**: Extensive test suite with CI/CD
+- **Multi-Platform**: Windows, macOS, and Linux support
+
+Quick Start
+----------
+
+1. Install the package:
+
+.. code-block:: bash
+
+    pip install pymodaq-plugins-urashg
+
+2. Launch PyMoDAQ:
+
+.. code-block:: bash
+
+    python -m pymodaq.dashboard
+
+3. Add URASHG plugins to your measurement setup
+
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Documentation:
+
+   user_guide/index
+   api/index
+   developer_guide/index
+
+Indices and tables
+==================
+
+* :ref:\`genindex\`
+* :ref:\`modindex\`
+* :ref:\`search\`
+'''
+        
+        with open('docs/index.rst', 'w') as f:
+            f.write(index_content)
+        "
+    
+    - name: Generate Sphinx configuration
+      run: |
+        python -c "
+        conf_content = '''
+# Configuration file for the Sphinx documentation builder.
+
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../src'))
+
+# -- Project information -----------------------------------------------------
+project = 'URASHG PyMoDAQ Plugins'
+copyright = '2025, URASHG Development Team'
+author = 'URASHG Development Team'
+release = '0.1.0'
+
+# -- General configuration ---------------------------------------------------
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.autosummary',
+    'myst_parser',
+    'sphinx_autodoc_typehints',
+]
+
+templates_path = ['_templates']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+# -- Options for HTML output -------------------------------------------------
+html_theme = 'sphinx_rtd_theme'
+html_static_path = ['_static']
+
+# -- Extension configuration -------------------------------------------------
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True,
+    'show-inheritance': True,
+}
+
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = False
+napoleon_include_private_with_doc = False
+
+autosummary_generate = True
+'''
+        
+        with open('docs/conf.py', 'w') as f:
+            f.write(conf_content)
+        "
+    
+    - name: Build documentation
+      run: |
+        cd docs
+        sphinx-build -b html . _build/html -W
+    
+    - name: Upload documentation artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/_build/html/
+    
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs/_build/html

@@ -1,0 +1,138 @@
+# Configuration template for PyMoDAQ URASHG Plugin Package
+# This file defines the default configuration values for the μRASHG microscopy plugin
+
+[urashg]
+# Main configuration section for URASHG microscopy
+
+[urashg.hardware]
+# Hardware connection defaults
+
+[urashg.hardware.elliptec]
+# Elliptec rotation mounts configuration
+# Note: Adjust serial port based on actual hardware connection
+serial_port = "/dev/ttyUSB1" # Typical: Linux, use COM port on Windows
+baudrate = 9600
+timeout = 2.0
+
+# Mount addresses (0-15, factory default varies)
+mount_addresses = [2, 3, 8] # HWP incident, QWP, HWP analyzer
+home_on_startup = false
+position_tolerance = 0.1    # degrees
+
+[urashg.hardware.redpitaya]
+# Red Pitaya FPGA-based PID controller
+# Note: Adjust IP address based on actual hardware network configuration
+ip_address = "rp-f08d6c.local" # or use direct IP like "192.168.1.100"
+timeout = 5.0
+
+# PID controller settings
+pid_enabled = true
+setpoint_default = 0.5 # volts
+kp_default = 0.1
+ki_default = 0.01
+kd_default = 0.001
+
+[urashg.hardware.camera]
+# Photometrics Prime BSI camera configuration
+exposure_default = 100.0  # milliseconds
+gain_default = 1
+cooling_enabled = true
+cooling_temperature = -20 # Celsius
+
+# Default ROI settings
+roi_x = 0
+roi_y = 0
+roi_width = 2048
+roi_height = 2048
+
+[urashg.hardware.maitai]
+# MaiTai laser configuration
+# Note: Adjust serial port based on actual hardware connection
+serial_port = "/dev/ttyUSB0"  # Typical: Linux, use COM port on Windows
+baudrate = 9600
+timeout = 5.0
+wavelength_range_min = 700.0  # nm
+wavelength_range_max = 1000.0 # nm
+power_range_min = 0.1         # watts
+power_range_max = 3.5         # watts
+
+[urashg.hardware.newport]
+# Newport 1830-C power meter configuration
+# Note: Adjust GPIB address based on actual hardware configuration
+gpib_address = 12  # Avoid common addresses 1-10, use 12-30 range
+timeout = 5.0
+wavelength = 800.0 # nm - default measurement wavelength
+auto_range = true
+range_value = 1.0  # watts - manual range if auto_range = false
+
+[urashg.hardware.esp300]
+# Newport ESP300 motion controller
+# Note: Adjust serial port based on actual hardware connection
+serial_port = "/dev/ttyUSB2" # Typical: Linux, use COM port on Windows
+baudrate = 19200
+timeout = 10.0
+axis_count = 3
+
+# Axis configuration (X, Y, Z)
+axis_units = ["mm", "mm", "mm"]
+axis_limits_min = [-25.0, -25.0, -12.5]
+axis_limits_max = [25.0, 25.0, 12.5]
+
+[urashg.measurement]
+# Default measurement parameters
+
+[urashg.measurement.rashg]
+# Rotational Anisotropy SHG measurement defaults
+polarization_start = -45.0 # degrees
+polarization_end = 45.0    # degrees
+polarization_step = 5.0    # degrees
+averaging_frames = 3
+laser_power = 100.0        # milliwatts
+exposure_time = 100.0      # milliseconds
+
+[urashg.measurement.calibration]
+# Calibration measurement settings
+calibration_points = 36   # number of calibration angles
+calibration_range = 180.0 # degrees
+reference_power = 50.0    # milliwatts for calibration
+
+[urashg.data]
+# Data handling and storage settings
+
+[urashg.data.acquisition]
+auto_save = true
+save_format = "hdf5"
+compression = true
+metadata_include = ["timestamp", "settings", "hardware_config"]
+
+[urashg.data.processing]
+background_subtraction = true
+roi_integration = true
+real_time_analysis = false
+
+[urashg.safety]
+# Safety and interlock settings
+
+[urashg.safety.limits]
+max_laser_power = 200.0       # milliwatts - software limit
+max_exposure_time = 10000.0   # milliseconds
+emergency_stop_enabled = true
+
+[urashg.safety.interlocks]
+temperature_monitoring = true
+beam_block_required = false
+user_confirmation = true
+
+[urashg.system]
+# System-wide settings
+
+[urashg.system.logging]
+log_level = "INFO"
+log_file_enabled = true
+log_rotation = true
+max_log_size = "10MB"
+
+[urashg.system.performance]
+thread_count = 4
+buffer_size = 1000
+acquisition_timeout = 30.0 # seconds

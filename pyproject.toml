@@ -1,0 +1,167 @@
+[features] # defines the plugin features contained into this plugin
+instruments = true  # true if plugin contains instrument classes (else false, notice the lowercase for toml files)
+extensions = true   # true if plugins contains dashboard extensions
+models = false      # true if plugins contains pid models
+h5exporters = false # true if plugin contains custom h5 file exporters
+scanners = false    # true if plugin contains custom scan layout (daq_scan extensions)
+
+[urls]
+package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_urashg'
+
+[project]
+name = "pymodaq_plugins_urashg"
+description = 'PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems'
+dependencies = [
+    "pymodaq>=5.0.0",
+    "pymodaq-gui>=5.0.0",
+    "pymodaq-data>=5.0.0",
+    "pymodaq-utils>=0.0.14",
+    "numpy>=1.20.0",
+    "PyQt6>=6.0.0",
+    "pyqtgraph>=0.12.0",
+    "h5py>=3.0.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.3.0",
+    "pyserial>=3.4",
+    "elliptec>=0.0.6",
+]
+
+authors = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
+maintainers = [
+    { name = "PyMoDAQ Plugin Development Team", email = "contact@pymodaq.org" },
+]
+
+# nottodo: leave everything below as is!
+
+dynamic = ["version", "urls"]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: User Interfaces",
+]
+
+[project.entry-points."pymodaq.plugins"]
+urashg = "pymodaq_plugins_urashg"
+
+[project.entry-points."pymodaq.move_plugins"]
+DAQ_Move_Elliptec = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
+DAQ_Move_MaiTai = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"
+DAQ_Move_ESP300 = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300:DAQ_Move_ESP300"
+
+[project.entry-points."pymodaq.viewer_plugins"]
+DAQ_2DViewer_PrimeBSI = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
+DAQ_0DViewer_Newport1830C = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
+
+[project.entry-points."pymodaq.extensions"]
+URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "pytest-qt>=4.0",
+    "pytest-mock>=3.0",
+    "pytest-xvfb>=3.0",
+    "black>=21.0",
+    "flake8>=3.9",
+    "isort>=5.0",
+    "pre-commit>=2.15",
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0",
+    "myst-parser>=0.15",
+]
+test = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "pytest-qt>=4.0",
+    "pytest-mock>=3.0",
+    "pytest-xvfb>=3.0",
+    "pytest-benchmark>=4.0",
+]
+hardware = [
+    # Hardware-specific dependencies (optional for basic functionality)
+    "opencv-python>=4.5.0", # Image processing
+    "scikit-image>=0.18.0", # Advanced image analysis
+    "pyvcam>=2.0.0",        # Photometrics camera support
+]
+pyrpl = [
+    # PyRPL Red Pitaya control integration (optional - under development)
+    "pyrpl>=0.9.3", # PyRPL library for advanced features
+]
+mock = [
+    "pymodaq-plugins-mock>=1.0.0", # For testing without hardware
+]
+galvo = [
+    "pymodaq-plugins-daqmx>=1.0.0", # Future galvo mirror integration
+    "nidaqmx>=0.6.0",               # National Instruments DAQ
+]
+
+[build-system]
+requires = ["hatchling>=1.9.0", "hatch-vcs", "toml", "pymodaq_utils>=0.0.14"]
+build-backend = "hatchling.build"
+
+# [tool.hatch.metadata.hooks.custom]  # Disabled to use direct entry points
+
+# [tool.hatch.metadata]  # Disabled to use direct entry points
+# allow-direct-references = true
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["pymodaq_plugins_urashg"]
+known_third_party = ["pymodaq", "numpy", "PyQt6", "pyqtgraph"]
+
+
+[tool.coverage.run]
+source = ["src/pymodaq_plugins_urashg"]
+omit = ["*/tests/*", "*/examples/*", "*/docs/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

@@ -1,0 +1,222 @@
+name: CI
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main]
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: [3.9, "3.10", "3.11", "3.12"]
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v4
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install system dependencies
+              run: |
+                  sudo apt-get update
+                  # Install essential packages for Qt and testing
+                  sudo apt-get install -y xvfb libglib2.0-0 libfontconfig1 libdbus-1-3 libegl1
+
+                  # Install Qt/X11 dependencies (with error tolerance for different Ubuntu versions)
+                  sudo apt-get install -y \
+                    libxkbcommon-x11-0 \
+                    libxcb-icccm4 \
+                    libxcb-image0 \
+                    libxcb-keysyms1 \
+                    libxcb-randr0 \
+                    libxcb-render-util0 \
+                    libxcb-xinerama0 \
+                    libxcb-xfixes0 || echo "Some X11 packages not available, continuing..."
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install pytest pytest-cov pytest-xvfb
+                  # Install package without optional hardware dependencies for CI
+                  pip install -e . || (echo "Installation failed, trying without optional deps..." && pip install --no-deps -e . && pip install pymodaq>=5.0.0 pymodaq-gui>=5.0.0 pymodaq-data>=5.0.0 pymodaq-utils>=0.0.14 numpy>=1.20.0 PyQt6>=6.0.0 pyqtgraph>=0.12.0 h5py>=3.0.0 scipy>=1.7.0 matplotlib>=3.3.0 pyserial>=3.4 elliptec>=0.0.6)
+
+            - name: Run tests with xvfb
+              run: |
+                  # Try with xvfb first, fallback to offscreen only
+                  xvfb-run -a python -m pytest tests/ -v --cov=pymodaq_plugins_urashg --cov-report=xml --cov-report=term-missing 2>/dev/null || \
+                  python -m pytest tests/ -v --cov=pymodaq_plugins_urashg --cov-report=xml --cov-report=term-missing
+              env:
+                  QT_QPA_PLATFORM: offscreen
+                  QT_DEBUG_PLUGINS: 0
+                  DISPLAY: :99
+                  CI: true
+                  PYMODAQ_TEST_MODE: mock
+
+            - name: Run comprehensive system test
+              run: |
+                  # Try with xvfb first, fallback to offscreen only
+                  xvfb-run -a python test_comprehensive_system.py 2>/dev/null || \
+                  python test_comprehensive_system.py
+              env:
+                  QT_QPA_PLATFORM: offscreen
+                  QT_DEBUG_PLUGINS: 0
+                  CI: true
+                  PYMODAQ_TEST_MODE: mock
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v3
+              with:
+                  file: ./coverage.xml
+                  flags: unittests
+                  name: codecov-umbrella
+                  fail_ci_if_error: false
+
+    lint:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.11"
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install black isort flake8
+
+            - name: Check code formatting with black
+              run: black --check --diff src/
+
+            - name: Check import sorting with isort
+              run: isort --check-only --diff src/
+
+            - name: Lint with flake8
+              run: flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    plugin-discovery:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.11"
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  # Install package without optional hardware dependencies for CI
+                  pip install -e . || (echo "Installation failed, trying without optional deps..." && pip install --no-deps -e . && pip install pymodaq>=5.0.0 pymodaq-gui>=5.0.0 pymodaq-data>=5.0.0 pymodaq-utils>=0.0.14 numpy>=1.20.0 PyQt6>=6.0.0 pyqtgraph>=0.12.0 h5py>=3.0.0 scipy>=1.7.0 matplotlib>=3.3.0 pyserial>=3.4 elliptec>=0.0.6)
+
+            - name: Test plugin discovery
+              run: |
+                  python -c "
+                  import importlib.metadata
+                  import sys
+                  import os
+
+                  eps = importlib.metadata.entry_points()
+
+                  # Check for specific plugin entry points
+                  if hasattr(eps, 'select'):
+                      move_plugins = list(eps.select(group='pymodaq.move_plugins'))
+                      viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins'))
+                      extensions = list(eps.select(group='pymodaq.extensions'))
+                  else:
+                      move_plugins = eps.get('pymodaq.move_plugins', [])
+                      viewer_plugins = eps.get('pymodaq.viewer_plugins', [])
+                      extensions = eps.get('pymodaq.extensions', [])
+
+                  # Check for URASHG specific plugins
+                  urashg_move = [ep for ep in move_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['maitai', 'elliptec', 'esp300'])]
+                  urashg_viewer = [ep for ep in viewer_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['newport', 'prime'])]
+                  urashg_extensions = [ep for ep in extensions if 'urashg' in ep.value.lower() or 'urashg' in ep.name.lower()]
+
+                  print(f'Found {len(urashg_move)} URASHG move plugins')
+                  for ep in urashg_move:
+                      print(f'  - {ep.name}: {ep.value}')
+
+                  print(f'Found {len(urashg_viewer)} URASHG viewer plugins')
+                  for ep in urashg_viewer:
+                      print(f'  - {ep.name}: {ep.value}')
+
+                  print(f'Found {len(urashg_extensions)} URASHG extensions')
+                  for ep in urashg_extensions:
+                      print(f'  - {ep.name}: {ep.value}')
+
+                  # Test plugin files exist and are syntactically valid
+                  try:
+                      import ast
+                      plugin_files = [
+                          'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_Elliptec.py',
+                          'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_MaiTai.py',
+                          'src/pymodaq_plugins_urashg/daq_move_plugins/daq_move_ESP300.py',
+                          'src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_0D/daq_0Dviewer_Newport1830C.py',
+                          'src/pymodaq_plugins_urashg/daq_viewer_plugins/plugins_2D/daq_2Dviewer_PrimeBSI.py',
+                          'src/pymodaq_plugins_urashg/extensions/urashg_microscopy_extension.py'
+                      ]
+                      for plugin_file in plugin_files:
+                          if os.path.exists(plugin_file):
+                              with open(plugin_file, 'r') as f:
+                                  ast.parse(f.read())  # Check syntax
+                          else:
+                              raise FileNotFoundError(f'Plugin file missing: {plugin_file}')
+                      print('✅ All plugin files exist and are syntactically valid')
+                      files_valid = True
+                  except Exception as e:
+                      print(f'❌ Plugin file validation failed: {e}')
+                      files_valid = False
+
+                  # Test that we have the expected number of plugins
+                  expected_move = 3  # MaiTai, Elliptec, ESP300
+                  expected_viewer = 2  # Newport1830C, PrimeBSI
+                  expected_extensions = 1  # URASHGMicroscopyExtension
+
+                  if len(urashg_move) >= expected_move and len(urashg_viewer) >= expected_viewer and len(urashg_extensions) >= expected_extensions and files_valid:
+                      print('✅ Plugin discovery: SUCCESS')
+                  else:
+                      print('❌ Plugin discovery: FAILED')
+                      print(f'Expected: {expected_move} move, {expected_viewer} viewer, {expected_extensions} extension plugins')
+                      print(f'Found: {len(urashg_move)} move, {len(urashg_viewer)} viewer, {len(urashg_extensions)} extension plugins')
+                      print(f'Files valid: {files_valid}')
+                      exit(1)
+                  "
+
+    build:
+        runs-on: ubuntu-latest
+        needs: [test, lint, plugin-discovery]
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.11"
+
+            - name: Install build dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install build twine
+
+            - name: Build package
+              run: python -m build
+
+            - name: Check package
+              run: twine check dist/*
+
+            - name: Upload build artifacts
+              uses: actions/upload-artifact@v3
+              with:
+                  name: dist
+                  path: dist/
