@@ -332,13 +332,11 @@ class TestExtensionUICompliance:
     @pytest.fixture
     def mock_extension_ui(self):
         """Create extension with mocked UI components."""
-        with patch(
-            "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'), \
-          patch('pymodaq_gui.utils.custom_app.CustomApp.__init__', return_value=None), \
-          patch('pymodaq_gui.managers.parameter_manager.ParameterManager'):
+        patches = get_mock_patches()
+        with ExitStack() as stack:
+            for patch_obj in patches:
+                stack.enter_context(patch_obj)
+                
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -404,11 +402,17 @@ class TestExtensionDeviceIntegration:
     @pytest.fixture
     def extension_with_mock_devices(self, mock_device_manager):
         """Create extension with mock device manager."""
-        with patch(
+        patches = get_mock_patches()
+        # Override the URASHGDeviceManager patch to return our specific mock
+        patches[0] = patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager",
             return_value=mock_device_manager,
-        ), patch('pymodaq_gui.utils.custom_app.CustomApp.__init__', return_value=None), \
-          patch('pymodaq_gui.managers.parameter_manager.ParameterManager'):
+        )
+        
+        with ExitStack() as stack:
+            for patch_obj in patches:
+                stack.enter_context(patch_obj)
+                
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -467,13 +471,11 @@ class TestExtensionMeasurementCompliance:
     @pytest.fixture
     def extension_with_measurement(self):
         """Create extension ready for measurement testing."""
-        with patch(
-            "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'), \
-          patch('pymodaq_gui.utils.custom_app.CustomApp.__init__', return_value=None), \
-          patch('pymodaq_gui.managers.parameter_manager.ParameterManager'):
+        patches = get_mock_patches()
+        with ExitStack() as stack:
+            for patch_obj in patches:
+                stack.enter_context(patch_obj)
+                
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -539,13 +541,11 @@ class TestExtensionConfigurationCompliance:
     @pytest.fixture
     def extension_config(self):
         """Create extension for configuration testing."""
-        with patch(
-            "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'), \
-          patch('pymodaq_gui.utils.custom_app.CustomApp.__init__', return_value=None), \
-          patch('pymodaq_gui.managers.parameter_manager.ParameterManager'):
+        patches = get_mock_patches()
+        with ExitStack() as stack:
+            for patch_obj in patches:
+                stack.enter_context(patch_obj)
+                
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -602,13 +602,11 @@ class TestExtensionErrorHandling:
     @pytest.fixture
     def extension_error_test(self):
         """Create extension for error handling testing."""
-        with patch(
-            "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'), \
-          patch('pymodaq_gui.utils.custom_app.CustomApp.__init__', return_value=None), \
-          patch('pymodaq_gui.managers.parameter_manager.ParameterManager'):
+        patches = get_mock_patches()
+        with ExitStack() as stack:
+            for patch_obj in patches:
+                stack.enter_context(patch_obj)
+                
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
@@ -672,13 +670,11 @@ class TestExtensionThreadSafety:
     @pytest.fixture
     def extension_thread_test(self):
         """Create extension for thread safety testing."""
-        with patch(
-            "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
-        ), patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.Dock'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QWidget'), \
-          patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.QtWidgets.QVBoxLayout'), \
-          patch('pymodaq_gui.utils.custom_app.CustomApp.__init__', return_value=None), \
-          patch('pymodaq_gui.managers.parameter_manager.ParameterManager'):
+        patches = get_mock_patches()
+        with ExitStack() as stack:
+            for patch_obj in patches:
+                stack.enter_context(patch_obj)
+                
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
