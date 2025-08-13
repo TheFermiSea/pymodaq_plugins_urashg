@@ -1,11 +1,10 @@
 import time
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     DataActuator,
-    comon_parameters_fun,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
 from qtpy.QtCore import QTimer
@@ -29,25 +28,23 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     _axis_names = ["Wavelength"]
     _epsilon = 0.1  # Wavelength precision in nm
 
-    # Plugin parameters - PyMoDAQ standard structure
-    params = comon_parameters_fun(
-        is_multiaxes=False, axis_names=_axis_names, epsilon=_epsilon
-    ) + [
-        # Hardware connection
+    # Plugin parameters - PyMoDAQ compliant structure
+    params = [
+        # Connection Settings (Required)
         {
-            "title": "Connection:",
-            "name": "connection_group",
+            "title": "Connection Settings:",
+            "name": "connect_settings",
             "type": "group",
             "children": [
                 {
                     "title": "Serial Port:",
-                    "name": "serial_port",
+                    "name": "com_port",
                     "type": "str",
                     "value": "/dev/ttyUSB0",
                 },
                 {
                     "title": "Baudrate:",
-                    "name": "baudrate",
+                    "name": "baud_rate",
                     "type": "int",
                     "value": 115200,
                 },
@@ -64,6 +61,57 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "name": "mock_mode",
                     "type": "bool",
                     "value": False,
+                },
+            ],
+        },
+        # Multiaxes (CRITICAL - Required by PyMoDAQ at top level)
+        {
+            "title": "Multiaxes:",
+            "name": "multiaxes",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Multi-axes:",
+                    "name": "multi_axes",
+                    "type": "list",
+                    "values": ["Wavelength"],
+                    "value": "Wavelength",
+                },
+                {
+                    "title": "Axis:",
+                    "name": "axis",
+                    "type": "list",
+                    "values": ["Wavelength"],
+                    "value": "Wavelength",
+                },
+                {
+                    "title": "Master/Slave:",
+                    "name": "multi_status",
+                    "type": "list",
+                    "values": ["Master", "Slave"],
+                    "value": "Master",
+                },
+            ],
+        },
+        # Move Settings (Required for DAQ_Move)
+        {
+            "title": "Move Settings:",
+            "name": "move_settings",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Current Position:",
+                    "name": "current_pos",
+                    "type": "float",
+                    "value": 0.0,
+                    "readonly": True,
+                },
+                {
+                    "title": "Epsilon (nm):",
+                    "name": "epsilon",
+                    "type": "float",
+                    "value": _epsilon,
+                    "readonly": True,
                 },
             ],
         },
@@ -195,7 +243,12 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         # Initialization flag for enhanced status monitoring
         self._fully_initialized = False
 
-    def ini_stage(self, controller=None):
+    @property
+    def axis_names(self) -> List[str]:
+        """Return list of available axis names for PyMoDAQ."""
+        return self._axis_names
+
+    def init_hardware(self, controller=None):
         """Initialize the hardware stage."""
         try:
             # Import here to avoid issues if module not available
@@ -204,10 +257,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             )
 
             # Get connection parameters
-            port = self.settings.child("connection_group", "serial_port").value()
-            baudrate = self.settings.child("connection_group", "baudrate").value()
-            timeout = self.settings.child("connection_group", "timeout").value()
-            mock_mode = self.settings.child("connection_group", "mock_mode").value()
+            port = self.settings.child("connect_settings", "com_port").value()
+            baudrate = self.settings.child("connect_settings", "baud_rate").value()
+            timeout = self.settings.child("connect_settings", "timeout").value()
+            mock_mode = self.settings.child("connect_settings", "mock_mode").value()
 
             # Create controller
             self.controller = MaiTaiController(
@@ -522,7 +575,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                         self.controller.disconnect()
                         self.controller = None
                         # Reinitialize with new settings
-                        self.ini_stage()
+                        self.init_hardware()
 
                 elif param.name() == "set_wavelength_btn":
                     # Set wavelength from target parameter

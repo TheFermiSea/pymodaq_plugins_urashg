@@ -15,7 +15,6 @@ import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     DataActuator,
-    comon_parameters_fun,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
@@ -48,24 +47,22 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
     is_multiaxes = True  # Enable multi-axis support
 
-    params = comon_parameters_fun(
-        is_multiaxes=True, axis_names=_axis_names, epsilon=_epsilon
-    ) + [
-        # Connection settings
+    params = [
+        # Connection Settings (Required)
         {
-            "title": "Connection:",
-            "name": "connection_group",
+            "title": "Connection Settings:",
+            "name": "connect_settings",
             "type": "group",
             "children": [
                 {
                     "title": "Serial Port:",
-                    "name": "serial_port",
+                    "name": "com_port",
                     "type": "str",
                     "value": "/dev/ttyUSB2",
                 },
                 {
                     "title": "Baudrate:",
-                    "name": "baudrate",
+                    "name": "baud_rate",
                     "type": "list",
                     "values": [9600, 19200, 38400, 57600, 115200],
                     "value": 19200,
@@ -81,6 +78,57 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     "name": "mock_mode",
                     "type": "bool",
                     "value": False,
+                },
+            ],
+        },
+        # Multiaxes (CRITICAL - Required by PyMoDAQ at top level)
+        {
+            "title": "Multiaxes:",
+            "name": "multiaxes",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Multi-axes:",
+                    "name": "multi_axes",
+                    "type": "list",
+                    "values": ["X Stage", "Y Stage", "Z Focus"],
+                    "value": "X Stage",
+                },
+                {
+                    "title": "Axis:",
+                    "name": "axis",
+                    "type": "list",
+                    "values": ["X Stage", "Y Stage", "Z Focus"],
+                    "value": "X Stage",
+                },
+                {
+                    "title": "Master/Slave:",
+                    "name": "multi_status",
+                    "type": "list",
+                    "values": ["Master", "Slave"],
+                    "value": "Master",
+                },
+            ],
+        },
+        # Move Settings (Required for DAQ_Move)
+        {
+            "title": "Move Settings:",
+            "name": "move_settings",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Current Position:",
+                    "name": "current_pos",
+                    "type": "float",
+                    "value": 0.0,
+                    "readonly": True,
+                },
+                {
+                    "title": "Epsilon (mm):",
+                    "name": "epsilon",
+                    "type": "float",
+                    "value": _epsilon,
+                    "readonly": True,
                 },
             ],
         },
@@ -345,13 +393,20 @@ class DAQ_Move_ESP300(DAQ_Move_base):
         self._current_axes = []
         self._position_poll_timer = None
 
-    def ini_stage(self, controller=None):
+    @property
+    def axis_names(self) -> List[str]:
+        """Return list of available axis names for PyMoDAQ."""
+        if hasattr(self, "_current_axes") and self._current_axes:
+            return self._current_axes
+        return self._axis_names
+
+    def init_hardware(self, controller=None):
         """Initialize the ESP300 motion controller."""
         try:
             self.emit_status(ThreadCommand("show_splash", "Initializing ESP300..."))
 
             # Check for mock mode
-            if self.settings.child("connection_group", "mock_mode").value():
+            if self.settings.child("connect_settings", "mock_mode").value():
                 self.emit_status(ThreadCommand("close_splash"))
                 self.emit_status(
                     ThreadCommand("Update_Status", ["ESP300 in mock mode"])
@@ -366,9 +421,9 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 return "ESP300 mock mode", True
 
             # Get connection parameters
-            port = self.settings.child("connection_group", "serial_port").value()
-            baudrate = self.settings.child("connection_group", "baudrate").value()
-            timeout = self.settings.child("connection_group", "timeout").value()
+            port = self.settings.child("connect_settings", "com_port").value()
+            baud_rate = self.settings.child("connect_settings", "baud_rate").value()
+            timeout = self.settings.child("connect_settings", "timeout").value()
 
             # Get axes configuration
             num_axes = self.settings.child("axes_config", "num_axes").value()
@@ -376,7 +431,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
             # Create controller
             self.controller = ESP300Controller(
-                port=port, baudrate=baudrate, timeout=timeout, axes_config=axes_config
+                port=port, baud_rate=baud_rate, timeout=timeout, axes_config=axes_config
             )
 
             # Connect to device

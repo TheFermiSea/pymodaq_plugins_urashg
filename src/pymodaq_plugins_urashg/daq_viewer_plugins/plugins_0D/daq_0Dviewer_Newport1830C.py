@@ -64,18 +64,18 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
         # Connection settings
         {
             "title": "Connection:",
-            "name": "connection_group",
+            "name": "connect_settings",
             "type": "group",
             "children": [
                 {
                     "title": "Serial Port:",
-                    "name": "serial_port",
+                    "name": "com_port",
                     "type": "str",
                     "value": "/dev/ttyS0",
                 },
                 {
                     "title": "Baudrate:",
-                    "name": "baudrate",
+                    "name": "baud_rate",
                     "type": "int",
                     "value": 9600,
                 },
@@ -209,13 +209,13 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                 return self.get_status(etat="Mock Newport 1830-C initialized")
 
             # Get connection parameters
-            port = self.settings.child("connection_group", "serial_port").value()
-            baudrate = self.settings.child("connection_group", "baudrate").value()
-            timeout = self.settings.child("connection_group", "timeout").value()
+            port = self.settings.child("connect_settings", "com_port").value()
+            baud_rate = self.settings.child("connect_settings", "baud_rate").value()
+            timeout = self.settings.child("connect_settings", "timeout").value()
 
             # Create controller
             self.controller = Newport1830CController(
-                port=port, baudrate=baudrate, timeout=timeout
+                port=port, baud_rate=baud_rate, timeout=timeout
             )
 
             # Connect to device
@@ -255,7 +255,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                 self.connected = True
                 self.power = 0.0001  # 0.1 mW default
 
-            def connect(self, port, baudrate, timeout):
+            def connect(self, port, baud_rate, timeout):
                 self.connected = True
                 return True
 

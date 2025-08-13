@@ -32,16 +32,15 @@ def test_esp300_initialization():
         plugin = DAQ_Move_ESP300()
 
         # Mock connection parameters for safe testing
-        plugin.settings.child("connection_group", "mock_mode").setValue(True)
+        plugin.settings.child("connect_settings", "mock_mode").setValue(True)
         plugin.settings.child("axes_config", "num_axes").setValue(3)
 
         logger.info("Initializing ESP300 plugin in mock mode...")
 
         # Initialize plugin (this is where the crash occurred)
-        result, success = plugin.ini_stage()
-
-        if success:
-            logger.info(f"✅ Plugin initialized successfully: {result}")
+        try:
+            plugin.ini_stage_init()
+            logger.info("✅ Plugin initialized successfully")
 
             # Test basic operations
             positions = plugin.get_actuator_value()
@@ -53,8 +52,8 @@ def test_esp300_initialization():
 
             logger.info("✅ Move operation completed")
 
-        else:
-            logger.error(f"❌ Plugin initialization failed: {result}")
+        except Exception as e:
+            logger.error(f"❌ Plugin initialization failed: {e}")
             return False
 
         # Test cleanup (this is critical for thread safety)
@@ -86,11 +85,13 @@ def test_multiple_initializations():
         logging.getLogger(__name__).info(f"Initialization test {i+1}/5...")
 
         plugin = DAQ_Move_ESP300()
-        plugin.settings.child("connection_group", "mock_mode").setValue(True)
+        plugin.settings.child("connect_settings", "mock_mode").setValue(True)
 
-        result, success = plugin.ini_stage()
-        if not success:
-            logging.getLogger(__name__).error(f"❌ Failed on iteration {i+1}")
+        try:
+            plugin.ini_stage_init()
+            success = True
+        except Exception as e:
+            logging.getLogger(__name__).error(f"❌ Failed on iteration {i+1}: {e}")
             return False
 
         plugin.close()

@@ -45,7 +45,6 @@ except ImportError as e:
 class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
     """
     PyMoDAQ Plugin for Photometrics Prime BSI and other PVCAM-compatible cameras.
-
     This plugin interfaces with the camera using the official PyVCAM library.
     It supports:
     - Live acquisition and single-shot captures.
@@ -190,7 +189,6 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
     # PyMoDAQ 5 handles common parameters differently
     # Common parameters are automatically added by the base class
-
     def __init__(self, parent=None, params_state=None):
         super().__init__(parent, params_state)
         self.camera: Camera = None
@@ -202,10 +200,8 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         Initializes the camera connection and populates the GUI with all camera-specific parameters.
         """
         self.status.update(msg="Initializing Camera...", busy=True)
-
         # Check if mock mode is enabled
         mock_mode = self.settings.child("Settings", "mock_mode").value()
-
         try:
             if mock_mode:
                 # Initialize mock camera
@@ -218,15 +214,12 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                         pvc.uninit_pvcam()
                 except:
                     pass  # PVCAM not initialized or other state issues
-
                 # Fresh initialization
                 pvc.init_pvcam()
-
                 # Check camera availability
                 total_cams = pvc.get_cam_total()
                 if total_cams == 0:
                     raise RuntimeError("No cameras found by PVCAM")
-
                 cameras = list(Camera.detect_camera())
                 if len(cameras) == 0:
                     raise RuntimeError(
