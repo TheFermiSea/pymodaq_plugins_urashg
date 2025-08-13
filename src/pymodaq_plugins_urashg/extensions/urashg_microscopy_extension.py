@@ -283,11 +283,11 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         self.measurement_started.connect(self.on_measurement_started)
         self.measurement_finished.connect(self.on_measurement_finished)
         self.error_occurred.connect(self.on_error_occurred)
-        
-        # Connect UI signals safely 
-        if hasattr(self, 'progress_bar') and self.progress_bar is not None:
+
+        # Connect UI signals safely
+        if hasattr(self, "progress_bar") and self.progress_bar is not None:
             self.measurement_progress.connect(self.progress_bar.setValue)
-            
+
         # Connect device status signals
         self.device_status_changed.connect(self.on_device_status_changed)
 
@@ -444,7 +444,7 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         """Handle error occurred signal."""
         self.log_message(f"ERROR: {error_message}")
         logger.error(error_message)
-        
+
         # Stop measurement if running during error
         if self.is_measuring:
             self.is_measuring = False
@@ -466,7 +466,7 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
 
         if hasattr(self, "status_text"):
             self.status_text.append(formatted_message)
-        
+
         logger.info(message)
 
     def safe_emit_signal(self, signal, *args):

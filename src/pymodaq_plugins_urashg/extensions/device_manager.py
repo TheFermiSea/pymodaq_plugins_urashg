@@ -148,10 +148,10 @@ class URASHGDeviceManager(QObject):
     def handle_device_error(self, device_name: str, error_message: str) -> None:
         """Handle device error with proper signal emission."""
         logger.error(f"Device error - {device_name}: {error_message}")
-        
+
         # Update device status to error
         self.device_status[device_name] = DeviceStatus.ERROR
-        
+
         # Emit error signals following PyMoDAQ standards
         self.device_error_occurred.emit(device_name, error_message)
         self.device_status_changed.emit(device_name, "error")
