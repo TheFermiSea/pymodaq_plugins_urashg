@@ -120,7 +120,7 @@ def test_esp300_mock_mode_initialization():
     plugin = DAQ_Move_ESP300()
 
     # Enable mock mode
-    plugin.settings.child("connection_group", "mock_mode").setValue(True)
+    plugin.settings.child("connect_settings", "mock_mode").setValue(True)
 
     # Test initialization
     result, success = plugin.ini_stage()
@@ -144,7 +144,7 @@ def test_esp300_mock_mode_move():
     import numpy as np
 
     plugin = DAQ_Move_ESP300()
-    plugin.settings.child("connection_group", "mock_mode").setValue(True)
+    plugin.settings.child("connect_settings", "mock_mode").setValue(True)
     plugin.ini_stage()
 
     # Test move_abs with DataActuator

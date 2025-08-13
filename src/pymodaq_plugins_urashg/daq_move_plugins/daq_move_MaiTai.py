@@ -297,6 +297,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         except Exception as e:
             return f"Error initializing MaiTai: {str(e)}", False
 
+    def ini_stage(self, controller=None):
+        """Alias for init_hardware to maintain PyMoDAQ compatibility."""
+        return self.init_hardware(controller)
+
     def close(self):
         """Close the hardware connection."""
         try:

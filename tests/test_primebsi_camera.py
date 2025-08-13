@@ -182,11 +182,13 @@ def setup_mock_pymodaq():
         MockDataWithAxes,
         MockDataToExport,
         MockParameter,
+        comon_parameters,
     )
 
     # Mock PyMoDAQ modules
     mock_viewer_utility = Mock()
     mock_viewer_utility.DAQ_Viewer_base = MockDAQViewerBase
+    mock_viewer_utility.comon_parameters = comon_parameters
 
     mock_daq_utils = Mock()
     mock_daq_utils.ThreadCommand = MockThreadCommand

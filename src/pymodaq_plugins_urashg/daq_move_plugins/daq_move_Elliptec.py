@@ -279,6 +279,10 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             )
             return f"Error initializing Elliptec: {str(e)}", False
 
+    def ini_stage(self, controller=None):
+        """Alias for init_hardware to maintain PyMoDAQ compatibility."""
+        return self.init_hardware(controller)
+
     def close(self):
         """Close the hardware connection."""
         try:

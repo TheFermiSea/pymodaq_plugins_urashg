@@ -253,10 +253,9 @@ def newport_plugin(mock_serial_environment, mock_pymodaq_environment):
     def mock_ini_detector(controller=None):
         """Mock initialization that always succeeds."""
         try:
+            from tests.mock_modules.mock_pymodaq import MockThreadCommand
             plugin.emit_status(
-                plugin.__class__.__bases__[0].__dict__.get(
-                    "ThreadCommand", lambda x, y: None
-                )("show_splash", "Initializing Newport 1830-C...")
+                MockThreadCommand("show_splash", "Initializing Newport 1830-C...")
             )
 
             # Create mock controller
@@ -284,16 +283,12 @@ def newport_plugin(mock_serial_environment, mock_pymodaq_environment):
             plugin.settings.child("status_group", "device_status").setValue("Connected")
 
             plugin.emit_status(
-                plugin.__class__.__bases__[0].__dict__.get(
-                    "ThreadCommand", lambda x, y: None
-                )("close_splash")
+                MockThreadCommand("close_splash")
             )
 
             info_string = "Newport 1830-C initialized on /dev/ttyS0"
             plugin.emit_status(
-                plugin.__class__.__bases__[0].__dict__.get(
-                    "ThreadCommand", lambda x, y: None
-                )("Update_Status", [info_string])
+                MockThreadCommand("Update_Status", [info_string])
             )
 
             return info_string, True
@@ -332,7 +327,7 @@ class TestNewportPowerMeterMockMode:
             p.get("name") for p in newport_plugin.params if isinstance(p, dict)
         ]
         required_groups = [
-            "connection_group",
+            "connect_settings",
             "measurement_group",
             "calibration_group",
             "status_group",
@@ -357,9 +352,9 @@ class TestNewportPowerMeterMockMode:
     def test_connection_parameters(self, newport_plugin):
         """Test connection parameter handling."""
         # Check default connection parameters (these are initialized by the base class)
-        port = newport_plugin.settings.child("connection_group", "serial_port").value()
-        baudrate = newport_plugin.settings.child("connection_group", "baudrate").value()
-        timeout = newport_plugin.settings.child("connection_group", "timeout").value()
+        port = newport_plugin.settings.child("connect_settings", "com_port").value()
+        baudrate = newport_plugin.settings.child("connect_settings", "baud_rate").value()
+        timeout = newport_plugin.settings.child("connect_settings", "timeout").value()
 
         # Test that parameters exist and have reasonable values
         assert port is not None

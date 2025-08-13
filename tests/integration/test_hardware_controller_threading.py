@@ -46,7 +46,7 @@ def test_controller_threading_safety():
     try:
         logger.info("Creating ESP300 plugin...")
         esp_plugin = DAQ_Move_ESP300()
-        esp_plugin.settings.child("connection_group", "mock_mode").setValue(True)
+        esp_plugin.settings.child("connect_settings", "mock_mode").setValue(True)
 
         logger.info("Initializing ESP300...")
         result, success = esp_plugin.ini_stage()
@@ -134,7 +134,7 @@ def test_controller_threading_safety():
         logger.info("Running 10 rapid ESP300 initialization cycles...")
         for i in range(10):
             plugin = DAQ_Move_ESP300()
-            plugin.settings.child("connection_group", "mock_mode").setValue(True)
+            plugin.settings.child("connect_settings", "mock_mode").setValue(True)
             result, success = plugin.ini_stage()
             if success:
                 plugin.close()

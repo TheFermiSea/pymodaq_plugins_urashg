@@ -492,6 +492,10 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 self.controller = None
             return error_msg, False
 
+    def ini_stage(self, controller=None):
+        """Alias for init_hardware to maintain PyMoDAQ compatibility."""
+        return self.init_hardware(controller)
+
     def _build_axes_config(self, num_axes: int) -> List[AxisConfig]:
         """Build axes configuration from settings."""
         axes_config = []

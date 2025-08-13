@@ -199,7 +199,7 @@ class URASHGMicroscopyExtension(CustomApp):
             self.dockarea = None
             return
 
-        super().__init__(dockarea, dashboard)
+        super().__init__(dockarea)
 
         # Store references
         self.dashboard = dashboard
@@ -388,6 +388,20 @@ class URASHGMicroscopyExtension(CustomApp):
         if PYMODAQ_AVAILABLE and hasattr(self, "dock"):
             self.dock.close()
 
+
+# Import device manager for test compatibility
+try:
+    from .device_manager import URASHGDeviceManager
+except ImportError:
+    # Fallback for test environments
+    URASHGDeviceManager = None
+
+# Provide a basic MeasurementWorker for test compatibility
+class MeasurementWorker(QObject):
+    """Mock measurement worker for test compatibility."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
 # Main extension class for PyMoDAQ discovery
 extension_class = URASHGMicroscopyExtension

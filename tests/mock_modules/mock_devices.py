@@ -126,7 +126,7 @@ class MockDeviceInfo:
         self.status = MockDeviceStatus.DISCONNECTED
 
 
-class MockMovePlugin(DAQ_Move_base):
+class MockMovePluginSimple:
     """
     Mock PyMoDAQ move plugin for testing.
 
@@ -134,19 +134,14 @@ class MockMovePlugin(DAQ_Move_base):
     requiring actual hardware.
     """
 
-    # Mock PyMoDAQ plugin attributes
+    # Mock PyMoDAQ plugin attributes - matches real plugin structure
     params = [
+        # Connection Settings (Required)
         {
-            "title": "Mock Settings",
-            "name": "mock_settings",
+            "title": "Connection Settings:",
+            "name": "connect_settings",
             "type": "group",
             "children": [
-                {
-                    "title": "Device ID:",
-                    "name": "device_id",
-                    "type": "str",
-                    "value": "mock_device",
-                },
                 {
                     "title": "Mock Mode:",
                     "name": "mock_mode",
@@ -154,11 +149,54 @@ class MockMovePlugin(DAQ_Move_base):
                     "value": True,
                 },
                 {
+                    "title": "Device ID:",
+                    "name": "device_id",
+                    "type": "str",
+                    "value": "mock_device",
+                },
+                {
                     "title": "Timeout (ms):",
                     "name": "timeout",
                     "type": "int",
                     "value": 1000,
                 },
+            ],
+        },
+        # Multiaxes (CRITICAL - Required by PyMoDAQ at top level)
+        {
+            "title": "Multiaxes:",
+            "name": "multiaxes",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Multi-axes:",
+                    "name": "multi_axes",
+                    "type": "list",
+                    "values": ["Mock Axis"],
+                    "value": "Mock Axis",
+                },
+                {
+                    "title": "Axis:",
+                    "name": "axis",
+                    "type": "list",
+                    "values": ["Mock Axis"],
+                    "value": "Mock Axis",
+                },
+                {
+                    "title": "Master/Slave:",
+                    "name": "multi_status",
+                    "type": "list",
+                    "values": ["Master", "Slave"],
+                    "value": "Master",
+                },
+            ],
+        },
+        # Move Settings (Required for DAQ_Move)
+        {
+            "title": "Move Settings:",
+            "name": "move_settings",
+            "type": "group",
+            "children": [
                 {
                     "title": "Position (deg):",
                     "name": "position",
@@ -172,9 +210,15 @@ class MockMovePlugin(DAQ_Move_base):
     ]
 
     _controller_units = "deg"
+    is_multiaxes = False
+    _axis_names = ["Mock Axis"]
+
+    @property
+    def axis_names(self) -> List[str]:
+        """Return list of available axis names for PyMoDAQ."""
+        return self._axis_names
 
     def __init__(self, name: str = "MockMove"):
-        super().__init__()
         self.name = name
         self.controller = None
         self.settings = {}
@@ -200,6 +244,94 @@ class MockMovePlugin(DAQ_Move_base):
             raise RuntimeError(f"Simulated error in {self.name}")
 
         return self.current_position
+
+
+# Alias for compatibility with device manager tests
+MockMovePlugin = MockMovePluginSimple
+
+
+class MockMovePluginReal(DAQ_Move_base):
+    """Real PyMoDAQ-based mock move plugin for advanced testing."""
+    
+    # Mock PyMoDAQ plugin attributes - matches real plugin structure
+    params = [
+        # Multiaxes (CRITICAL - Required by PyMoDAQ at top level)
+        {
+            "title": "Multiaxes:",
+            "name": "multiaxes",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Multi-axes:",
+                    "name": "multi_axes",
+                    "type": "list",
+                    "values": ["Mock Axis"],
+                    "value": "Mock Axis",
+                },
+                {
+                    "title": "Axis:",
+                    "name": "axis",
+                    "type": "list",
+                    "values": ["Mock Axis"],
+                    "value": "Mock Axis",
+                },
+                {
+                    "title": "Master/Slave:",
+                    "name": "multi_status",
+                    "type": "list",
+                    "values": ["Master", "Slave"],
+                    "value": "Master",
+                },
+            ],
+        },
+    ]
+    
+    _axis_names = ["Mock Axis"]
+    _controller_units = "mm"
+    is_multiaxes = False
+
+    @property
+    def axis_names(self) -> List[str]:
+        """Return list of available axis names for PyMoDAQ."""
+        return self._axis_names
+
+    def __init__(self, name: str = "MockMove", parent=None, params_state=None):
+        self.name = name  # Set name before calling super().__init__
+        super().__init__(parent, params_state)
+        
+    def ini_attributes(self):
+        """Initialize plugin attributes."""
+        self.initialized = True
+        self.controller = MockHardwareController(self.name)
+
+    def get_actuator_value(self) -> float:
+        """Get current actuator position."""
+        return 0.0
+
+    def close(self):
+        """Close the plugin."""
+        self.initialized = False
+
+    def ini_stage(self, controller=None):
+        """Initialize stage - required by PyMoDAQ."""
+        self.ini_attributes()
+        return "Mock stage initialized", True
+
+    def move_abs(self, value):
+        """Move to absolute position."""
+        pass
+
+    def move_rel(self, value):
+        """Move relative position."""
+        pass
+
+    def move_home(self):
+        """Move to home position."""
+        pass
+
+    def stop_motion(self):
+        """Stop motion."""
+        pass
 
     def close(self):
         """Close plugin and cleanup resources."""
@@ -269,7 +401,7 @@ class MockMovePlugin(DAQ_Move_base):
         }
 
 
-class MockViewerPlugin(DAQ_Viewer_base):
+class MockViewerPluginSimple:
     """
     Mock PyMoDAQ viewer plugin for testing.
 
@@ -277,24 +409,25 @@ class MockViewerPlugin(DAQ_Viewer_base):
     requiring actual hardware.
     """
 
-    # Mock PyMoDAQ plugin attributes
+    # Mock PyMoDAQ plugin attributes - matches real viewer plugin structure
     params = [
+        # Connection Settings (Required)
         {
-            "title": "Mock Detector Settings",
-            "name": "detector_settings",
+            "title": "Connection Settings:",
+            "name": "connect_settings", 
             "type": "group",
             "children": [
-                {
-                    "title": "Device ID:",
-                    "name": "device_id",
-                    "type": "str",
-                    "value": "mock_detector",
-                },
                 {
                     "title": "Mock Mode:",
                     "name": "mock_mode",
                     "type": "bool",
                     "value": True,
+                },
+                {
+                    "title": "Device ID:",
+                    "name": "device_id",
+                    "type": "str",
+                    "value": "mock_detector",
                 },
                 {
                     "title": "Integration Time (ms):",
@@ -312,12 +445,40 @@ class MockViewerPlugin(DAQ_Viewer_base):
                 },
             ],
         },
+        # Settings (Required by PyMoDAQ viewer base)
+        {
+            "title": "Settings:",
+            "name": "Settings",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Multiaxes:",
+                    "name": "multiaxes",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "Multi-axes:",
+                            "name": "multi_axes",
+                            "type": "list", 
+                            "values": ["Mock Detector"],
+                            "value": "Mock Detector",
+                        },
+                        {
+                            "title": "Axis:",
+                            "name": "axis",
+                            "type": "list",
+                            "values": ["Mock Detector"],
+                            "value": "Mock Detector",
+                        },
+                    ],
+                },
+            ],
+        },
     ]
 
     _controller_units = "counts"
 
     def __init__(self, name: str = "MockViewer"):
-        super().__init__()
         self.name = name
         self.controller = None
         self.settings = {}
@@ -615,6 +776,9 @@ class MockDeviceManager(QObject):
         if device and hasattr(device, "commit_settings"):
             device.commit_settings(parameters)
 
+
+# Alias for compatibility with device manager tests  
+MockViewerPlugin = MockViewerPluginSimple
 
 # Specific mock devices for URASHG system
 class MockMaiTaiLaser(MockMovePlugin):

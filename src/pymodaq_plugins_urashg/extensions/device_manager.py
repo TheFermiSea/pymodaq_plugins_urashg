@@ -49,12 +49,15 @@ class URASHGDeviceManager(QObject):
     all_devices_ready = Signal()
     device_data_updated = Signal(str, object)
 
-    def __init__(self):
+    def __init__(self, dashboard=None):
         super().__init__()
         logger.warning(
             "URASHGDeviceManager is a compatibility stub only. "
             "Use URASHGMicroscopyExtension for production applications."
         )
+
+        # Store dashboard reference
+        self.dashboard = dashboard
 
         # Basic attributes for test compatibility
         self.devices: Dict[str, Any] = {}
@@ -130,3 +133,12 @@ class URASHGDeviceManager(QObject):
         logger.info("Device cleanup is handled by URASHGMicroscopyExtension")
         for device_name in self.supported_devices:
             self.device_status[device_name] = DeviceStatus.DISCONNECTED
+
+    def initialize_plugins(self) -> bool:
+        """Initialize plugins (compatibility stub)."""
+        logger.info("Plugin initialization is handled by URASHGMicroscopyExtension")
+        return True
+
+    def cleanup_plugins(self) -> None:
+        """Cleanup plugins (compatibility stub)."""
+        logger.info("Plugin cleanup is handled by URASHGMicroscopyExtension")

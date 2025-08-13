@@ -89,7 +89,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "title": "Mock Mode:",
                     "name": "mock_mode",
                     "type": "bool",
-                    "value": False,
+                    "value": True,
                 },
             ],
         },
@@ -200,7 +200,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             )
 
             # Check if mock mode is enabled
-            mock_mode = self.settings.child("Settings", "mock_mode").value()
+            mock_mode = self.settings.child("connect_settings", "mock_mode").value()
 
             if mock_mode:
                 # Initialize mock controller

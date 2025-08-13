@@ -47,15 +47,25 @@ except ImportError:
     # PyRPL not available - provide mock constants
     from enum import Enum
 
-    class MockEnum(Enum):
-        MOCK = "mock"
+    class MockPIDChannel(Enum):
+        PID0 = "pid0"
+        PID1 = "pid1" 
+        PID2 = "pid2"
+
+    class MockInputChannel(Enum):
+        IN1 = "in1"
+        IN2 = "in2"
+
+    class MockOutputChannel(Enum):
+        OUT1 = "out1"
+        OUT2 = "out2"
 
     PYRPL_WRAPPER_AVAILABLE = False
     PyRPLManager = None
     PyRPLConnection = None
-    PIDChannel = MockEnum
-    InputChannel = MockEnum
-    OutputChannel = MockEnum
+    PIDChannel = MockPIDChannel
+    InputChannel = MockInputChannel
+    OutputChannel = MockOutputChannel
     PIDConfiguration = None
     get_pyrpl_manager = None
     connect_redpitaya = None

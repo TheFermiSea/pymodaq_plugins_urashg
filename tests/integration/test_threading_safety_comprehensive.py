@@ -144,8 +144,8 @@ def test_stress_initialization(
             if hasattr(plugin, "settings"):
                 # Try to enable mock mode if available
                 try:
-                    if plugin.settings.child("connection_group"):
-                        plugin.settings.child("connection_group", "mock_mode").setValue(
+                    if plugin.settings.child("connect_settings"):
+                        plugin.settings.child("connect_settings", "mock_mode").setValue(
                             True
                         )
                     elif plugin.settings.child("connection"):
@@ -194,7 +194,7 @@ def main():
         {
             "class": DAQ_Move_ESP300,
             "name": "ESP300 Motion Controller",
-            "mock_settings": {"connection_group.mock_mode": True},
+            "mock_settings": {"connect_settings.mock_mode": True},
         },
         {
             "class": DAQ_Move_Elliptec,

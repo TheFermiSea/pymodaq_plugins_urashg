@@ -47,6 +47,17 @@ class MockDataWithAxes:
         self.units = units if units is not None else []
         self.source = source
 
+    def serialize(self):
+        """Mock serialize method for PyMoDAQ compatibility."""
+        return {
+            "name": self.name,
+            "data": self.data,
+            "axes": self.axes,
+            "labels": self.labels,
+            "units": self.units,
+            "source": self.source,
+        }
+
 
 class MockDataToExport:
     """Mock DataToExport for PyMoDAQ 5.x."""
@@ -54,6 +65,10 @@ class MockDataToExport:
     def __init__(self, name="", data=None, **kwargs):
         self.name = name
         self.data = data if data is not None else []
+
+    def serialize(self):
+        """Mock serialize method for PyMoDAQ compatibility."""
+        return {"name": self.name, "data": self.data}
 
 
 class MockParameter:
@@ -182,3 +197,30 @@ class MockDAQViewerBase:
     def add_status_callback(self, callback):
         """Add status callback for testing"""
         self._status_callbacks.append(callback)
+
+
+# Mock for comon_parameters (common parameters used by PyMoDAQ plugins)
+comon_parameters = [
+    {
+        "title": "Main Settings",
+        "name": "main_settings",
+        "type": "group",
+        "children": [
+            {
+                "title": "Controller Status:",
+                "name": "controller_status",
+                "type": "list",
+                "value": "Disconnected",
+                "values": ["Disconnected", "Connected"],
+                "readonly": True,
+            },
+            {
+                "title": "Init?:",
+                "name": "initialized",
+                "type": "bool",
+                "value": False,
+                "readonly": True,
+            },
+        ],
+    }
+]
