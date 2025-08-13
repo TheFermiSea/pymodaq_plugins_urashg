@@ -19,7 +19,7 @@ import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from qtpy.QtCore import QObject, Signal
+from qtpy.QtCore import QObject, Signal, QMetaObject, Qt
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +142,26 @@ class URASHGDeviceManager(QObject):
     def cleanup_plugins(self) -> None:
         """Cleanup plugins (compatibility stub)."""
         logger.info("Plugin cleanup is handled by URASHGMicroscopyExtension")
+        for device_name in self.supported_devices:
+            self.device_status[device_name] = DeviceStatus.DISCONNECTED
+
+    def handle_device_error(self, device_name: str, error_message: str) -> None:
+        """Handle device error with proper signal emission."""
+        logger.error(f"Device error - {device_name}: {error_message}")
+        
+        # Update device status to error
+        self.device_status[device_name] = DeviceStatus.ERROR
+        
+        # Emit error signals following PyMoDAQ standards
+        self.device_error_occurred.emit(device_name, error_message)
+        self.device_status_changed.emit(device_name, "error")
+
+    def emit_error(self, device_name: str, error_message: str) -> None:
+        """Emit error signal (for test compatibility)."""
+        self.handle_device_error(device_name, error_message)
+
+    def safe_emit_signal(self, signal, *args):
+        """Thread-safe signal emission."""
+        QMetaObject.invokeMethod(
+            self, lambda: signal.emit(*args), Qt.ConnectionType.QueuedConnection
+        )

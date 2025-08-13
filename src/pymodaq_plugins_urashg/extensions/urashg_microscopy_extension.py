@@ -35,7 +35,7 @@ try:
     from pymodaq_utils.logger import get_module_name, set_logger
     from pyqtgraph.dockarea import Dock, DockArea
     from qtpy import QtCore, QtGui, QtWidgets
-    from qtpy.QtCore import QObject, QThread, QTimer, Signal
+    from qtpy.QtCore import QObject, QThread, QTimer, Signal, QMetaObject, Qt
 
     logger = set_logger(get_module_name(__file__))
     PYMODAQ_AVAILABLE = True
@@ -62,7 +62,7 @@ except ImportError as e:
             pass
 
 
-class URASHGMicroscopyExtension(CustomApp):
+class URASHGMicroscopyExtension(CustomApp, QObject):
     """
     Production-ready μRASHG Extension for PyMoDAQ Dashboard
 
@@ -78,7 +78,7 @@ class URASHGMicroscopyExtension(CustomApp):
     author = "μRASHG Development Team"
     version = "1.0.0"
 
-    # Signals for inter-component communication
+    # Required PyQt signals for PyMoDAQ compliance
     measurement_started = Signal()
     measurement_finished = Signal()
     measurement_progress = Signal(int)  # Progress percentage 0-100
@@ -199,7 +199,9 @@ class URASHGMicroscopyExtension(CustomApp):
             self.dockarea = None
             return
 
-        super().__init__(dockarea)
+        # Initialize both parent classes
+        CustomApp.__init__(self, dockarea)
+        QObject.__init__(self)
 
         # Store references
         self.dashboard = dashboard
@@ -277,10 +279,17 @@ class URASHGMicroscopyExtension(CustomApp):
         if not PYMODAQ_AVAILABLE:
             return
 
+        # Connect measurement control signals
         self.measurement_started.connect(self.on_measurement_started)
         self.measurement_finished.connect(self.on_measurement_finished)
-        self.measurement_progress.connect(self.progress_bar.setValue)
         self.error_occurred.connect(self.on_error_occurred)
+        
+        # Connect UI signals safely 
+        if hasattr(self, 'progress_bar') and self.progress_bar is not None:
+            self.measurement_progress.connect(self.progress_bar.setValue)
+            
+        # Connect device status signals
+        self.device_status_changed.connect(self.on_device_status_changed)
 
     def detect_modules(self):
         """Detect available PyMoDAQ modules."""
@@ -435,6 +444,16 @@ class URASHGMicroscopyExtension(CustomApp):
         """Handle error occurred signal."""
         self.log_message(f"ERROR: {error_message}")
         logger.error(error_message)
+        
+        # Stop measurement if running during error
+        if self.is_measuring:
+            self.is_measuring = False
+            self.measurement_finished.emit()
+
+    def on_device_status_changed(self, device_name, status):
+        """Handle device status change signal."""
+        self.log_message(f"Device {device_name}: {status}")
+        logger.info(f"Device status changed - {device_name}: {status}")
 
     def log_message(self, message):
         """Add a message to the status log."""
@@ -447,8 +466,14 @@ class URASHGMicroscopyExtension(CustomApp):
 
         if hasattr(self, "status_text"):
             self.status_text.append(formatted_message)
-
+        
         logger.info(message)
+
+    def safe_emit_signal(self, signal, *args):
+        """Thread-safe signal emission."""
+        QMetaObject.invokeMethod(
+            self, lambda: signal.emit(*args), Qt.ConnectionType.QueuedConnection
+        )
 
     def close(self):
         """Clean up the extension."""
