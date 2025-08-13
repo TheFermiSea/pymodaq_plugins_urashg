@@ -33,11 +33,11 @@ from qtpy.QtCore import QTimer, Signal
 import pyqtgraph as pg
 
 # PyMoDAQ imports
-from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataWithAxes, Axis, DataSource
-from pymodaq.utils.logger import set_logger, get_module_name
-from pymodaq.utils.config import Config
-from pymodaq.utils.gui_utils import CustomApp
+from pymodaq_gui.parameter import Parameter
+from pymodaq_data import DataWithAxes, Axis, DataSource
+from pymodaq_utils.logger import set_logger, get_module_name
+from pymodaq_utils.config import Config
+from pymodaq_gui.utils.custom_app import CustomApp
 
 # Test utilities
 from tests.mock_modules.mock_devices import MockDeviceManager, MockDeviceStatus

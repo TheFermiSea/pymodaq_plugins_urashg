@@ -8,6 +8,13 @@ homepage = "https://github.com/TheFermiSea/pymodaq_plugins_urashg"
 package-url = "https://github.com/TheFermiSea/pymodaq_plugins_urashg"
 bugtrack-url = "https://github.com/TheFermiSea/pymodaq_plugins_urashg/issues"
 
+[features]
+instruments = true
+extensions = true
+models = false
+h5exporters = false
+scanners = false
+
 [plugin-info.classifiers]
 development-status = "Alpha"
 environment = "X11"

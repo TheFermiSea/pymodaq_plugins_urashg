@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional
 
 try:
     import pyqtgraph as pg
-    from pymodaq_data import Axis, DataWithAxes
+    from pymodaq_data import Axis, DataWithAxes, DataSource
     from pymodaq_gui.parameter import Parameter
     from pymodaq_gui.utils.custom_app import CustomApp
     from pymodaq_utils.config import Config
@@ -291,14 +291,39 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Try to get modules from dashboard
         try:
-            if hasattr(self.dashboard, "modules_manager"):
-                modules_manager = self.dashboard.modules_manager
-                # Add module detection logic here when PyMoDAQ is fully available
-                logger.info("Module detection completed")
+            self.available_modules = self.get_required_modules()
+            if self.available_modules:
+                logger.info(f"Detected modules: {list(self.available_modules.keys())}")
             else:
-                logger.warning("Dashboard modules manager not available")
+                logger.warning("No required modules detected in dashboard")
         except Exception as e:
             logger.error(f"Error detecting modules: {e}")
+
+    def get_required_modules(self):
+        """Access modules through PyMoDAQ's standard API."""
+        if not self.dashboard or not hasattr(self.dashboard, 'modules_manager'):
+            return {}
+
+        modules_manager = self.dashboard.modules_manager
+        
+        # Find specific modules loaded in dashboard
+        modules = {
+            'camera': self.find_module(modules_manager.detectors, 'PrimeBSI'),
+            'power_meter': self.find_module(modules_manager.detectors, 'Newport'),
+            'laser': self.find_module(modules_manager.actuators, 'MaiTai'),
+            'rotators': self.find_module(modules_manager.actuators, 'Elliptec'),
+        }
+        
+        return {k: v for k, v in modules.items() if v is not None}
+
+    def find_module(self, module_dict, name_pattern):
+        """Find module by name pattern."""
+        if not module_dict:
+            return None
+        for module_name, module in module_dict.items():
+            if name_pattern.lower() in module_name.lower():
+                return module
+        return None
 
     def start_measurement(self):
         """Start a μRASHG measurement sequence."""
@@ -321,19 +346,58 @@ class URASHGMicroscopyExtension(CustomApp):
         self.run_mock_measurement()
 
     def run_mock_measurement(self):
-        """Run a mock measurement for demonstration."""
+        """Run a mock measurement for demonstration using PyMoDAQ data structures."""
         logger.info("Running mock μRASHG measurement")
 
-        # Simulate measurement progress
-        for i in range(101):
-            if not self.is_measuring:
-                break
-            self.measurement_progress.emit(i)
-            time.sleep(0.05)  # Simulate measurement time
+        try:
+            # Generate mock polarimetric data
+            import numpy as np
+            
+            # Get measurement parameters from settings
+            pol_steps = 36  # Default value, could be from settings
+            angles = np.linspace(0, 360, pol_steps, endpoint=False)
+            
+            # Create mock intensity data (simulate RASHG pattern)
+            intensities = 100 + 50 * np.cos(4 * np.radians(angles)) + 10 * np.random.rand(pol_steps)
+            
+            # Create PyMoDAQ compliant data structure
+            measurement_data = self.create_rashg_data(intensities, angles)
+            
+            # Store measurement data
+            self.measurement_data['rashg_data'] = measurement_data
+            
+            # Simulate measurement progress
+            for i in range(101):
+                if not self.is_measuring:
+                    break
+                self.measurement_progress.emit(i)
+                time.sleep(0.02)  # Shorter delay for better responsiveness
 
-        # Finish measurement
-        if self.is_measuring:
-            self.measurement_finished.emit()
+            # Finish measurement
+            if self.is_measuring:
+                logger.info(f"Mock measurement completed with {len(intensities)} data points")
+                self.measurement_finished.emit()
+                
+        except Exception as e:
+            logger.error(f"Error in mock measurement: {e}")
+            self.error_occurred.emit(str(e))
+
+    def create_rashg_data(self, intensity_data, polarization_angles):
+        """Create PyMoDAQ compliant data structure for RASHG measurements."""
+        if not PYMODAQ_AVAILABLE:
+            return None
+            
+        return DataWithAxes(
+            'μRASHG_Measurement',
+            data=[intensity_data],
+            axes=[
+                Axis('Polarization', data=polarization_angles, units='°', 
+                     description='Incident polarization angle')
+            ],
+            units='counts',
+            labels=['SHG Intensity'],
+            source=DataSource.raw
+        )
 
     def stop_measurement(self):
         """Stop the current measurement."""
@@ -397,11 +461,18 @@ except ImportError:
     URASHGDeviceManager = None
 
 # Provide a basic MeasurementWorker for test compatibility
-class MeasurementWorker(QObject):
-    """Mock measurement worker for test compatibility."""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
+if PYMODAQ_AVAILABLE:
+    class MeasurementWorker(QObject):
+        """Mock measurement worker for test compatibility."""
+        
+        def __init__(self, parent=None):
+            super().__init__(parent)
+else:
+    class MeasurementWorker:
+        """Fallback measurement worker for test environments."""
+        
+        def __init__(self, parent=None):
+            pass
 
 # Main extension class for PyMoDAQ discovery
 extension_class = URASHGMicroscopyExtension
