@@ -237,13 +237,16 @@ class TestExtensionSignalCompliance:
                 URASHGMicroscopyExtension,
             )
 
-            # Mock the Qt application if not present
-            if not QtWidgets.QApplication.instance():
+            # Ensure QApplication exists (CI-safe)
+            app = QtWidgets.QApplication.instance()
+            if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a real QWidget as mock DockArea
-            mock_dockarea = QtWidgets.QWidget()
+            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
+            mock_dockarea = Mock(spec=QtWidgets.QWidget)
             mock_dockarea.addDock = Mock()
+            # Make it pass isinstance checks
+            mock_dockarea.__class__ = QtWidgets.QWidget
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -307,12 +310,16 @@ class TestExtensionUICompliance:
                 URASHGMicroscopyExtension,
             )
 
-            if not QtWidgets.QApplication.instance():
+            # Ensure QApplication exists (CI-safe)
+            app = QtWidgets.QApplication.instance()
+            if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a real QWidget as mock DockArea
-            mock_dockarea = QtWidgets.QWidget()
+            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
+            mock_dockarea = Mock(spec=QtWidgets.QWidget)
             mock_dockarea.addDock = Mock()
+            # Make it pass isinstance checks
+            mock_dockarea.__class__ = QtWidgets.QWidget
             
             # Create extension with mock DockArea
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
@@ -371,12 +378,16 @@ class TestExtensionDeviceIntegration:
                 URASHGMicroscopyExtension,
             )
 
-            if not QtWidgets.QApplication.instance():
+            # Ensure QApplication exists (CI-safe)
+            app = QtWidgets.QApplication.instance()
+            if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a real QWidget as mock DockArea
-            mock_dockarea = QtWidgets.QWidget()
+            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
+            mock_dockarea = Mock(spec=QtWidgets.QWidget)
             mock_dockarea.addDock = Mock()
+            # Make it pass isinstance checks
+            mock_dockarea.__class__ = QtWidgets.QWidget
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -427,12 +438,16 @@ class TestExtensionMeasurementCompliance:
                 URASHGMicroscopyExtension,
             )
 
-            if not QtWidgets.QApplication.instance():
+            # Ensure QApplication exists (CI-safe)
+            app = QtWidgets.QApplication.instance()
+            if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a real QWidget as mock DockArea
-            mock_dockarea = QtWidgets.QWidget()
+            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
+            mock_dockarea = Mock(spec=QtWidgets.QWidget)
             mock_dockarea.addDock = Mock()
+            # Make it pass isinstance checks
+            mock_dockarea.__class__ = QtWidgets.QWidget
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -490,12 +505,16 @@ class TestExtensionConfigurationCompliance:
                 URASHGMicroscopyExtension,
             )
 
-            if not QtWidgets.QApplication.instance():
+            # Ensure QApplication exists (CI-safe)
+            app = QtWidgets.QApplication.instance()
+            if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a real QWidget as mock DockArea
-            mock_dockarea = QtWidgets.QWidget()
+            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
+            mock_dockarea = Mock(spec=QtWidgets.QWidget)
             mock_dockarea.addDock = Mock()
+            # Make it pass isinstance checks
+            mock_dockarea.__class__ = QtWidgets.QWidget
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -544,12 +563,16 @@ class TestExtensionErrorHandling:
                 URASHGMicroscopyExtension,
             )
 
-            if not QtWidgets.QApplication.instance():
+            # Ensure QApplication exists (CI-safe)
+            app = QtWidgets.QApplication.instance()
+            if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a real QWidget as mock DockArea
-            mock_dockarea = QtWidgets.QWidget()
+            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
+            mock_dockarea = Mock(spec=QtWidgets.QWidget)
             mock_dockarea.addDock = Mock()
+            # Make it pass isinstance checks
+            mock_dockarea.__class__ = QtWidgets.QWidget
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
@@ -605,12 +628,16 @@ class TestExtensionThreadSafety:
                 URASHGMicroscopyExtension,
             )
 
-            if not QtWidgets.QApplication.instance():
+            # Ensure QApplication exists (CI-safe)
+            app = QtWidgets.QApplication.instance()
+            if app is None:
                 app = QtWidgets.QApplication([])
 
-            # Create a real QWidget as mock DockArea
-            mock_dockarea = QtWidgets.QWidget()
+            # Create a mock DockArea that inherits from QWidget to satisfy CustomApp requirements
+            mock_dockarea = Mock(spec=QtWidgets.QWidget)
             mock_dockarea.addDock = Mock()
+            # Make it pass isinstance checks
+            mock_dockarea.__class__ = QtWidgets.QWidget
             
             extension = URASHGMicroscopyExtension(dockarea=mock_dockarea)
             return extension
