@@ -49,7 +49,7 @@ except ImportError:
 
     class MockPIDChannel(Enum):
         PID0 = "pid0"
-        PID1 = "pid1" 
+        PID1 = "pid1"
         PID2 = "pid2"
 
     class MockInputChannel(Enum):

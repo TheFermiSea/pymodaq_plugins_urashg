@@ -237,7 +237,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                 )
 
             self.update_camera_params()
-            
+
             # Only populate advanced params if not in mock mode or if camera has the necessary attributes
             try:
                 if not mock_mode:
@@ -273,20 +273,20 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                 self.is_open = True
                 self.temp = -20.0
                 self.temp_setpoint = -20
-                
+
                 # PyVCAM-compatible attributes
                 self.readout_ports = {"Port 1": 0, "Port 2": 1}
                 self.readout_port = 0
                 self.speed = 0
                 self.gain = 1
                 self.gain_name = "Full well"
-                
+
                 # Exposure and trigger modes
                 self.exp_mode = 1792
                 self.exp_modes = {"Internal": 1792, "External": 2304}
                 self.clear_mode = 0
                 self.clear_modes = {"Auto": 0, "Never": 1}
-                
+
                 # Port speed gain table structure
                 self.port_speed_gain_table = {
                     "Port 1": {
@@ -295,11 +295,11 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                             "pixel_time": 5,
                             "bit_depth": 11,
                             "Full well": {"gain_index": 1},
-                            "Balanced": {"gain_index": 2}
+                            "Balanced": {"gain_index": 2},
                         }
                     }
                 }
-                
+
                 # ROI structure
                 self.rois = [MockROI()]
                 self.exp_time = 100
@@ -312,10 +312,13 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
             def get_frame(self, exp_time=100, clear_mode=None, trigger_mode=None):
                 import numpy as np
+
                 if exp_time:
                     self.exp_time = exp_time
                 # Return mock image data that matches the ROI shape
-                return np.random.randint(0, 4096, self.sensor_size[0] * self.sensor_size[1], dtype=np.uint16)
+                return np.random.randint(
+                    0, 4096, self.sensor_size[0] * self.sensor_size[1], dtype=np.uint16
+                )
 
             def start_live(self, exp_time=100):
                 pass
@@ -336,78 +339,112 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             return
 
         try:
-            self.settings.child("camera_settings", "camera_name").setValue(self.camera.name)
+            self.settings.child("camera_settings", "camera_name").setValue(
+                self.camera.name
+            )
             sensor_size = f"{self.camera.sensor_size[0]} x {self.camera.sensor_size[1]}"
             self.settings.child("camera_settings", "sensor_size").setValue(sensor_size)
 
             # Set readout port limits
-            if hasattr(self.camera, 'readout_ports') and self.camera.readout_ports:
+            if hasattr(self.camera, "readout_ports") and self.camera.readout_ports:
                 readout_port_names = list(self.camera.readout_ports.keys())
-                self.settings.child("camera_settings", "readout_port").setLimits(readout_port_names)
-                
+                self.settings.child("camera_settings", "readout_port").setLimits(
+                    readout_port_names
+                )
+
                 # Get available speeds from current port
                 current_port = self.camera.readout_port
                 port_name = list(self.camera.readout_ports.keys())[
                     list(self.camera.readout_ports.values()).index(current_port)
                 ]
-                if hasattr(self.camera, 'port_speed_gain_table') and port_name in self.camera.port_speed_gain_table:
+                if (
+                    hasattr(self.camera, "port_speed_gain_table")
+                    and port_name in self.camera.port_speed_gain_table
+                ):
                     port_info = self.camera.port_speed_gain_table[port_name]
-                    speed_names = [k for k in port_info.keys() if k.startswith("Speed_")]
-                    self.settings.child("camera_settings", "speed_index").setLimits(speed_names)
-                    
+                    speed_names = [
+                        k for k in port_info.keys() if k.startswith("Speed_")
+                    ]
+                    self.settings.child("camera_settings", "speed_index").setLimits(
+                        speed_names
+                    )
+
                     # Get available gains for current speed
                     current_speed_name = f"Speed_{self.camera.speed}"
                     if current_speed_name in port_info:
                         speed_info = port_info[current_speed_name]
                         gain_names = [
-                            k for k in speed_info.keys()
-                            if k not in ["speed_index", "pixel_time", "bit_depth", "gain_range"]
+                            k
+                            for k in speed_info.keys()
+                            if k
+                            not in [
+                                "speed_index",
+                                "pixel_time",
+                                "bit_depth",
+                                "gain_range",
+                            ]
                         ]
-                        self.settings.child("camera_settings", "gain").setLimits(gain_names)
+                        self.settings.child("camera_settings", "gain").setLimits(
+                            gain_names
+                        )
 
             # Set trigger and clear mode limits
-            if hasattr(self.camera, 'exp_modes') and self.camera.exp_modes:
+            if hasattr(self.camera, "exp_modes") and self.camera.exp_modes:
                 self.settings.child("camera_settings", "trigger_mode").setLimits(
                     list(self.camera.exp_modes.keys())
                 )
-            if hasattr(self.camera, 'clear_modes') and self.camera.clear_modes:
+            if hasattr(self.camera, "clear_modes") and self.camera.clear_modes:
                 self.settings.child("camera_settings", "clear_mode").setLimits(
                     list(self.camera.clear_modes.keys())
                 )
 
             # Set current values
-            if hasattr(self.camera, 'readout_port'):
+            if hasattr(self.camera, "readout_port"):
                 port_name = list(self.camera.readout_ports.keys())[
-                    list(self.camera.readout_ports.values()).index(self.camera.readout_port)
+                    list(self.camera.readout_ports.values()).index(
+                        self.camera.readout_port
+                    )
                 ]
-                self.settings.child("camera_settings", "readout_port").setValue(port_name)
-                
-            if hasattr(self.camera, 'speed'):
-                self.settings.child("camera_settings", "speed_index").setValue(f"Speed_{self.camera.speed}")
-                
-            if hasattr(self.camera, 'gain_name'):
-                self.settings.child("camera_settings", "gain").setValue(self.camera.gain_name)
-                
-            if hasattr(self.camera, 'exp_mode') and hasattr(self.camera, 'exp_modes'):
+                self.settings.child("camera_settings", "readout_port").setValue(
+                    port_name
+                )
+
+            if hasattr(self.camera, "speed"):
+                self.settings.child("camera_settings", "speed_index").setValue(
+                    f"Speed_{self.camera.speed}"
+                )
+
+            if hasattr(self.camera, "gain_name"):
+                self.settings.child("camera_settings", "gain").setValue(
+                    self.camera.gain_name
+                )
+
+            if hasattr(self.camera, "exp_mode") and hasattr(self.camera, "exp_modes"):
                 for mode_name, mode_value in self.camera.exp_modes.items():
                     if mode_value == self.camera.exp_mode:
-                        self.settings.child("camera_settings", "trigger_mode").setValue(mode_name)
+                        self.settings.child("camera_settings", "trigger_mode").setValue(
+                            mode_name
+                        )
                         break
-                        
-            if hasattr(self.camera, 'clear_mode') and hasattr(self.camera, 'clear_modes'):
+
+            if hasattr(self.camera, "clear_mode") and hasattr(
+                self.camera, "clear_modes"
+            ):
                 for mode_name, mode_value in self.camera.clear_modes.items():
                     if mode_value == self.camera.clear_mode:
-                        self.settings.child("camera_settings", "clear_mode").setValue(mode_name)
+                        self.settings.child("camera_settings", "clear_mode").setValue(
+                            mode_name
+                        )
                         break
-                        
-            if hasattr(self.camera, 'temp_setpoint'):
+
+            if hasattr(self.camera, "temp_setpoint"):
                 self.settings.child("camera_settings", "temperature_setpoint").setValue(
                     self.camera.temp_setpoint
                 )
 
             self.x_axis = self.get_xaxis()
             self.y_axis = self.get_yaxis()
-            
+
         except Exception as e:
             logger.error(f"Error updating camera parameters: {e}")
             # Continue with basic initialization even if parameter update fails
@@ -526,11 +563,15 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
     def close(self):
         """Closes the camera connection and uninitializes the PVCAM library."""
         try:
-            if self.camera is not None and hasattr(self.camera, 'is_open') and self.camera.is_open:
+            if (
+                self.camera is not None
+                and hasattr(self.camera, "is_open")
+                and self.camera.is_open
+            ):
                 self.camera.close()
         except Exception as e:
             logger.warning(f"Error closing camera: {e}")
-            
+
         # Only uninitialize PVCAM if it's available and we're not in mock mode
         try:
             mock_mode = self.settings.child("Settings", "mock_mode").value()
