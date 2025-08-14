@@ -20,8 +20,6 @@ Author: PyMoDAQ Plugin Development Team
 License: MIT
 """
 
-from pathlib import Path
-
 # Handle missing PyMoDAQ dependencies gracefully for CI/test environments
 try:
     from pymodaq_utils.logger import get_module_name, set_logger
