@@ -27,6 +27,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Plugin Implementer: Code implementation following PyMoDAQ standards
 - All agents use Serena for shared memory and context management
 
+## CRITICAL: Always Use Serena and Ref Tools for Code Search
+
+**MANDATORY SEARCH PROTOCOL**: Claude Code MUST ALWAYS use Serena and Ref tools when searching through code and documentation. These tools provide:
+
+**Serena Tool Usage (REQUIRED)**:
+- **Code Structure Analysis**: Use `find_symbol` for locating classes, methods, and variables
+- **Dependency Tracking**: Use `find_referencing_symbols` for understanding code relationships  
+- **Pattern Search**: Use `search_for_pattern` for finding specific code patterns
+- **File Operations**: Use `list_dir` and `get_symbols_overview` for codebase exploration
+- **Memory Management**: Use `read_memory` and `write_memory` for session persistence
+
+**Ref Tool Usage (REQUIRED)**:
+- **Documentation Search**: Use `ref_search_documentation` for PyMoDAQ and library docs
+- **API Reference**: Use `ref_read_url` for detailed documentation reading
+- **Standards Research**: Essential for understanding PyMoDAQ patterns and compliance
+
+**DO NOT use basic grep, find, or manual file reading when Serena/Ref tools are available. These specialized tools provide:**
+- LSP-based code analysis with proper symbol resolution
+- Intelligent search with context awareness  
+- Documentation integration with live examples
+- Memory persistence across development sessions
+- Project-specific knowledge integration
+
 ## Project Overview
 
 This is a PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems. It provides complete automation and control for polarimetric SHG measurements with three main hardware components:
@@ -641,7 +664,7 @@ uv run pytest tests/                        # Run tests
 
 ## Recent Achievements (Latest Session)
 
-### Phase 2 Implementation Completed
+### Phase 2 Implementation Completed ✅
 - **μRASHG Extension Architecture**: Complete transformation from basic to production-ready
 - **Professional UI**: 5-dock layout with comprehensive controls and visualization
 - **Hardware Coordination**: Centralized management for 9+ hardware devices
@@ -649,16 +672,28 @@ uv run pytest tests/                        # Run tests
 - **Code Quality**: Zero linting violations, 100% Black formatting compliance
 - **Documentation**: Comprehensive memory system and updated project documentation
 
-### Quality Assurance Process
-- **Syntax Validation**: All code compiles successfully
-- **Linting**: flake8 compliance with zero violations
-- **Formatting**: Black formatting applied consistently
-- **Testing**: Import verification and basic functionality validation
-- **Documentation**: Memory system updated with implementation status
+### CI Compliance Fixes Completed ✅
+- **Import Sorting**: Applied isort to both extension files for consistent formatting
+- **Lifecycle Methods**: Added missing start_measurement(), stop_measurement(), close() methods
+- **Thread Safety**: Implemented safe_emit_signal() and proper resource cleanup
+- **Error Handling**: Comprehensive exception management throughout codebase
+- **Configuration**: Enhanced parameter tree for JSON serialization compliance
+- **Resource Management**: Proper cleanup methods preventing QThread conflicts
 
-### Deployment Ready
-The μRASHG extension is now ready for:
-- CI pipeline testing via GitHub push
-- Production deployment in research environments
-- Integration with existing PyMoDAQ workflows
-- Advanced microscopy measurement campaigns
+### Quality Assurance Process ✅
+- **Syntax Validation**: All code compiles successfully
+- **Linting**: flake8 compliance with zero violations maintained
+- **Formatting**: Black formatting applied consistently across all changes
+- **Import Standards**: isort compliance achieved for Python import conventions
+- **Thread Safety**: Qt signal/slot patterns properly implemented
+- **Documentation**: Memory system updated with comprehensive implementation status
+
+### Production Ready Status ✅
+The μRASHG extension is now fully production-ready with:
+- **CI Pipeline**: All compliance tests passing
+- **PyMoDAQ Standards**: Full lifecycle method compliance
+- **Thread Safety**: Proper Qt threading patterns implemented  
+- **Resource Management**: Clean shutdown and cleanup procedures
+- **Error Resilience**: Comprehensive exception handling
+- **Production Deployment**: Ready for research environments
+- **Advanced Workflows**: Integration with existing PyMoDAQ systems
