@@ -19,7 +19,7 @@ import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from qtpy.QtCore import QObject, Signal, QMetaObject, Qt
+from qtpy.QtCore import QMetaObject, QObject, Qt, Signal
 
 logger = logging.getLogger(__name__)
 

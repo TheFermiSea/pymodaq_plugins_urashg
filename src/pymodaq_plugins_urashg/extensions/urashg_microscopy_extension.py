@@ -31,12 +31,12 @@ except ImportError:
     np = None
 
 try:
-    from pymodaq_data import Axis, DataWithAxes, DataSource
+    from pymodaq_data import Axis, DataSource, DataWithAxes
     from pymodaq_gui.utils.custom_app import CustomApp
     from pymodaq_utils.logger import get_module_name, set_logger
     from pyqtgraph.dockarea import Dock
     from qtpy import QtCore, QtGui, QtWidgets
-    from qtpy.QtCore import QObject, Signal, QMetaObject, Qt
+    from qtpy.QtCore import QMetaObject, QObject, Qt, Signal
 
     logger = set_logger(get_module_name(__file__))
     PYMODAQ_AVAILABLE = True
@@ -914,6 +914,70 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
                 self.preview_button.setEnabled(True)
                 self.preview_button.setText("Preview")
 
+    def start_measurement(self):
+        """Start a full measurement sequence."""
+        if not PYMODAQ_AVAILABLE:
+            return
+
+        if self.is_measuring:
+            self.log_message("Measurement already in progress")
+            return
+
+        logger.info("Starting μRASHG measurement")
+        self.log_message("Starting measurement sequence...")
+
+        try:
+            # Get current experiment type
+            experiment_type = "Basic RASHG"
+            if hasattr(self, "experiment_combo"):
+                experiment_type = self.experiment_combo.currentText()
+
+            # Set measuring state
+            self.is_measuring = True
+            self.measurement_started.emit()
+
+            # Execute measurement through hardware manager
+            success = self.coordinate_measurement_sequence(experiment_type)
+
+            if success:
+                self.log_message("Measurement completed successfully")
+            else:
+                self.log_message("Measurement failed or was cancelled")
+
+        except Exception as e:
+            logger.error(f"Measurement failed: {e}")
+            self.error_occurred.emit(f"Measurement failed: {e}")
+        finally:
+            # Always reset measuring state
+            self.is_measuring = False
+            self.measurement_finished.emit()
+
+    def stop_measurement(self):
+        """Stop the current measurement sequence."""
+        if not PYMODAQ_AVAILABLE:
+            return
+
+        if not self.is_measuring:
+            self.log_message("No measurement in progress")
+            return
+
+        logger.info("Stopping μRASHG measurement")
+        self.log_message("Stopping measurement...")
+
+        try:
+            # Signal stop to hardware manager
+            if self.hardware_manager:
+                self.hardware_manager.stop_measurement()
+
+            # Reset state
+            self.is_measuring = False
+            self.measurement_finished.emit()
+            self.log_message("Measurement stopped")
+
+        except Exception as e:
+            logger.error(f"Error stopping measurement: {e}")
+            self.error_occurred.emit(f"Error stopping measurement: {e}")
+
     def run_preview_measurement(self):
         """Run a quick preview measurement."""
         # Simulate a quick measurement with fewer steps
@@ -1107,6 +1171,46 @@ measurements using PyMoDAQ.
             params["measurement_type"] = "Basic RASHG"
 
         return params
+
+    def close(self):
+        """Clean shutdown of the extension."""
+        if not PYMODAQ_AVAILABLE:
+            return
+
+        logger.info("Closing μRASHG Microscopy Extension")
+
+        try:
+            # Stop any ongoing measurements
+            if self.is_measuring:
+                self.stop_measurement()
+
+            # Clean up hardware manager
+            if self.hardware_manager:
+                self.hardware_manager.cleanup()
+                self.hardware_manager = None
+
+            # Clear references
+            self.dashboard = None
+            self.dockarea = None
+            self.available_modules.clear()
+            self.measurement_data.clear()
+
+            self.log_message("Extension closed successfully")
+
+        except Exception as e:
+            logger.error(f"Error during extension close: {e}")
+
+    def safe_emit_signal(self, signal, *args):
+        """Thread-safe signal emission."""
+        if not PYMODAQ_AVAILABLE:
+            return
+
+        try:
+            QMetaObject.invokeMethod(
+                self, lambda: signal.emit(*args), Qt.ConnectionType.QueuedConnection
+            )
+        except Exception as e:
+            logger.error(f"Error emitting signal: {e}")
 
 
 class URASHGHardwareManager:
@@ -1751,6 +1855,23 @@ class URASHGHardwareManager:
 
         self.is_measuring = False
         self.measurement_finished.emit()
+
+    def cleanup(self):
+        """Clean up hardware manager resources."""
+        logger.info("Cleaning up URASHGHardwareManager")
+
+        try:
+            # Clear device references
+            self.devices.clear()
+
+            # Clear dashboard reference
+            self.dashboard = None
+            self.extension = None
+
+            self.logger.info("Hardware manager cleanup completed")
+
+        except Exception as e:
+            self.logger.error(f"Error during hardware manager cleanup: {e}")
 
     def on_measurement_started(self):
         """Handle measurement started signal."""
