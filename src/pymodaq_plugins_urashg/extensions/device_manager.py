@@ -165,3 +165,35 @@ class URASHGDeviceManager(QObject):
         QMetaObject.invokeMethod(
             self, lambda: signal.emit(*args), Qt.ConnectionType.QueuedConnection
         )
+
+    def get_plugin_parameters(
+        self, device_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get plugin parameters (compatibility stub)."""
+        logger.info(
+            "Plugin parameter management is handled by URASHGMicroscopyExtension"
+        )
+        if device_name:
+            return {}
+        return {device: {} for device in self.supported_devices}
+
+    def set_plugin_parameters(
+        self, device_name: str, parameters: Dict[str, Any]
+    ) -> bool:
+        """Set plugin parameters (compatibility stub)."""
+        logger.info(
+            f"Setting parameters for {device_name} handled by URASHGMicroscopyExtension"
+        )
+        return True
+
+    def connect_plugin_signals(self, device_name: Optional[str] = None) -> bool:
+        """Connect plugin signals (compatibility stub)."""
+        logger.info("Plugin signal connection is handled by URASHGMicroscopyExtension")
+        return True
+
+    def disconnect_plugin_signals(self, device_name: Optional[str] = None) -> bool:
+        """Disconnect plugin signals (compatibility stub)."""
+        logger.info(
+            "Plugin signal disconnection is handled by URASHGMicroscopyExtension"
+        )
+        return True
