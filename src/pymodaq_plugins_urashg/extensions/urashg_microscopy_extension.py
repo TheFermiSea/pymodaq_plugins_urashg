@@ -504,7 +504,7 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
                     self.log_message(f"Hardware manager init warning: {e}")
 
     def setup_docks(self):
-        """Setup advanced dock layout system with enhanced PyMoDAQ CustomApp patterns."""
+        """Setup advanced dock layout system with enhanced PyMoDAQ patterns."""
         if not PYMODAQ_AVAILABLE:
             return
 
@@ -794,7 +794,6 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
     def setup_3d_visualization_tab(self):
         """Setup 3D visualization tab for spatial mapping."""
         try:
-            import pyqtgraph as pg
             import pyqtgraph.opengl as gl
 
             # Create 3D widget
@@ -878,7 +877,7 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         # Position as tabbed with device monitor or float it
         try:
             self.dockarea.addDock(analysis_dock, "tab", self.docks["device_monitor"])
-        except:
+        except Exception:
             self.dockarea.addDock(analysis_dock, "right")
 
         self.docks["data_analysis"] = analysis_dock
@@ -1000,6 +999,8 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
                     # Export logic would depend on the plot widget type
                     if current_tab == 0 and hasattr(self, "plot_widget"):
                         # Export main RASHG plot
+                        import pyqtgraph as pg
+
                         exporter = pg.exporters.ImageExporter(self.plot_widget.plotItem)
                         exporter.export(filename)
                         self.log_message(f"Plot exported to {filename}")
