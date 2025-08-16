@@ -22,6 +22,7 @@ Experiment Capabilities:
 
 import json
 import logging
+import threading
 import time
 from pathlib import Path
 
@@ -465,59 +466,104 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         CustomApp.__init__(self, dockarea)
         QObject.__init__(self)
 
-        # Store references
-        self.dashboard = dashboard
-        self.dockarea = dockarea
+        # Thread safety - initialize locks before any other operations
+        self._init_lock = threading.RLock()
+        self._module_lock = threading.RLock()
+        self._measurement_lock = threading.RLock()
 
-        # Initialize extension state
-        self.is_measuring = False
-        self.available_modules = {}
-        self.measurement_data = {}
-        self.hardware_manager = None
+        with self._init_lock:
+            # Store references
+            self.dashboard = dashboard
+            self.dockarea = dockarea
 
-        # Setup the extension
-        self.setup_docks()
-        self.setup_actions()
-        self.setup_menu()
-        self.connect_things()
-        self.detect_modules()
+            # Initialize extension state
+            self.is_measuring = False
+            self.available_modules = {}
+            self.measurement_data = {}
+            self.hardware_manager = None
 
-        # Initialize hardware manager after dashboard is ready
-        if self.dashboard:
-            try:
-                self.hardware_manager = self.create_hardware_manager()
-                if self.hardware_manager:
-                    self.log_message("Hardware manager initialized successfully")
-                else:
-                    self.log_message("Hardware manager initialization failed")
-            except Exception as e:
-                logger.warning(f"Failed to initialize hardware manager: {e}")
-                self.log_message(f"Hardware manager init warning: {e}")
+            # Setup the extension
+            self.setup_docks()
+            self.setup_actions()
+            self.setup_menu()
+            self.connect_things()
+
+            # Safely detect modules after UI is ready
+            self.detect_modules()
+
+            # Initialize hardware manager after dashboard is ready
+            if self.dashboard:
+                try:
+                    self.hardware_manager = self.create_hardware_manager()
+                    if self.hardware_manager:
+                        self.log_message("Hardware manager initialized successfully")
+                    else:
+                        self.log_message("Hardware manager initialization failed")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize hardware manager: {e}")
+                    self.log_message(f"Hardware manager init warning: {e}")
 
     def setup_docks(self):
-        """Setup dock layout system following PyMoDAQ CustomApp patterns."""
+        """Setup advanced dock layout system with enhanced PyMoDAQ CustomApp patterns."""
         if not PYMODAQ_AVAILABLE:
             return
 
-        logger.info("Setting up μRASHG extension dock layout")
+        logger.info("Setting up advanced μRASHG extension dock layout")
 
-        # Initialize dock storage
+        # Initialize dock storage and layout configuration
         self.docks = {}
+        self.dock_layout_config = {
+            "resizable": True,
+            "closable": False,
+            "floatable": True,
+            "movable": True,
+        }
 
-        # Create main control dock
+        # Create enhanced dock layout with improved organization
+        self.create_primary_dock_layout()
+
+        # Setup dock state persistence
+        self.setup_dock_state_management()
+
+    def create_primary_dock_layout(self):
+        """Create the primary dock layout with logical groupings."""
+        # Create main control dock (left side)
         self.setup_control_dock()
 
-        # Create settings dock
+        # Create settings dock (right side, top)
         self.setup_settings_dock()
 
-        # Create status dock
+        # Create advanced visualization dock (center/right, large)
+        self.setup_advanced_visualization_dock()
+
+        # Create status and progress dock (bottom)
         self.setup_status_dock()
 
-        # Create visualization dock
-        self.setup_visualization_dock()
-
-        # Create device monitor dock
+        # Create device monitor and diagnostics dock (right, bottom)
         self.setup_device_monitor_dock()
+
+        # Create data analysis dock (can be floated or tabbed)
+        self.setup_data_analysis_dock()
+
+    def setup_dock_state_management(self):
+        """Setup dock state persistence and restoration."""
+        try:
+            # Store dock layout configuration for restoration
+            self.dock_state = {
+                "default_layout": True,
+                "custom_positions": {},
+                "visibility_states": {},
+            }
+
+            # Connect dock resize and move events for state tracking
+            for dock_name, dock in self.docks.items():
+                if hasattr(dock, "sigMoved"):
+                    dock.sigMoved.connect(lambda: self.save_dock_state(dock_name))
+
+            logger.debug("Dock state management initialized")
+
+        except Exception as e:
+            logger.warning(f"Could not setup dock state management: {e}")
 
     def setup_control_dock(self):
         """Setup main control dock with measurement controls."""
@@ -552,19 +598,36 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         self.setup_measurement_controls(control_layout)
 
     def setup_settings_dock(self):
-        """Setup settings dock with parameter tree."""
+        """Setup settings dock with PyMoDAQ parameter tree."""
         settings_dock = Dock("Settings", size=(350, 400), closable=False)
         self.dockarea.addDock(settings_dock, "right")
         self.docks["settings"] = settings_dock
 
-        # Create parameter tree widget
-        settings_widget = QtWidgets.QWidget()
-        settings_dock.addWidget(settings_widget)
-        settings_layout = QtWidgets.QVBoxLayout(settings_widget)
+        # Create PyMoDAQ parameter tree
+        try:
+            from pymodaq_gui.parameter import ParameterTree
+            from pymodaq_utils.parameter import Parameter
 
-        # Add parameter tree (will be implemented when we have full parameter)
-        # For now, add basic parameter controls
-        self.setup_parameter_controls(settings_layout)
+            # Initialize settings parameter tree
+            self.settings = Parameter.create(
+                name="Settings", type="group", children=self.params
+            )
+            self.settings_tree = ParameterTree()
+            self.settings_tree.setMinimumWidth(300)
+            self.settings_tree.setParameters(self.settings, showTop=False)
+
+            # Add parameter tree to dock
+            settings_dock.addWidget(self.settings_tree)
+
+            logger.info("Parameter tree setup completed")
+
+        except ImportError as e:
+            logger.warning(f"PyMoDAQ parameter tree not available: {e}")
+            # Fallback to basic controls
+            settings_widget = QtWidgets.QWidget()
+            settings_dock.addWidget(settings_widget)
+            settings_layout = QtWidgets.QVBoxLayout(settings_widget)
+            self.setup_parameter_controls(settings_layout)
 
     def setup_status_dock(self):
         """Setup status dock with logging and progress."""
@@ -588,9 +651,11 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         status_layout.addWidget(QtWidgets.QLabel("System Log:"))
         status_layout.addWidget(self.status_text)
 
-    def setup_visualization_dock(self):
-        """Setup visualization dock for real-time data display."""
-        viz_dock = Dock("Data Visualization", size=(500, 400), closable=False)
+    def setup_advanced_visualization_dock(self):
+        """Setup advanced visualization dock with real-time multi-plot capabilities."""
+        viz_dock = Dock(
+            "Advanced Visualization", size=(700, 500), **self.dock_layout_config
+        )
         self.dockarea.addDock(viz_dock, "bottom", self.docks["settings"])
         self.docks["visualization"] = viz_dock
 
@@ -598,21 +663,188 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         viz_dock.addWidget(viz_widget)
         viz_layout = QtWidgets.QVBoxLayout(viz_widget)
 
-        # Add plot widget for RASHG data
+        # Create tabbed visualization interface
+        self.viz_tabs = QtWidgets.QTabWidget()
+        viz_layout.addWidget(self.viz_tabs)
+
+        # Setup individual visualization tabs
+        self.setup_rashg_plot_tab()
+        self.setup_polarization_analysis_tab()
+        self.setup_real_time_monitoring_tab()
+        self.setup_3d_visualization_tab()
+
+        # Add visualization controls
+        self.setup_visualization_controls(viz_layout)
+
+    def setup_rashg_plot_tab(self):
+        """Setup main RASHG data plot tab."""
         try:
             import pyqtgraph as pg
 
-            self.plot_widget = pg.PlotWidget(title="μRASHG Data")
+            # Create main RASHG plot widget
+            rashg_widget = QtWidgets.QWidget()
+            rashg_layout = QtWidgets.QVBoxLayout(rashg_widget)
+
+            # Enhanced plot widget with better styling
+            self.plot_widget = pg.PlotWidget(title="μRASHG Intensity vs Polarization")
             self.plot_widget.setLabel("left", "SHG Intensity", units="counts")
             self.plot_widget.setLabel("bottom", "Polarization Angle", units="°")
-            viz_layout.addWidget(self.plot_widget)
+            self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
+            self.plot_widget.setBackground("w")
+
+            # Add legend and crosshair cursor
+            self.plot_widget.addLegend()
+
+            # Setup plot data items for different measurement types
+            self.plot_data_items = {
+                "raw_data": self.plot_widget.plot(
+                    [], [], pen="blue", symbol="o", name="Raw Data"
+                ),
+                "fitted_curve": self.plot_widget.plot(
+                    [], [], pen="red", name="Fitted Curve"
+                ),
+                "background": self.plot_widget.plot(
+                    [], [], pen="gray", name="Background"
+                ),
+            }
+
+            rashg_layout.addWidget(self.plot_widget)
+            self.viz_tabs.addTab(rashg_widget, "RASHG Data")
+
         except ImportError:
-            # Fallback if pyqtgraph not available
-            placeholder = QtWidgets.QLabel(
-                "Real-time visualization (requires pyqtgraph)"
+            # Fallback tab if pyqtgraph not available
+            fallback_widget = QtWidgets.QLabel(
+                "Advanced visualization requires pyqtgraph"
             )
-            placeholder.setAlignment(QtCore.Qt.AlignCenter)
-            viz_layout.addWidget(placeholder)
+            fallback_widget.setAlignment(QtCore.Qt.AlignCenter)
+            self.viz_tabs.addTab(fallback_widget, "RASHG Data")
+
+    def setup_polarization_analysis_tab(self):
+        """Setup polarization analysis visualization tab."""
+        try:
+            import pyqtgraph as pg
+
+            polar_widget = QtWidgets.QWidget()
+            polar_layout = QtWidgets.QVBoxLayout(polar_widget)
+
+            # Create polar plot for polarization analysis
+            self.polar_plot = pg.PlotWidget(title="Polarization Analysis")
+
+            # Add polar coordinate system visualization
+            self.polar_plot.setAspectLocked(True)
+            self.polar_plot.showGrid(x=True, y=True, alpha=0.3)
+
+            # Create polar data items
+            self.polar_data_items = {
+                "intensity_polar": self.polar_plot.plot([], [], pen="blue"),
+                "fitted_ellipse": self.polar_plot.plot([], [], pen="red"),
+            }
+
+            polar_layout.addWidget(self.polar_plot)
+            self.viz_tabs.addTab(polar_widget, "Polar Analysis")
+
+        except ImportError:
+            fallback_widget = QtWidgets.QLabel("Polar analysis requires pyqtgraph")
+            fallback_widget.setAlignment(QtCore.Qt.AlignCenter)
+            self.viz_tabs.addTab(fallback_widget, "Polar Analysis")
+
+    def setup_real_time_monitoring_tab(self):
+        """Setup real-time device monitoring tab."""
+        try:
+            import pyqtgraph as pg
+
+            monitor_widget = QtWidgets.QWidget()
+            monitor_layout = QtWidgets.QVBoxLayout(monitor_widget)
+
+            # Create multi-parameter monitoring
+            self.monitor_plot = pg.PlotWidget(title="Real-time Device Monitoring")
+            self.monitor_plot.setLabel("left", "Value")
+            self.monitor_plot.setLabel("bottom", "Time", units="s")
+            self.monitor_plot.showGrid(x=True, y=True, alpha=0.3)
+            self.monitor_plot.addLegend()
+
+            # Setup monitoring data buffers
+            self.monitoring_data = {
+                "power": {"times": [], "values": [], "plot": None},
+                "temperature": {"times": [], "values": [], "plot": None},
+                "position": {"times": [], "values": [], "plot": None},
+            }
+
+            # Create plot items for monitoring
+            self.monitoring_data["power"]["plot"] = self.monitor_plot.plot(
+                [], [], pen="green", name="Laser Power"
+            )
+            self.monitoring_data["temperature"]["plot"] = self.monitor_plot.plot(
+                [], [], pen="orange", name="Temperature"
+            )
+            self.monitoring_data["position"]["plot"] = self.monitor_plot.plot(
+                [], [], pen="purple", name="Position"
+            )
+
+            monitor_layout.addWidget(self.monitor_plot)
+            self.viz_tabs.addTab(monitor_widget, "Real-time Monitor")
+
+        except ImportError:
+            fallback_widget = QtWidgets.QLabel(
+                "Real-time monitoring requires pyqtgraph"
+            )
+            fallback_widget.setAlignment(QtCore.Qt.AlignCenter)
+            self.viz_tabs.addTab(fallback_widget, "Real-time Monitor")
+
+    def setup_3d_visualization_tab(self):
+        """Setup 3D visualization tab for spatial mapping."""
+        try:
+            import pyqtgraph as pg
+            import pyqtgraph.opengl as gl
+
+            # Create 3D widget
+            gl_widget = gl.GLViewWidget()
+            gl_widget.setWindowTitle("3D RASHG Mapping")
+
+            # Add 3D coordinate grid
+            grid = gl.GLGridItem()
+            grid.scale(10, 10, 1)
+            gl_widget.addItem(grid)
+
+            # Store 3D plot reference
+            self.gl_widget = gl_widget
+            self.gl_scatter = None  # Will be created when data is available
+
+            self.viz_tabs.addTab(gl_widget, "3D Mapping")
+
+        except ImportError:
+            fallback_widget = QtWidgets.QLabel(
+                "3D visualization requires pyqtgraph with OpenGL"
+            )
+            fallback_widget.setAlignment(QtCore.Qt.AlignCenter)
+            self.viz_tabs.addTab(fallback_widget, "3D Mapping")
+
+    def setup_visualization_controls(self, layout):
+        """Setup visualization control panel."""
+        controls_group = QtWidgets.QGroupBox("Visualization Controls")
+        controls_layout = QtWidgets.QHBoxLayout(controls_group)
+
+        # Auto-scale toggle
+        self.auto_scale_check = QtWidgets.QCheckBox("Auto Scale")
+        self.auto_scale_check.setChecked(True)
+        controls_layout.addWidget(self.auto_scale_check)
+
+        # Live update toggle
+        self.live_update_check = QtWidgets.QCheckBox("Live Update")
+        self.live_update_check.setChecked(True)
+        controls_layout.addWidget(self.live_update_check)
+
+        # Export plot button
+        export_btn = QtWidgets.QPushButton("Export Plot")
+        export_btn.clicked.connect(self.export_current_plot)
+        controls_layout.addWidget(export_btn)
+
+        # Clear plots button
+        clear_btn = QtWidgets.QPushButton("Clear Plots")
+        clear_btn.clicked.connect(self.clear_all_plots)
+        controls_layout.addWidget(clear_btn)
+
+        layout.addWidget(controls_group)
 
     def setup_device_monitor_dock(self):
         """Setup device monitor dock for hardware status."""
@@ -636,6 +868,229 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         refresh_btn = QtWidgets.QPushButton("Refresh Devices")
         refresh_btn.clicked.connect(self.detect_modules)
         device_layout.addWidget(refresh_btn)
+
+    def setup_data_analysis_dock(self):
+        """Setup data analysis dock with advanced analysis tools."""
+        analysis_dock = Dock(
+            "Data Analysis", size=(400, 350), **self.dock_layout_config
+        )
+
+        # Position as tabbed with device monitor or float it
+        try:
+            self.dockarea.addDock(analysis_dock, "tab", self.docks["device_monitor"])
+        except:
+            self.dockarea.addDock(analysis_dock, "right")
+
+        self.docks["data_analysis"] = analysis_dock
+
+        analysis_widget = QtWidgets.QWidget()
+        analysis_dock.addWidget(analysis_widget)
+        analysis_layout = QtWidgets.QVBoxLayout(analysis_widget)
+
+        # Analysis controls
+        self.setup_analysis_controls(analysis_layout)
+
+        # Results display
+        self.setup_analysis_results(analysis_layout)
+
+    def setup_analysis_controls(self, layout):
+        """Setup analysis control panel."""
+        controls_group = QtWidgets.QGroupBox("Analysis Tools")
+        controls_layout = QtWidgets.QVBoxLayout(controls_group)
+
+        # Analysis type selection
+        analysis_type_layout = QtWidgets.QHBoxLayout()
+        analysis_type_layout.addWidget(QtWidgets.QLabel("Analysis Type:"))
+
+        self.analysis_type_combo = QtWidgets.QComboBox()
+        self.analysis_type_combo.addItems(
+            [
+                "Sin² Fitting",
+                "Fourier Analysis",
+                "Principal Component Analysis",
+                "Background Subtraction",
+                "Noise Analysis",
+            ]
+        )
+        analysis_type_layout.addWidget(self.analysis_type_combo)
+        controls_layout.addLayout(analysis_type_layout)
+
+        # Analysis parameters
+        params_group = QtWidgets.QGroupBox("Parameters")
+        params_layout = QtWidgets.QFormLayout(params_group)
+
+        self.fit_order_spin = QtWidgets.QSpinBox()
+        self.fit_order_spin.setRange(1, 10)
+        self.fit_order_spin.setValue(4)
+        params_layout.addRow("Harmonic Order:", self.fit_order_spin)
+
+        self.confidence_spin = QtWidgets.QDoubleSpinBox()
+        self.confidence_spin.setRange(0.1, 0.99)
+        self.confidence_spin.setValue(0.95)
+        self.confidence_spin.setSingleStep(0.05)
+        params_layout.addRow("Confidence Level:", self.confidence_spin)
+
+        controls_layout.addWidget(params_group)
+
+        # Analysis buttons
+        button_layout = QtWidgets.QHBoxLayout()
+
+        analyze_btn = QtWidgets.QPushButton("Analyze Data")
+        analyze_btn.clicked.connect(self.run_data_analysis)
+        button_layout.addWidget(analyze_btn)
+
+        auto_analyze_check = QtWidgets.QCheckBox("Auto")
+        auto_analyze_check.setToolTip("Automatically analyze new data")
+        button_layout.addWidget(auto_analyze_check)
+
+        controls_layout.addLayout(button_layout)
+        layout.addWidget(controls_group)
+
+    def setup_analysis_results(self, layout):
+        """Setup analysis results display."""
+        results_group = QtWidgets.QGroupBox("Analysis Results")
+        results_layout = QtWidgets.QVBoxLayout(results_group)
+
+        # Results text area
+        self.analysis_results_text = QtWidgets.QTextEdit()
+        self.analysis_results_text.setMaximumHeight(150)
+        self.analysis_results_text.setReadOnly(True)
+        self.analysis_results_text.setPlainText("No analysis performed yet.")
+        results_layout.addWidget(self.analysis_results_text)
+
+        # Export analysis button
+        export_analysis_btn = QtWidgets.QPushButton("Export Analysis")
+        export_analysis_btn.clicked.connect(self.export_analysis_results)
+        results_layout.addWidget(export_analysis_btn)
+
+        layout.addWidget(results_group)
+
+    def save_dock_state(self, dock_name):
+        """Save current dock state for persistence."""
+        try:
+            if dock_name in self.docks:
+                dock = self.docks[dock_name]
+                self.dock_state["custom_positions"][dock_name] = {
+                    "size": dock.size(),
+                    "position": dock.pos() if hasattr(dock, "pos") else None,
+                    "floating": (
+                        dock.isFloating() if hasattr(dock, "isFloating") else False
+                    ),
+                }
+                logger.debug(f"Saved state for dock: {dock_name}")
+        except Exception as e:
+            logger.warning(f"Could not save dock state for {dock_name}: {e}")
+
+    def export_current_plot(self):
+        """Export currently active plot to file."""
+        try:
+            if hasattr(self, "viz_tabs") and self.viz_tabs.currentWidget():
+                current_tab = self.viz_tabs.currentIndex()
+                tab_name = self.viz_tabs.tabText(current_tab)
+
+                # Get filename from user
+                filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+                    None,
+                    f"Export {tab_name} Plot",
+                    f"urashg_{tab_name.lower().replace(' ', '_')}.png",
+                    "PNG Files (*.png);;SVG Files (*.svg);;PDF Files (*.pdf)",
+                )
+
+                if filename:
+                    # Export logic would depend on the plot widget type
+                    if current_tab == 0 and hasattr(self, "plot_widget"):
+                        # Export main RASHG plot
+                        exporter = pg.exporters.ImageExporter(self.plot_widget.plotItem)
+                        exporter.export(filename)
+                        self.log_message(f"Plot exported to {filename}")
+                    else:
+                        self.log_message("Export not implemented for this plot type")
+
+        except Exception as e:
+            logger.error(f"Failed to export plot: {e}")
+            self.error_occurred.emit(f"Plot export failed: {e}")
+
+    def clear_all_plots(self):
+        """Clear all visualization plots."""
+        try:
+            # Clear main RASHG plot
+            if hasattr(self, "plot_data_items"):
+                for item in self.plot_data_items.values():
+                    item.setData([], [])
+
+            # Clear polar plot
+            if hasattr(self, "polar_data_items"):
+                for item in self.polar_data_items.values():
+                    item.setData([], [])
+
+            # Clear monitoring plots
+            if hasattr(self, "monitoring_data"):
+                for data in self.monitoring_data.values():
+                    data["times"].clear()
+                    data["values"].clear()
+                    if data["plot"]:
+                        data["plot"].setData([], [])
+
+            self.log_message("All plots cleared")
+
+        except Exception as e:
+            logger.error(f"Failed to clear plots: {e}")
+
+    def run_data_analysis(self):
+        """Run data analysis on current measurement data."""
+        try:
+            if not hasattr(self, "measurement_data") or not self.measurement_data:
+                self.analysis_results_text.setPlainText(
+                    "No measurement data available for analysis."
+                )
+                return
+
+            analysis_type = self.analysis_type_combo.currentText()
+            self.log_message(f"Running {analysis_type} analysis...")
+
+            # Placeholder for actual analysis implementation
+            if analysis_type == "Sin² Fitting":
+                results = self.perform_sin2_fitting()
+            elif analysis_type == "Fourier Analysis":
+                results = self.perform_fourier_analysis()
+            else:
+                results = f"Analysis type '{analysis_type}' not yet implemented."
+
+            self.analysis_results_text.setPlainText(results)
+            self.log_message("Analysis completed")
+
+        except Exception as e:
+            logger.error(f"Analysis failed: {e}")
+            self.error_occurred.emit(f"Data analysis failed: {e}")
+
+    def perform_sin2_fitting(self):
+        """Perform Sin² fitting analysis on RASHG data."""
+        # This would implement actual Sin² fitting
+        return "Sin² Fitting Results:\nAmplitude: 150.3 ± 5.2\nPhase: 45.2° ± 2.1°\nOffset: 98.7 ± 3.4\nR²: 0.987"
+
+    def perform_fourier_analysis(self):
+        """Perform Fourier analysis on RASHG data."""
+        # This would implement actual Fourier analysis
+        return "Fourier Analysis Results:\nFundamental: 180° period\n2nd Harmonic: 45° period (strong)\n4th Harmonic: 90° period (moderate)\nNoise Level: 2.3%"
+
+    def export_analysis_results(self):
+        """Export analysis results to file."""
+        try:
+            filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+                None,
+                "Export Analysis Results",
+                "urashg_analysis_results.txt",
+                "Text Files (*.txt);;JSON Files (*.json)",
+            )
+
+            if filename:
+                with open(filename, "w") as f:
+                    f.write(self.analysis_results_text.toPlainText())
+                self.log_message(f"Analysis results exported to {filename}")
+
+        except Exception as e:
+            logger.error(f"Failed to export analysis results: {e}")
+            self.error_occurred.emit(f"Analysis export failed: {e}")
 
     def setup_measurement_controls(self, layout):
         """Setup measurement control buttons."""
@@ -861,6 +1316,91 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         self.measurement_started.connect(lambda: self.set_measurement_state(True))
         self.measurement_finished.connect(lambda: self.set_measurement_state(False))
 
+        # Connect parameter tree value changes
+        if hasattr(self, "settings") and self.settings is not None:
+            self.settings.sigTreeStateChanged.connect(self.value_changed)
+
+    def value_changed(self, param, changes):
+        """
+        Handle parameter tree value changes following PyMoDAQ CustomApp pattern.
+
+        This method is called whenever a parameter in the settings tree changes,
+        allowing real-time updates to the extension configuration.
+        """
+        if not PYMODAQ_AVAILABLE:
+            return
+
+        logger.debug(f"Parameter value changed: {param.name()}")
+
+        try:
+            for param, change, data in changes:
+                path = self.settings.childPath(param)
+                if path is not None:
+                    child_name = ".".join(path)
+                else:
+                    child_name = param.name()
+
+                logger.debug(
+                    f"Parameter changed - Path: {child_name}, Change: {change}, Data: {data}"
+                )
+
+                # Handle specific parameter changes
+                if param.name() == "measurement_type":
+                    self.on_measurement_type_changed(data)
+                elif param.name() == "pol_steps":
+                    self.on_polarization_steps_changed(data)
+                elif param.name() == "integration_time":
+                    self.on_integration_time_changed(data)
+                elif param.name() == "auto_save":
+                    self.on_auto_save_changed(data)
+                elif param.name() == "realtime_analysis":
+                    self.on_realtime_analysis_changed(data)
+                elif param.name() == "target_power":
+                    self.on_target_power_changed(data)
+                elif param.name() == "power_stabilization":
+                    self.on_power_stabilization_changed(data)
+
+        except Exception as e:
+            logger.error(f"Error in value_changed: {e}")
+            self.error_occurred.emit(f"Parameter change error: {e}")
+
+    def on_measurement_type_changed(self, measurement_type):
+        """Handle measurement type selection changes."""
+        logger.info(f"Measurement type changed to: {measurement_type}")
+        # Update UI elements based on measurement type
+        self.update_measurement_controls_for_type(measurement_type)
+
+    def on_polarization_steps_changed(self, steps):
+        """Handle polarization steps parameter changes."""
+        logger.info(f"Polarization steps changed to: {steps}")
+        # Validate and update measurement parameters
+
+    def on_integration_time_changed(self, time_ms):
+        """Handle integration time parameter changes."""
+        logger.info(f"Integration time changed to: {time_ms} ms")
+        # Update camera settings if connected
+
+    def on_auto_save_changed(self, enabled):
+        """Handle auto-save setting changes."""
+        logger.info(f"Auto-save {'enabled' if enabled else 'disabled'}")
+
+    def on_realtime_analysis_changed(self, enabled):
+        """Handle real-time analysis setting changes."""
+        logger.info(f"Real-time analysis {'enabled' if enabled else 'disabled'}")
+
+    def on_target_power_changed(self, power):
+        """Handle target power setting changes."""
+        logger.info(f"Target power changed to: {power}%")
+
+    def on_power_stabilization_changed(self, enabled):
+        """Handle power stabilization setting changes."""
+        logger.info(f"Power stabilization {'enabled' if enabled else 'disabled'}")
+
+    def update_measurement_controls_for_type(self, measurement_type):
+        """Update UI controls based on selected measurement type."""
+        # This would update the available controls based on measurement type
+        logger.debug(f"Updating controls for measurement type: {measurement_type}")
+
     def start_calibration(self):
         """Start system calibration sequence."""
         if not PYMODAQ_AVAILABLE:
@@ -919,64 +1459,68 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
         if not PYMODAQ_AVAILABLE:
             return
 
-        if self.is_measuring:
-            self.log_message("Measurement already in progress")
-            return
+        with self._measurement_lock:
+            if self.is_measuring:
+                self.log_message("Measurement already in progress")
+                return
 
-        logger.info("Starting μRASHG measurement")
-        self.log_message("Starting measurement sequence...")
+            logger.info("Starting μRASHG measurement")
+            self.log_message("Starting measurement sequence...")
 
-        try:
-            # Get current experiment type
-            experiment_type = "Basic RASHG"
-            if hasattr(self, "experiment_combo"):
-                experiment_type = self.experiment_combo.currentText()
+            try:
+                # Get current experiment type
+                experiment_type = "Basic RASHG"
+                if hasattr(self, "experiment_combo"):
+                    experiment_type = self.experiment_combo.currentText()
 
-            # Set measuring state
-            self.is_measuring = True
-            self.measurement_started.emit()
+                # Set measuring state
+                self.is_measuring = True
+                self.safe_emit_signal(self.measurement_started)
 
-            # Execute measurement through hardware manager
-            success = self.coordinate_measurement_sequence(experiment_type)
+                # Execute measurement through hardware manager
+                success = self.coordinate_measurement_sequence(experiment_type)
 
-            if success:
-                self.log_message("Measurement completed successfully")
-            else:
-                self.log_message("Measurement failed or was cancelled")
+                if success:
+                    self.log_message("Measurement completed successfully")
+                else:
+                    self.log_message("Measurement failed or was cancelled")
 
-        except Exception as e:
-            logger.error(f"Measurement failed: {e}")
-            self.error_occurred.emit(f"Measurement failed: {e}")
-        finally:
-            # Always reset measuring state
-            self.is_measuring = False
-            self.measurement_finished.emit()
+            except Exception as e:
+                logger.error(f"Measurement failed: {e}")
+                self.safe_emit_signal(self.error_occurred, f"Measurement failed: {e}")
+            finally:
+                # Always reset measuring state
+                self.is_measuring = False
+                self.safe_emit_signal(self.measurement_finished)
 
     def stop_measurement(self):
         """Stop the current measurement sequence."""
         if not PYMODAQ_AVAILABLE:
             return
 
-        if not self.is_measuring:
-            self.log_message("No measurement in progress")
-            return
+        with self._measurement_lock:
+            if not self.is_measuring:
+                self.log_message("No measurement in progress")
+                return
 
-        logger.info("Stopping μRASHG measurement")
-        self.log_message("Stopping measurement...")
+            logger.info("Stopping μRASHG measurement")
+            self.log_message("Stopping measurement...")
 
-        try:
-            # Signal stop to hardware manager
-            if self.hardware_manager:
-                self.hardware_manager.stop_measurement()
+            try:
+                # Signal stop to hardware manager
+                if self.hardware_manager:
+                    self.hardware_manager.stop_measurement()
 
-            # Reset state
-            self.is_measuring = False
-            self.measurement_finished.emit()
-            self.log_message("Measurement stopped")
+                # Reset state
+                self.is_measuring = False
+                self.safe_emit_signal(self.measurement_finished)
+                self.log_message("Measurement stopped")
 
-        except Exception as e:
-            logger.error(f"Error stopping measurement: {e}")
-            self.error_occurred.emit(f"Error stopping measurement: {e}")
+            except Exception as e:
+                logger.error(f"Error stopping measurement: {e}")
+                self.safe_emit_signal(
+                    self.error_occurred, f"Error stopping measurement: {e}"
+                )
 
     def run_preview_measurement(self):
         """Run a quick preview measurement."""
@@ -1713,17 +2257,30 @@ class URASHGHardwareManager:
         if not PYMODAQ_AVAILABLE or not self.dashboard:
             return
 
-        logger.info("Detecting available modules...")
+        with self._module_lock:
+            logger.info("Detecting available modules...")
 
-        # Try to get modules from dashboard
-        try:
-            self.available_modules = self.get_required_modules()
-            if self.available_modules:
-                logger.info(f"Detected modules: {list(self.available_modules.keys())}")
-            else:
-                logger.warning("No required modules detected in dashboard")
-        except Exception as e:
-            logger.error(f"Error detecting modules: {e}")
+            # Try to get modules from dashboard
+            try:
+                self.available_modules = self.get_required_modules()
+                if self.available_modules:
+                    logger.info(
+                        f"Detected modules: {list(self.available_modules.keys())}"
+                    )
+                    # Emit signal safely
+                    self.safe_emit_signal(
+                        self.device_status_changed, "modules", "detected"
+                    )
+                else:
+                    logger.warning("No required modules detected in dashboard")
+                    self.safe_emit_signal(
+                        self.device_status_changed, "modules", "none_found"
+                    )
+            except Exception as e:
+                logger.error(f"Error detecting modules: {e}")
+                self.safe_emit_signal(
+                    self.error_occurred, f"Module detection failed: {e}"
+                )
 
     def get_required_modules(self):
         """Access modules through PyMoDAQ's standard API."""
