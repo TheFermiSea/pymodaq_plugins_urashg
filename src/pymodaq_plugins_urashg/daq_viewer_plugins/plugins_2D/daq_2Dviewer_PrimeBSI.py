@@ -7,15 +7,16 @@ from pymodaq.utils.daq_utils import ThreadCommand
 
 # Removed unused imports: get_param_path, iter_children
 from pymodaq.utils.data import Axis, DataToExport, DataWithAxes
+from pymodaq.utils.logger import get_module_name, set_logger
 from pymodaq.utils.parameter import Parameter
 from pymodaq_data import DataSource
 
+logger = set_logger(get_module_name(__file__))
+
 # Try to import PyVCAM and handle the case where it's not installed
 try:
-    import pyvcam
     from pyvcam import pvc
     from pyvcam.camera import Camera
-    from pyvcam.constants import CLEAR_NEVER, CLEAR_PRE_SEQUENCE, EXT_TRIG_INTERNAL
 
     PYVCAM_AVAILABLE = True
 except ImportError as e:
