@@ -1079,12 +1079,24 @@ class URASHGMicroscopyExtension(CustomApp, QObject):
     def perform_sin2_fitting(self):
         """Perform Sin² fitting analysis on RASHG data."""
         # This would implement actual Sin² fitting
-        return "Sin² Fitting Results:\nAmplitude: 150.3 ± 5.2\nPhase: 45.2° ± 2.1°\nOffset: 98.7 ± 3.4\nR²: 0.987"
+        return (
+            "Sin² Fitting Results:\n"
+            "Amplitude: 150.3 ± 5.2\n"
+            "Phase: 45.2° ± 2.1°\n"
+            "Offset: 98.7 ± 3.4\n"
+            "R²: 0.987"
+        )
 
     def perform_fourier_analysis(self):
         """Perform Fourier analysis on RASHG data."""
         # This would implement actual Fourier analysis
-        return "Fourier Analysis Results:\nFundamental: 180° period\n2nd Harmonic: 45° period (strong)\n4th Harmonic: 90° period (moderate)\nNoise Level: 2.3%"
+        return (
+            "Fourier Analysis Results:\n"
+            "Fundamental: 180° period\n"
+            "2nd Harmonic: 45° period (strong)\n"
+            "4th Harmonic: 90° period (moderate)\n"
+            "Noise Level: 2.3%"
+        )
 
     def export_analysis_results(self):
         """Export analysis results to file."""

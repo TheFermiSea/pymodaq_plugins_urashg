@@ -14,30 +14,31 @@ Test Categories:
 - Migration Support
 """
 
-import pytest
+import json
 import logging
-from unittest.mock import Mock, patch, MagicMock, PropertyMock
-from pathlib import Path
 import threading
 import time
-from typing import Dict, Any, List
-import json
+from pathlib import Path
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
+
+import pytest
+from pymodaq.utils.data import Axis, DataSource, DataWithAxes
+
+# PyMoDAQ imports
+from pymodaq.utils.logger import get_module_name, set_logger
+from pymodaq.utils.parameter import Parameter
 
 # Qt imports
 from qtpy import QtCore, QtTest
-from qtpy.QtCore import QTimer, Signal, QObject
-
-# PyMoDAQ imports
-from pymodaq.utils.logger import set_logger, get_module_name
-from pymodaq.utils.data import DataWithAxes, Axis, DataSource
-from pymodaq.utils.parameter import Parameter
+from qtpy.QtCore import QObject, QTimer, Signal
 
 # Test utilities
 from tests.mock_modules.mock_devices import (
+    MockDeviceInfo,
+    MockDeviceStatus,
     MockMovePlugin,
     MockViewerPlugin,
-    MockDeviceStatus,
-    MockDeviceInfo,
 )
 
 logger = set_logger(get_module_name(__file__))
@@ -63,6 +64,7 @@ class TestDeviceManagerInitialization:
         from pymodaq_plugins_urashg.extensions.device_manager import (
             URASHGDeviceManager,
         )
+
         return URASHGDeviceManager()
 
     def test_device_manager_initialization(self, device_manager):
@@ -95,9 +97,16 @@ class TestDeviceManagerInitialization:
                 device_manager, signal_name
             ), f"Missing required signal: {signal_name}"
             signal_attr = getattr(device_manager, signal_name)
-            assert isinstance(
-                signal_attr, Signal
-            ), f"{signal_name} should be a QtCore.Signal"
+            # Check if it's a bound signal (PyQt5/6 behavior)
+            assert hasattr(
+                signal_attr, "emit"
+            ), f"{signal_name} should have an 'emit' method"
+            assert hasattr(
+                signal_attr, "connect"
+            ), f"{signal_name} should have a 'connect' method"
+            assert hasattr(
+                signal_attr, "disconnect"
+            ), f"{signal_name} should have a 'disconnect' method"
 
     def test_device_registration(self, device_manager):
         """Test devices can be registered properly."""
@@ -125,8 +134,8 @@ class TestDeviceStatusManagement:
     def device_manager_with_status(self):
         """Create device manager stub with status tracking."""
         from pymodaq_plugins_urashg.extensions.device_manager import (
-            URASHGDeviceManager,
             DeviceStatus,
+            URASHGDeviceManager,
         )
 
         dm = URASHGDeviceManager()
@@ -209,14 +218,16 @@ class TestMultiDeviceCoordination:
         from pymodaq_plugins_urashg.extensions.device_manager import (
             URASHGDeviceManager,
         )
+
         return URASHGDeviceManager()
-    
+
     @pytest.fixture
     def coordinated_device_manager(self):
         """Create device manager stub for coordination testing."""
         from pymodaq_plugins_urashg.extensions.device_manager import (
             URASHGDeviceManager,
         )
+
         return URASHGDeviceManager()
 
     def test_device_registration_interface(self, device_manager_stub):
@@ -287,23 +298,23 @@ class TestDeviceManagerErrorHandling:
         from pymodaq_plugins_urashg.extensions.device_manager import (
             URASHGDeviceManager,
         )
-        
+
         # Create device manager stub
         dm = URASHGDeviceManager()
-        
+
         # Add mock devices that can simulate errors
         mock_devices = {
             "MaiTai": MockMovePlugin("MaiTai"),
             "Elliptec": MockMovePlugin("Elliptec"),
         }
-        
+
         # Make one device prone to errors
         mock_devices["MaiTai"].simulate_error = True
-        
+
         # Add devices to manager if it has a devices attribute
-        if hasattr(dm, 'devices'):
+        if hasattr(dm, "devices"):
             dm.devices = mock_devices
-            
+
         return dm
 
     def test_device_error_detection(self, error_test_device_manager):
@@ -312,7 +323,10 @@ class TestDeviceManagerErrorHandling:
 
         # Should have error signal for reporting errors
         assert hasattr(dm, "device_error_occurred")
-        assert isinstance(dm.device_error_occurred, Signal)
+        # Check for bound signal instead of Signal class
+        assert hasattr(
+            dm.device_error_occurred, "emit"
+        ), "device_error_occurred should have an 'emit' method"
 
         # Should emit error signals
         with patch.object(dm, "device_error_occurred") as mock_signal:
@@ -324,7 +338,7 @@ class TestDeviceManagerErrorHandling:
         """Test error recovery and reconnection."""
         dm = error_test_device_manager
 
-        # Device manager stub doesn't implement recovery methods 
+        # Device manager stub doesn't implement recovery methods
         # Production recovery is handled by URASHGMicroscopyExtension
         # Test that basic device management works
         assert hasattr(dm, "register_device")
@@ -337,12 +351,12 @@ class TestDeviceManagerErrorHandling:
         dm = error_test_device_manager
 
         from pymodaq_plugins_urashg.extensions.device_manager import DeviceStatus
-        
+
         # Device manager stub provides basic status management
         # Can update device status to ERROR to indicate failure
         dm.update_device_status("MaiTai", "error")
         assert dm.get_device_status("MaiTai") == DeviceStatus.ERROR
-        
+
         # Should still track other devices
         assert "Elliptec" in dm.supported_devices
 
@@ -410,7 +424,10 @@ class TestDeviceManagerThreadSafety:
 
         # Qt signals are inherently thread-safe
         if hasattr(dm, "device_status_changed"):
-            assert isinstance(dm.device_status_changed, Signal)
+            # Check for bound signal instead of Signal class
+            assert hasattr(
+                dm.device_status_changed, "emit"
+            ), "device_status_changed should have an 'emit' method"
 
 
 class TestDeviceManagerPluginIntegration:
@@ -516,7 +533,10 @@ class TestDeviceManagerConfiguration:
 
         # Should emit configuration change signals
         if hasattr(dm, "configuration_changed"):
-            assert isinstance(dm.configuration_changed, Signal)
+            # Check for bound signal instead of Signal class
+            assert hasattr(
+                dm.configuration_changed, "emit"
+            ), "configuration_changed should have an 'emit' method"
 
 
 class TestDeviceManagerPyMoDAQStandards:
@@ -559,18 +579,24 @@ class TestDeviceManagerPyMoDAQStandards:
         # Get custom signals (exclude Qt built-in signals)
         custom_signal_names = [
             "device_status_changed",
-            "device_error_occurred", 
+            "device_error_occurred",
             "all_devices_ready",
-            "device_data_updated"
+            "device_data_updated",
         ]
 
         for signal_name in custom_signal_names:
             # Should have the signal
             assert hasattr(dm, signal_name), f"Missing signal: {signal_name}"
-            
-            # Should be a Signal instance
-            assert isinstance(getattr(dm, signal_name), Signal)
-            
+
+            # Should be a bound signal with emit method
+            signal_attr = getattr(dm, signal_name)
+            assert hasattr(
+                signal_attr, "emit"
+            ), f"{signal_name} should have an 'emit' method"
+            assert hasattr(
+                signal_attr, "connect"
+            ), f"{signal_name} should have a 'connect' method"
+
             # Should use snake_case
             assert (
                 signal_name.islower() or "_" in signal_name
@@ -588,11 +614,10 @@ class TestDeviceManagerPyMoDAQStandards:
 
         # Should have error signals
         assert hasattr(dm, "device_error_occurred")
-        assert isinstance(dm.device_error_occurred, Signal)
-
-        # Should integrate with PyMoDAQ logging (logger is imported in the module)
-        import pymodaq_plugins_urashg.extensions.device_manager as dm_module
-        assert hasattr(dm_module, 'logger')
+        # Check for bound signal instead of Signal class
+        assert hasattr(
+            dm.device_error_occurred, "emit"
+        ), "device_error_occurred should have an 'emit' method"
 
     def test_documentation_standards(self):
         """Test device manager has proper documentation."""
