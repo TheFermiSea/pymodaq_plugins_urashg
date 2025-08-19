@@ -201,8 +201,9 @@ class MockMovePlugin(DAQ_Move_base):
         if self.controller:
             self.controller.connect()
             self.connected = True
-
-        return "Mock stage initialized"
+            
+        self.initialized = True
+        return ("Mock stage initialized", True)  # Return (message, success_flag)
 
     def move_abs(self, position: Union[float, List[float]]):
         """Move to absolute position."""
@@ -348,8 +349,9 @@ class MockViewerPlugin(DAQ_Viewer_base):
         if self.controller:
             self.controller.connect()
             self.connected = True
-
-        return "Mock detector initialized"
+            
+        self.initialized = True
+        return ("Mock detector initialized", True)  # Return (message, success_flag)
 
     def get_settings(self) -> Dict[str, Any]:
         """Get current plugin settings."""

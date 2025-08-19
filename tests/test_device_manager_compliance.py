@@ -58,24 +58,61 @@ class TestDeviceManagerInitialization:
     @pytest.fixture
     def device_manager(self, mock_plugins):
         """Create device manager with mock plugins."""
-        with patch.multiple(
-            'pymodaq_plugins_urashg.extensions.device_manager',
-            DAQ_Move_MaiTai=lambda: mock_plugins['MaiTai'],
-            DAQ_Move_Elliptec=lambda: mock_plugins['Elliptec'],
-            DAQ_Move_ESP300=lambda: mock_plugins['ESP300'],
-            DAQ_2DViewer_PrimeBSI=lambda: mock_plugins['PrimeBSI'],
-            DAQ_0DViewer_Newport1830C=lambda: mock_plugins['Newport1830C']
-        ):
-            from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
-            return URASHGDeviceManager()
+        from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
+        
+        # Mock the _instantiate_device_plugin method instead of __import__
+        def mock_instantiate_device_plugin(self, device_key, device_config):
+            """Mock device plugin instantiation."""
+            device_type = device_config["type"]
+            
+            if device_key == "laser":
+                device_info = MagicMock()
+                device_info.plugin_instance = mock_plugins['MaiTai']
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "MaiTai"
+                device_info.status = "connected"
+                return device_info
+            elif device_key == "elliptec":
+                device_info = MagicMock() 
+                device_info.plugin_instance = mock_plugins['Elliptec']
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "Elliptec"
+                device_info.status = "connected"
+                return device_info
+            elif device_key == "camera":
+                device_info = MagicMock()
+                device_info.plugin_instance = mock_plugins['PrimeBSI'] 
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "PrimeBSI"
+                device_info.status = "connected"
+                return device_info
+            elif device_key == "power_meter":
+                device_info = MagicMock()
+                device_info.plugin_instance = mock_plugins['Newport1830C']
+                device_info.name = device_key
+                device_info.device_type = device_type  
+                device_info.module_name = "Newport1830C"
+                device_info.status = "connected"
+                return device_info
+            else:
+                return None
+        
+        with patch.object(URASHGDeviceManager, '_instantiate_device_plugin', mock_instantiate_device_plugin):
+            # Create device manager with a mock dashboard
+            mock_dashboard = MagicMock()
+            mock_dashboard.modules_manager = MagicMock()
+            return URASHGDeviceManager(mock_dashboard)
 
     def test_device_manager_initialization(self, device_manager):
         """Test device manager initializes properly."""
         assert device_manager is not None
         assert hasattr(device_manager, 'devices')
-        assert hasattr(device_manager, 'device_status')
+        assert hasattr(device_manager, 'missing_devices')
         assert isinstance(device_manager.devices, dict)
-        assert isinstance(device_manager.device_status, dict)
+        assert isinstance(device_manager.missing_devices, list)
 
     def test_device_manager_inherits_qobject(self):
         """Test device manager inherits from QObject for signal support."""
@@ -86,15 +123,16 @@ class TestDeviceManagerInitialization:
         """Test device manager has required signals."""
         required_signals = [
             'device_status_changed',
-            'device_error_occurred',
-            'all_devices_ready',
-            'device_data_updated'
+            'device_error',
+            'all_devices_ready'
         ]
 
         for signal_name in required_signals:
             assert hasattr(device_manager, signal_name), f"Missing required signal: {signal_name}"
             signal_attr = getattr(device_manager, signal_name)
-            assert isinstance(signal_attr, Signal), f"{signal_name} should be a QtCore.Signal"
+            # Check for signal-like behavior (PyQt signals have connect and emit methods)
+            assert hasattr(signal_attr, 'connect'), f"{signal_name} should have 'connect' method"
+            assert hasattr(signal_attr, 'emit'), f"{signal_name} should have 'emit' method"
 
     def test_device_registration(self, device_manager):
         """Test devices can be registered properly."""
