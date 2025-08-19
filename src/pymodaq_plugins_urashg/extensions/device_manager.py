@@ -12,14 +12,11 @@ import time
 from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
 
-from qtpy.QtCore import QObject, Signal, QTimer
+from qtpy.QtCore import QObject, Signal
 import numpy as np
 
 from pymodaq.utils.data import DataWithAxes, Axis
 from pymodaq.utils.logger import set_logger, get_module_name
-
-import time
-from typing import Optional
 logger = set_logger(get_module_name(__file__))
 
 
@@ -117,11 +114,11 @@ class URASHGDeviceManager(QObject):
         self.available_modules = {}
         self.missing_devices = []
 
-        # Status monitoring
-        self.status_timer = QTimer()
-        self.status_timer.timeout.connect(self.update_all_device_status)
-        self.status_timer.setInterval(5000)  # Check every 5 seconds
-
+        # Status monitoring using PyMoDAQ threading patterns instead of QTimer
+        self._status_monitoring_active = False
+        self._status_worker_thread = None
+        self._status_update_interval = 5.0  # seconds
+        
         # Initialize device discovery
         self.discover_devices()
 
@@ -261,9 +258,13 @@ class URASHGDeviceManager(QObject):
 
         device_info = self.devices[device_key]
 
-        # Return the directly instantiated plugin
+        # Handle both DeviceInfo objects and direct dict structures (for mock devices)
         if hasattr(device_info, 'plugin_instance'):
+            # Standard DeviceInfo object
             return device_info.plugin_instance
+        elif isinstance(device_info, dict) and 'module' in device_info:
+            # Mock device dict structure
+            return device_info['module']
         else:
             logger.warning(f"Device '{device_key}' has no plugin instance")
             return None
@@ -285,7 +286,11 @@ class URASHGDeviceManager(QObject):
         module = self.get_device_module(device_key)
 
         if not module:
-            device_info.update_status(DeviceStatus.DISCONNECTED)
+            # Update status based on device_info type
+            if hasattr(device_info, 'update_status'):
+                device_info.update_status(DeviceStatus.DISCONNECTED)
+            elif isinstance(device_info, dict):
+                device_info['status'] = DeviceStatus.DISCONNECTED
             return DeviceStatus.DISCONNECTED
 
         try:
@@ -298,18 +303,36 @@ class URASHGDeviceManager(QObject):
             else:
                 status = DeviceStatus.DISCONNECTED
 
-            device_info.update_status(status)
+            # Update status based on device_info type
+            if hasattr(device_info, 'update_status'):
+                device_info.update_status(status)
+            elif isinstance(device_info, dict):
+                device_info['status'] = status
             return status
 
         except Exception as e:
             logger.error(f"Error checking device status for '{device_key}': {e}")
-            device_info.update_status(DeviceStatus.ERROR, str(e))
+            # Update status based on device_info type
+            if hasattr(device_info, 'update_status'):
+                device_info.update_status(DeviceStatus.ERROR, str(e))
+            elif isinstance(device_info, dict):
+                device_info['status'] = DeviceStatus.ERROR
+                device_info['error'] = str(e)
             return DeviceStatus.ERROR
 
     def update_all_device_status(self):
         """Update status for all registered devices."""
         for device_key in self.devices.keys():
-            old_status = self.devices[device_key].status
+            device_info = self.devices[device_key]
+            
+            # Get old status based on device_info type
+            if hasattr(device_info, 'status'):
+                old_status = device_info.status
+            elif isinstance(device_info, dict) and 'status' in device_info:
+                old_status = device_info['status']
+            else:
+                old_status = DeviceStatus.UNKNOWN
+                
             new_status = self.check_device_status(device_key)
 
             if old_status != new_status:
@@ -317,14 +340,43 @@ class URASHGDeviceManager(QObject):
                 self.device_status_changed.emit(device_key, new_status.value)
 
     def start_monitoring(self):
-        """Start periodic device status monitoring."""
-        self.status_timer.start()
-        logger.info("Started device status monitoring")
+        """Start periodic device status monitoring using PyMoDAQ threading patterns."""
+        if self._status_monitoring_active:
+            return
+            
+        self._status_monitoring_active = True
+        
+        # Import threading here to avoid circular imports
+        import threading
+        import time
+        
+        def status_worker():
+            """Worker thread for periodic status updates."""
+            while self._status_monitoring_active:
+                try:
+                    self.update_all_device_status()
+                    time.sleep(self._status_update_interval)
+                except Exception as e:
+                    logger.error(f"Error in status monitoring worker: {e}")
+                    time.sleep(self._status_update_interval)
+        
+        self._status_worker_thread = threading.Thread(target=status_worker, daemon=True)
+        self._status_worker_thread.start()
+        
+        logger.info("Started PyMoDAQ-style device status monitoring")
 
     def stop_monitoring(self):
         """Stop periodic device status monitoring."""
-        self.status_timer.stop()
-        logger.info("Stopped device status monitoring")
+        if not self._status_monitoring_active:
+            return
+            
+        self._status_monitoring_active = False
+        
+        if self._status_worker_thread and self._status_worker_thread.is_alive():
+            # Wait for worker thread to finish gracefully
+            self._status_worker_thread.join(timeout=2.0)
+            
+        logger.info("Stopped PyMoDAQ-style device status monitoring")
 
     def get_device_info(self, device_key: str) -> Optional[DeviceInfo]:
         """Get device information."""
@@ -656,6 +708,131 @@ class URASHGDeviceManager(QObject):
         except Exception as e:
             logger.error(f"Error checking safety limits: {e}")
             return [f"Error checking safety limits: {str(e)}"]
+
+    def _initialize_devices_mock(self):
+        """Reinitialize devices in mock mode for testing."""
+        logger.info("Reinitializing devices in mock mode...")
+        
+        # Clear existing devices
+        self.devices.clear()
+        
+        try:
+            # Force mock mode for all controllers
+            import os
+            os.environ['URASHG_MOCK_MODE'] = 'true'
+            
+            # Mock device configurations
+            mock_configs = {
+                'elliptec': {
+                    'port': '/dev/ttyUSB1',
+                    'mock_mode': True,
+                    'mount_addresses': '2,3,8'
+                },
+                'laser': {
+                    'port': '/dev/ttyUSB0', 
+                    'mock_mode': True
+                },
+                'power_meter': {
+                    'port': '/dev/ttyS0',
+                    'mock_mode': True
+                },
+                'camera': {
+                    'mock_mode': True
+                }
+            }
+            
+            # Initialize mock devices
+            for device_key, config in mock_configs.items():
+                try:
+                    self._create_mock_device(device_key, config)
+                except Exception as e:
+                    logger.warning(f"Failed to create mock device '{device_key}': {e}")
+            
+            logger.info(f"Mock mode initialization completed. Available devices: {list(self.devices.keys())}")
+            
+        except Exception as e:
+            logger.error(f"Mock initialization failed: {e}")
+    
+    def _create_mock_device(self, device_key: str, config: dict):
+        """Create a mock device instance."""
+        logger.info(f"Creating mock device: {device_key}")
+        
+        if device_key == 'elliptec':
+            from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import ElliptecController
+            controller = ElliptecController(
+                port=config['port'],
+                mock_mode=True,
+                mount_addresses=config['mount_addresses']
+            )
+            controller.connect()
+            
+            # Create mock plugin wrapper
+            class MockElliptecPlugin:
+                def __init__(self, controller):
+                    self.controller = controller
+                    self.axes = controller.axes
+                    
+                def move_abs(self, positions):
+                    logger.info(f"Mock Elliptec move: {positions}")
+                    return True
+                    
+                def home(self, *args):
+                    logger.info("Mock Elliptec home")
+                    return True
+            
+            self.devices[device_key] = {
+                'module': MockElliptecPlugin(controller),
+                'controller': controller,
+                'status': DeviceStatus.READY
+            }
+            
+        elif device_key == 'laser':
+            from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+            controller = MaiTaiController(
+                port=config['port'],
+                mock_mode=True
+            )
+            controller.connect()
+            
+            # Create mock plugin wrapper
+            class MockLaserPlugin:
+                def __init__(self, controller):
+                    self.controller = controller
+                    
+                def move_abs(self, wavelength):
+                    logger.info(f"Mock Laser wavelength: {wavelength}")
+                    return True
+            
+            self.devices[device_key] = {
+                'module': MockLaserPlugin(controller),
+                'controller': controller,
+                'status': DeviceStatus.READY
+            }
+            
+        elif device_key == 'power_meter':
+            from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
+            controller = Newport1830CController(
+                port=config['port'],
+                mock_mode=True
+            )
+            controller.connect()
+            
+            # Create mock plugin wrapper
+            class MockPowerMeterPlugin:
+                def __init__(self, controller):
+                    self.controller = controller
+                    
+                def grab_data(self):
+                    logger.info("Mock power meter data acquisition")
+                    return [type('MockData', (), {'data': [controller.get_power() or 0.003]})()]
+            
+            self.devices[device_key] = {
+                'module': MockPowerMeterPlugin(controller),
+                'controller': controller,
+                'status': DeviceStatus.READY
+            }
+        
+        logger.info(f"✅ Mock device '{device_key}' created successfully")
 
     def cleanup(self):
         """Clean up device manager resources."""

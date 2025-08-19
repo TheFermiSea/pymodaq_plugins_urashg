@@ -24,8 +24,8 @@ from qtpy.QtCore import QThread
 from pymodaq.utils.parameter import Parameter
 from pymodaq.utils.data import DataWithAxes, DataToExport, Axis
 from pymodaq.utils.enums import BaseEnum
-from pymodaq_gui.utils.custom_app import CustomApp
-from pymodaq_gui.utils.dock import DockArea
+from pymodaq.utils.gui_utils import CustomApp
+from pymodaq.utils.dock import DockArea
 from pymodaq.utils.data import DataActuator
 
 
@@ -263,7 +263,7 @@ class URASHGBaseExperiment:
         control_layout.addLayout(button_layout)
         
         # Add to dock area
-        from pymodaq_gui.utils.dock import Dock
+        from pymodaq.utils.dock import Dock
         control_dock = Dock("Experiment Control", size=(400, 600))
         control_dock.addWidget(control_widget)
         self.dock_area.addDock(control_dock, 'left')
@@ -298,7 +298,7 @@ class URASHGBaseExperiment:
         status_layout.addWidget(hardware_group)
         
         # Add to dock area
-        from pymodaq_gui.utils.dock import Dock
+        from pymodaq.utils.dock import Dock
         status_dock = Dock("Status Monitor", size=(300, 400))
         status_dock.addWidget(status_widget)
         self.dock_area.addDock(status_dock, 'right')
@@ -329,7 +329,7 @@ class URASHGBaseExperiment:
         progress_layout.addWidget(self.eta_info)
         
         # Add to dock area
-        from pymodaq_gui.utils.dock import Dock
+        from pymodaq.utils.dock import Dock
         progress_dock = Dock("Progress Monitor", size=(300, 200))
         progress_dock.addWidget(progress_widget)
         self.dock_area.addDock(progress_dock, 'bottom')

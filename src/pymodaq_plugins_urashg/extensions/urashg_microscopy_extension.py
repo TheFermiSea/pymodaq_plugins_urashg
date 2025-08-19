@@ -27,7 +27,7 @@ from pathlib import Path
 import numpy as np
 
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import QObject, Signal, QTimer
+from qtpy.QtCore import QObject, Signal
 import pyqtgraph as pg
 from pyqtgraph.dockarea import Dock, DockArea
 
@@ -36,13 +36,11 @@ from pymodaq.utils.parameter import Parameter
 from pymodaq.utils.data import DataWithAxes, Axis
 from pymodaq.utils.logger import set_logger, get_module_name
 from pymodaq.utils.config import Config
+from pymodaq.utils.messenger import messagebox
+from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
+from pymodaq_data.data import DataRaw
 
-# Import our device manager
-from .device_manager import URASHGDeviceManager, DeviceStatus, DeviceInfo
 
-import time
-import numpy as np
-from typing import Optional
 from pathlib import Path
 logger = set_logger(get_module_name(__file__))
 
@@ -168,6 +166,289 @@ class URASHGMicroscopyExtension(CustomApp):
             {'title': 'Stabilization Time (s):', 'name': 'stabilization_time', 'type': 'float',
              'value': 0.5, 'min': 0.0, 'max': 10.0, 'step': 0.1},
         ]},
+
+        # PyMoDAQ standard: Actions defined in parameter tree instead of manual buttons
+        {'title': 'Measurement Control', 'name': 'measurement_control', 'type': 'group', 'children': [
+            {'title': 'Start μRASHG Measurement', 'name': 'start_measurement', 'type': 'action'},
+            {'title': 'Stop Measurement', 'name': 'stop_measurement', 'type': 'action'},
+            {'title': 'Pause Measurement', 'name': 'pause_measurement', 'type': 'action'},
+        ]},
+
+        {'title': 'Device Management', 'name': 'device_control', 'type': 'group', 'children': [
+            {'title': 'Initialize Devices', 'name': 'initialize_devices', 'type': 'action'},
+            {'title': 'Check Device Status', 'name': 'check_devices', 'type': 'action'},
+            {'title': 'Emergency Stop', 'name': 'emergency_stop', 'type': 'action'},
+        ]},
+
+        {'title': 'Configuration', 'name': 'configuration', 'type': 'group', 'children': [
+            {'title': 'Load Configuration', 'name': 'load_config', 'type': 'action'},
+            {'title': 'Save Configuration', 'name': 'save_config', 'type': 'action'},
+        ]},
+
+        {'title': 'Data Analysis', 'name': 'analysis', 'type': 'group', 'children': [
+            {'title': 'Analyze Current Data', 'name': 'analyze_data', 'type': 'action'},
+            {'title': 'Fit RASHG Pattern', 'name': 'fit_rashg_curve', 'type': 'action'},
+            {'title': 'Export Data', 'name': 'export_data', 'type': 'action'},
+            {'title': 'Export Analysis Results', 'name': 'export_analysis', 'type': 'action'},
+        ]},
+        
+        # === DEVICE CONTROL PARAMETERS (Replace manual widget creation) ===
+        {'title': 'Device Control', 'name': 'device_control', 'type': 'group', 'children': [
+            # Laser Control
+            {'title': 'Laser Control', 'name': 'laser_control', 'type': 'group', 'children': [
+                {'title': 'Laser Status:', 'name': 'laser_status', 'type': 'str', 
+                 'value': 'Disconnected', 'readonly': True},
+                {'title': 'Current Wavelength (nm):', 'name': 'current_wavelength', 'type': 'float', 
+                 'value': 800.0, 'readonly': True, 'decimals': 1},
+                {'title': 'Set Wavelength (nm):', 'name': 'set_wavelength', 'type': 'float', 
+                 'value': 800.0, 'min': 700.0, 'max': 1000.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'Set Wavelength:', 'name': 'set_wavelength_action', 'type': 'action'},
+                {'title': 'Shutter Status:', 'name': 'shutter_status', 'type': 'str', 
+                 'value': 'Unknown', 'readonly': True},
+                {'title': 'Open Shutter:', 'name': 'open_shutter', 'type': 'action'},
+                {'title': 'Close Shutter:', 'name': 'close_shutter', 'type': 'action'},
+            ]},
+            
+            # Rotator Control
+            {'title': 'Rotator Control', 'name': 'rotator_control', 'type': 'group', 'children': [
+                {'title': 'QWP (Quarter Wave Plate)', 'name': 'qwp_control', 'type': 'group', 'children': [
+                    {'title': 'Current Position (°):', 'name': 'qwp_current_pos', 'type': 'float', 
+                     'value': 0.0, 'readonly': True, 'decimals': 2},
+                    {'title': 'Set Position (°):', 'name': 'qwp_set_pos', 'type': 'float', 
+                     'value': 0.0, 'min': 0.0, 'max': 360.0, 'step': 0.01, 'decimals': 2},
+                    {'title': 'Move QWP:', 'name': 'move_qwp', 'type': 'action'},
+                    {'title': 'Home QWP:', 'name': 'home_qwp', 'type': 'action'},
+                ]},
+                {'title': 'HWP Incident (Half Wave Plate)', 'name': 'hwp_inc_control', 'type': 'group', 'children': [
+                    {'title': 'Current Position (°):', 'name': 'hwp_inc_current_pos', 'type': 'float', 
+                     'value': 0.0, 'readonly': True, 'decimals': 2},
+                    {'title': 'Set Position (°):', 'name': 'hwp_inc_set_pos', 'type': 'float', 
+                     'value': 0.0, 'min': 0.0, 'max': 360.0, 'step': 0.01, 'decimals': 2},
+                    {'title': 'Move HWP Inc:', 'name': 'move_hwp_inc', 'type': 'action'},
+                    {'title': 'Home HWP Inc:', 'name': 'home_hwp_inc', 'type': 'action'},
+                ]},
+                {'title': 'HWP Analyzer (Half Wave Plate)', 'name': 'hwp_ana_control', 'type': 'group', 'children': [
+                    {'title': 'Current Position (°):', 'name': 'hwp_ana_current_pos', 'type': 'float', 
+                     'value': 0.0, 'readonly': True, 'decimals': 2},
+                    {'title': 'Set Position (°):', 'name': 'hwp_ana_set_pos', 'type': 'float', 
+                     'value': 0.0, 'min': 0.0, 'max': 360.0, 'step': 0.01, 'decimals': 2},
+                    {'title': 'Move HWP Ana:', 'name': 'move_hwp_ana', 'type': 'action'},
+                    {'title': 'Home HWP Ana:', 'name': 'home_hwp_ana', 'type': 'action'},
+                ]},
+                {'title': 'Emergency Stop All Rotators:', 'name': 'emergency_stop_rotators', 'type': 'action'},
+            ]},
+            
+            # Power Meter Control  
+            {'title': 'Power Meter Control', 'name': 'power_control', 'type': 'group', 'children': [
+                {'title': 'Current Power (mW):', 'name': 'current_power', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 3},
+                {'title': 'Power Meter Wavelength (nm):', 'name': 'power_wavelength', 'type': 'float', 
+                 'value': 800.0, 'readonly': True, 'decimals': 1},
+                {'title': 'Auto-sync with laser:', 'name': 'auto_sync_wavelength', 'type': 'bool', 
+                 'value': True},
+                {'title': 'Sync Status:', 'name': 'sync_status', 'type': 'str', 
+                 'value': 'Ready', 'readonly': True},
+                {'title': 'Manual Sync Now:', 'name': 'manual_sync', 'type': 'action'},
+            ]},
+        ]},
+        
+        # === ANALYSIS CONTROL PARAMETERS (Replace manual widget creation) ===
+        {'title': 'Analysis Control', 'name': 'analysis_control', 'type': 'group', 'children': [
+            # Polar Analysis
+            {'title': 'Polar Analysis', 'name': 'polar_analysis', 'type': 'group', 'children': [
+                {'title': 'Real-time fitting:', 'name': 'auto_fit', 'type': 'bool', 'value': True},
+                {'title': 'Fit RASHG Pattern:', 'name': 'fit_rashg', 'type': 'action'},
+                {'title': 'Fit Results:', 'name': 'fit_results', 'type': 'str', 
+                 'value': 'No data', 'readonly': True},
+                {'title': 'RASHG Amplitude:', 'name': 'rashg_amplitude', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 3},
+                {'title': 'Phase (°):', 'name': 'phase_degrees', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 2},
+                {'title': 'R-squared:', 'name': 'r_squared', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 4},
+            ]},
+            
+            # Spectral Analysis
+            {'title': 'Spectral Analysis', 'name': 'spectral_analysis', 'type': 'group', 'children': [
+                {'title': 'Analysis Mode:', 'name': 'spectral_mode', 'type': 'list',
+                 'limits': ['RASHG Amplitude', 'Phase', 'Contrast', 'All Parameters'],
+                 'value': 'RASHG Amplitude'},
+                {'title': 'Update Analysis:', 'name': 'update_spectral', 'type': 'action'},
+                {'title': 'Analysis Status:', 'name': 'spectral_status', 'type': 'str', 
+                 'value': 'Ready', 'readonly': True},
+            ]},
+            
+            # Power Monitoring
+            {'title': 'Power Monitoring', 'name': 'power_monitoring', 'type': 'group', 'children': [
+                {'title': 'Current Power (mW):', 'name': 'live_power', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 3},
+                {'title': 'Power Stability (%):', 'name': 'power_stability', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 2},
+                {'title': 'Monitor Duration (s):', 'name': 'monitor_duration', 'type': 'int', 
+                 'value': 300, 'min': 30, 'max': 3600},
+            ]},
+            
+            # 3D Visualization  
+            {'title': '3D Visualization', 'name': 'volume_3d', 'type': 'group', 'children': [
+                {'title': 'Visualization Mode:', 'name': 'volume_mode', 'type': 'list',
+                 'limits': ['Surface', 'Scatter', 'Wireframe'], 'value': 'Surface'},
+                {'title': 'Update 3D View:', 'name': 'update_3d', 'type': 'action'},
+                {'title': '3D Available:', 'name': 'opengl_available', 'type': 'bool', 
+                 'value': False, 'readonly': True},
+            ]},
+            
+            # General Analysis
+            {'title': 'General Analysis', 'name': 'general_analysis', 'type': 'group', 'children': [
+                {'title': 'Analysis Status:', 'name': 'analysis_status', 'type': 'str', 
+                 'value': 'Ready', 'readonly': True},
+                {'title': 'Last Analysis Time:', 'name': 'last_analysis_time', 'type': 'str', 
+                 'value': 'Never', 'readonly': True},
+                {'title': 'Data Points Analyzed:', 'name': 'data_points_count', 'type': 'int', 
+                 'value': 0, 'readonly': True},
+            ]},
+        ]},
+        
+        # === STATUS MONITORING PARAMETERS (Replace manual widget creation) ===
+        {'title': 'Status Monitoring', 'name': 'status_monitoring', 'type': 'group', 'children': [
+            # Device Status
+            {'title': 'Device Status', 'name': 'device_status', 'type': 'group', 'children': [
+                {'title': 'Camera Status:', 'name': 'camera_status', 'type': 'str', 
+                 'value': 'Unknown', 'readonly': True},
+                {'title': 'Camera Temperature (°C):', 'name': 'camera_temperature', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 2},
+                {'title': 'Laser Status:', 'name': 'laser_status_display', 'type': 'str', 
+                 'value': 'Unknown', 'readonly': True},
+                {'title': 'Laser Wavelength (nm):', 'name': 'laser_wavelength_display', 'type': 'float', 
+                 'value': 0.0, 'readonly': True, 'decimals': 1},
+                {'title': 'Rotator Status:', 'name': 'rotator_status', 'type': 'str', 
+                 'value': 'Unknown', 'readonly': True},
+                {'title': 'Power Meter Status:', 'name': 'power_meter_status', 'type': 'str', 
+                 'value': 'Unknown', 'readonly': True},
+                {'title': 'Overall System Status:', 'name': 'system_status', 'type': 'str', 
+                 'value': 'Initializing', 'readonly': True},
+            ]},
+            
+            # Measurement Status
+            {'title': 'Measurement Status', 'name': 'measurement_status', 'type': 'group', 'children': [
+                {'title': 'Current State:', 'name': 'measurement_state', 'type': 'str', 
+                 'value': 'Idle', 'readonly': True},
+                {'title': 'Progress (%):', 'name': 'measurement_progress', 'type': 'int', 
+                 'value': 0, 'readonly': True, 'min': 0, 'max': 100},
+                {'title': 'Data Points Collected:', 'name': 'data_points_collected', 'type': 'int', 
+                 'value': 0, 'readonly': True},
+                {'title': 'Estimated Time Remaining:', 'name': 'time_remaining', 'type': 'str', 
+                 'value': '--:--', 'readonly': True},
+                {'title': 'Last Error:', 'name': 'last_error', 'type': 'str', 
+                 'value': 'None', 'readonly': True},
+            ]},
+            
+            # Hardware Health
+            {'title': 'Hardware Health', 'name': 'hardware_health', 'type': 'group', 'children': [
+                {'title': 'Connection Uptime:', 'name': 'connection_uptime', 'type': 'str', 
+                 'value': '00:00:00', 'readonly': True},
+                {'title': 'Total Measurements:', 'name': 'total_measurements', 'type': 'int', 
+                 'value': 0, 'readonly': True},
+                {'title': 'Error Count:', 'name': 'error_count', 'type': 'int', 
+                 'value': 0, 'readonly': True},
+                {'title': 'Last Successful Measurement:', 'name': 'last_successful_measurement', 'type': 'str', 
+                 'value': 'Never', 'readonly': True},
+                {'title': 'Performance Score:', 'name': 'performance_score', 'type': 'float', 
+                 'value': 100.0, 'readonly': True, 'decimals': 1, 'suffix': '%'},
+            ]},
+            
+            # System Information
+            {'title': 'System Information', 'name': 'system_info', 'type': 'group', 'children': [
+                {'title': 'Extension Version:', 'name': 'extension_version', 'type': 'str', 
+                 'value': '3.0.0', 'readonly': True},
+                {'title': 'PyMoDAQ Version:', 'name': 'pymodaq_version', 'type': 'str', 
+                 'value': 'Unknown', 'readonly': True},
+                {'title': 'Session Start Time:', 'name': 'session_start', 'type': 'str', 
+                 'value': 'Unknown', 'readonly': True},
+                {'title': 'Available Devices:', 'name': 'available_devices_count', 'type': 'int', 
+                 'value': 0, 'readonly': True},
+                {'title': 'Missing Devices:', 'name': 'missing_devices_count', 'type': 'int', 
+                 'value': 0, 'readonly': True},
+            ]},
+        ]},
+        
+        # === SCANNER INTEGRATION (PyMoDAQ coordinated measurements) ===
+        {'title': 'Scanner Integration', 'name': 'scanner_integration', 'type': 'group', 'children': [
+            # Scan Type Selection
+            {'title': 'Scan Configuration', 'name': 'scan_config', 'type': 'group', 'children': [
+                {'title': 'Scan Type:', 'name': 'scan_type', 'type': 'list',
+                 'limits': ['None', 'Polarization Scan', 'Wavelength Scan', 'Spatial Scan (Future)', 'Multi-Parameter Scan'],
+                 'value': 'None'},
+                {'title': 'Enable Scanner:', 'name': 'enable_scanner', 'type': 'bool', 'value': False},
+                {'title': 'Scan Mode:', 'name': 'scan_mode', 'type': 'list',
+                 'limits': ['Sequential', 'Synchronized', 'Continuous'], 'value': 'Sequential'},
+            ]},
+            
+            # Polarization Scanning
+            {'title': 'Polarization Scanning', 'name': 'polarization_scan', 'type': 'group', 'children': [
+                {'title': 'Start Angle (°):', 'name': 'pol_start_angle', 'type': 'float',
+                 'value': 0.0, 'min': 0.0, 'max': 360.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'End Angle (°):', 'name': 'pol_end_angle', 'type': 'float',
+                 'value': 180.0, 'min': 0.0, 'max': 360.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'Step Size (°):', 'name': 'pol_step_size', 'type': 'float',
+                 'value': 5.0, 'min': 0.1, 'max': 90.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'Active Element:', 'name': 'pol_active_element', 'type': 'list',
+                 'limits': ['QWP', 'HWP_Incident', 'HWP_Analyzer', 'All'], 'value': 'HWP_Incident'},
+                {'title': 'Settling Time (ms):', 'name': 'pol_settle_time', 'type': 'int',
+                 'value': 500, 'min': 100, 'max': 5000},
+            ]},
+            
+            # Wavelength Scanning  
+            {'title': 'Wavelength Scanning', 'name': 'wavelength_scan', 'type': 'group', 'children': [
+                {'title': 'Start Wavelength (nm):', 'name': 'wl_start', 'type': 'float',
+                 'value': 700.0, 'min': 700.0, 'max': 1000.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'End Wavelength (nm):', 'name': 'wl_end', 'type': 'float',
+                 'value': 900.0, 'min': 700.0, 'max': 1000.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'Step Size (nm):', 'name': 'wl_step_size', 'type': 'float',
+                 'value': 10.0, 'min': 0.1, 'max': 50.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'Stabilization Time (s):', 'name': 'wl_stabilize_time', 'type': 'float',
+                 'value': 2.0, 'min': 0.5, 'max': 10.0, 'step': 0.1, 'decimals': 1},
+                {'title': 'Auto-sync Power Meter:', 'name': 'wl_auto_sync_power', 'type': 'bool', 'value': True},
+            ]},
+            
+            # Spatial Scanning (Future Implementation)
+            {'title': 'Spatial Scanning (Future)', 'name': 'spatial_scan', 'type': 'group', 'children': [
+                {'title': 'X Start (μm):', 'name': 'x_start', 'type': 'float',
+                 'value': -100.0, 'min': -1000.0, 'max': 1000.0, 'decimals': 1, 'readonly': True},
+                {'title': 'X End (μm):', 'name': 'x_end', 'type': 'float',
+                 'value': 100.0, 'min': -1000.0, 'max': 1000.0, 'decimals': 1, 'readonly': True},
+                {'title': 'Y Start (μm):', 'name': 'y_start', 'type': 'float',
+                 'value': -100.0, 'min': -1000.0, 'max': 1000.0, 'decimals': 1, 'readonly': True},
+                {'title': 'Y End (μm):', 'name': 'y_end', 'type': 'float',
+                 'value': 100.0, 'min': -1000.0, 'max': 1000.0, 'decimals': 1, 'readonly': True},
+                {'title': 'Note:', 'name': 'spatial_note', 'type': 'str',
+                 'value': 'Requires galvo scanner hardware integration', 'readonly': True},
+            ]},
+            
+            # Scan Control Actions
+            {'title': 'Scan Control', 'name': 'scan_control', 'type': 'group', 'children': [
+                {'title': 'Start Scan:', 'name': 'start_scan', 'type': 'action'},
+                {'title': 'Stop Scan:', 'name': 'stop_scan', 'type': 'action'},
+                {'title': 'Pause Scan:', 'name': 'pause_scan', 'type': 'action'},
+                {'title': 'Resume Scan:', 'name': 'resume_scan', 'type': 'action'},
+                {'title': 'Preview Scan:', 'name': 'preview_scan', 'type': 'action'},
+            ]},
+            
+            # Scan Status
+            {'title': 'Scan Status', 'name': 'scan_status', 'type': 'group', 'children': [
+                {'title': 'Current Status:', 'name': 'current_status', 'type': 'str',
+                 'value': 'Idle', 'readonly': True},
+                {'title': 'Progress (%):', 'name': 'scan_progress', 'type': 'int',
+                 'value': 0, 'readonly': True, 'min': 0, 'max': 100},
+                {'title': 'Current Position:', 'name': 'current_position', 'type': 'str',
+                 'value': 'N/A', 'readonly': True},
+                {'title': 'Points Completed:', 'name': 'points_completed', 'type': 'int',
+                 'value': 0, 'readonly': True},
+                {'title': 'Total Points:', 'name': 'total_points', 'type': 'int',
+                 'value': 0, 'readonly': True},
+                {'title': 'Estimated Time Remaining:', 'name': 'eta', 'type': 'str',
+                 'value': '--:--', 'readonly': True},
+            ]},
+        ]},
     ]
 
     def __init__(self, parent):
@@ -201,12 +482,15 @@ class URASHGMicroscopyExtension(CustomApp):
             self.docks = {}  # Initialize empty docks dictionary
 
         # Device management (initialize before UI setup)
-        self.device_manager = URASHGDeviceManager(self.dashboard)
+        self.device_manager = self.dashboard.modules_manager
         self.available_devices = {}
         self.missing_devices = []
 
         # Initialize UI components
         self.setup_ui()
+
+        # Connect parameter actions to methods (PyMoDAQ standard pattern)
+        self.connect_parameter_actions()
 
         # Measurement state
         self.is_measuring = False
@@ -224,10 +508,10 @@ class URASHGMicroscopyExtension(CustomApp):
         self.power_plot = None
         self.progress_bar = None
 
-        # Timers for periodic tasks
-        self.status_timer = QTimer()
-        self.status_timer.timeout.connect(self.update_device_status)
-        self.status_timer.setInterval(5000)  # Update every 5 seconds (reduce load)
+        # Status monitoring using PyMoDAQ threading patterns instead of QTimer
+        self._status_monitoring_active = False
+        self._status_worker_thread = None
+        self._status_update_interval = 5.0  # seconds
 
         logger.info(f"Initialized {self.name} extension v{self.version}")
 
@@ -320,6 +604,252 @@ class URASHGMicroscopyExtension(CustomApp):
 
         logger.info("Created actions for μRASHG extension")
 
+    def connect_parameter_actions(self):
+        """Connect parameter tree actions to methods (PyMoDAQ standard pattern)."""
+        try:
+            # Measurement control actions
+            self.settings.child('measurement_control', 'start_measurement').sigActivated.connect(self.start_measurement)
+            self.settings.child('measurement_control', 'stop_measurement').sigActivated.connect(self.stop_measurement)
+            self.settings.child('measurement_control', 'pause_measurement').sigActivated.connect(self.pause_measurement)
+
+            # Device management actions (original parameters)
+            self.settings.child('device_control', 'initialize_devices').sigActivated.connect(self.initialize_devices)
+            self.settings.child('device_control', 'check_devices').sigActivated.connect(self.check_device_status)
+            self.settings.child('device_control', 'emergency_stop').sigActivated.connect(self.emergency_stop)
+
+            # Configuration actions
+            self.settings.child('configuration', 'load_config').sigActivated.connect(self.load_configuration)
+            self.settings.child('configuration', 'save_config').sigActivated.connect(self.save_configuration)
+
+            # Analysis actions (original parameters)
+            self.settings.child('analysis', 'analyze_data').sigActivated.connect(self.analyze_current_data)
+            self.settings.child('analysis', 'fit_rashg_curve').sigActivated.connect(self.fit_rashg_pattern)
+            self.settings.child('analysis', 'export_data').sigActivated.connect(self.export_data)
+            self.settings.child('analysis', 'export_analysis').sigActivated.connect(self.export_analysis_results)
+
+            # Device Control Parameter Tree Actions (New PyMoDAQ Standards)
+            try:
+                # Laser control actions
+                self.settings.child('device_control', 'laser_control', 'set_wavelength_action').sigActivated.connect(
+                    lambda: self.set_laser_wavelength_from_parameter(
+                        self.settings.child('device_control', 'laser_control', 'set_wavelength').value()
+                    )
+                )
+                self.settings.child('device_control', 'laser_control', 'open_shutter').sigActivated.connect(self.open_laser_shutter)
+                self.settings.child('device_control', 'laser_control', 'close_shutter').sigActivated.connect(self.close_laser_shutter)
+                
+                # Rotator control actions
+                self.settings.child('device_control', 'rotator_control', 'qwp_control', 'move_qwp').sigActivated.connect(
+                    lambda: self.move_rotator_from_parameter(0, 
+                        self.settings.child('device_control', 'rotator_control', 'qwp_control', 'qwp_set_pos').value()
+                    )
+                )
+                self.settings.child('device_control', 'rotator_control', 'qwp_control', 'home_qwp').sigActivated.connect(
+                    lambda: self.home_rotator(0)
+                )
+                
+                self.settings.child('device_control', 'rotator_control', 'hwp_inc_control', 'move_hwp_inc').sigActivated.connect(
+                    lambda: self.move_rotator_from_parameter(1,
+                        self.settings.child('device_control', 'rotator_control', 'hwp_inc_control', 'hwp_inc_set_pos').value()
+                    )
+                )
+                self.settings.child('device_control', 'rotator_control', 'hwp_inc_control', 'home_hwp_inc').sigActivated.connect(
+                    lambda: self.home_rotator(1)
+                )
+                
+                self.settings.child('device_control', 'rotator_control', 'hwp_ana_control', 'move_hwp_ana').sigActivated.connect(
+                    lambda: self.move_rotator_from_parameter(2,
+                        self.settings.child('device_control', 'rotator_control', 'hwp_ana_control', 'hwp_ana_set_pos').value()
+                    )
+                )
+                self.settings.child('device_control', 'rotator_control', 'hwp_ana_control', 'home_hwp_ana').sigActivated.connect(
+                    lambda: self.home_rotator(2)
+                )
+                
+                self.settings.child('device_control', 'rotator_control', 'emergency_stop_rotators').sigActivated.connect(self.emergency_stop_rotators)
+                
+                # Power meter control actions
+                self.settings.child('device_control', 'power_control', 'auto_sync_wavelength').sigValueChanged.connect(self.on_auto_sync_changed)
+                self.settings.child('device_control', 'power_control', 'manual_sync').sigActivated.connect(self.manual_sync_wavelength)
+                
+                logger.info("Connected device control parameter tree actions (PyMoDAQ standards)")
+                
+            except Exception as e:
+                logger.warning(f"Some device control parameter connections failed (parameters may not exist yet): {e}")
+
+            # Analysis Control Parameter Tree Actions (New PyMoDAQ Standards)
+            try:
+                # Polar analysis actions
+                self.settings.child('analysis_control', 'polar_analysis', 'auto_fit').sigValueChanged.connect(self.on_auto_fit_changed)
+                self.settings.child('analysis_control', 'polar_analysis', 'fit_rashg').sigActivated.connect(self.fit_rashg_pattern)
+                
+                # Spectral analysis actions
+                self.settings.child('analysis_control', 'spectral_analysis', 'spectral_mode').sigValueChanged.connect(self.update_spectral_analysis)
+                self.settings.child('analysis_control', 'spectral_analysis', 'update_spectral').sigActivated.connect(self.update_spectral_analysis)
+                
+                # 3D visualization actions
+                self.settings.child('analysis_control', 'volume_3d', 'volume_mode').sigValueChanged.connect(self.update_3d_visualization)
+                self.settings.child('analysis_control', 'volume_3d', 'update_3d').sigActivated.connect(self.update_3d_visualization)
+                
+                logger.info("Connected analysis control parameter tree actions (PyMoDAQ standards)")
+                
+            except Exception as e:
+                logger.warning(f"Some analysis control parameter connections failed (parameters may not exist yet): {e}")
+
+            # Scanner Integration Parameter Actions (New PyMoDAQ Standards) 
+            try:
+                self._connect_scanner_parameter_actions()
+            except Exception as e:
+                logger.warning(f"Could not connect scanner parameter actions: {e}")
+
+            logger.info("Connected parameter actions to methods (PyMoDAQ standard)")
+        except Exception as e:
+            logger.error(f"Error connecting parameter actions: {e}")
+
+    def _on_device_control_parameter_changed(self, param, changes):
+        """Handle device control parameter changes (PyMoDAQ standards compliant)."""
+        for param, change, data in changes:
+            path = self.device_control_settings.childPath(param)
+            
+            if len(path) >= 2:
+                group_name = path[-2]
+                param_name = path[-1]
+                
+                try:
+                    # Laser Control Actions
+                    if group_name == 'laser_control':
+                        if param_name == 'set_wavelength_action':
+                            wavelength = self.device_control_settings.child('laser_control', 'set_wavelength').value()
+                            self.set_laser_wavelength_from_parameter(wavelength)
+                        elif param_name == 'open_shutter':
+                            self.open_laser_shutter()
+                        elif param_name == 'close_shutter':
+                            self.close_laser_shutter()
+                    
+                    # Rotator Control Actions
+                    elif group_name in ['qwp_control', 'hwp_inc_control', 'hwp_ana_control']:
+                        axis_map = {
+                            'qwp_control': 0,
+                            'hwp_inc_control': 1, 
+                            'hwp_ana_control': 2
+                        }
+                        axis = axis_map[group_name]
+                        
+                        if param_name.startswith('move_'):
+                            position = self.device_control_settings.child(group_name, param_name.replace('move_', '') + '_set_pos').value()
+                            self.move_rotator_from_parameter(axis, position)
+                        elif param_name.startswith('home_'):
+                            self.home_rotator(axis)
+                    
+                    elif group_name == 'rotator_control' and param_name == 'emergency_stop_rotators':
+                        self.emergency_stop_rotators()
+                    
+                    # Power Meter Control Actions
+                    elif group_name == 'power_control':
+                        if param_name == 'auto_sync_wavelength':
+                            self.on_auto_sync_changed()
+                        elif param_name == 'manual_sync':
+                            self.manual_sync_wavelength()
+                            
+                except Exception as e:
+                    logger.error(f"Error handling device control parameter change {path}: {e}")
+                    self.log_message(f"Device control error: {e}", level="ERROR")
+    
+    def set_laser_wavelength_from_parameter(self, wavelength):
+        """Set laser wavelength from parameter tree (PyMoDAQ pattern)."""
+        try:
+            # Update the actual laser hardware
+            self.set_laser_wavelength()  # Use existing method
+            
+            # Update parameter tree display
+            self.device_control_settings.child('laser_control', 'current_wavelength').setValue(wavelength)
+            self.log_message(f"Laser wavelength set to {wavelength:.1f} nm", level="INFO")
+        except Exception as e:
+            logger.error(f"Error setting laser wavelength from parameter: {e}")
+            self.log_message(f"Failed to set wavelength: {e}", level="ERROR")
+    
+    def move_rotator_from_parameter(self, axis, position):
+        """Move rotator from parameter tree (PyMoDAQ pattern)."""
+        try:
+            # Use existing rotator move method
+            self.move_rotator(axis)
+            
+            # Update current position display in parameter tree
+            axis_names = ['qwp_control', 'hwp_inc_control', 'hwp_ana_control']
+            if axis < len(axis_names):
+                group_name = axis_names[axis]
+                param_name = group_name.replace('_control', '') + '_current_pos'
+                self.device_control_settings.child(group_name, param_name).setValue(position)
+                
+            self.log_message(f"Rotator axis {axis} moved to {position:.2f}°", level="INFO")
+        except Exception as e:
+            logger.error(f"Error moving rotator from parameter: {e}")
+            self.log_message(f"Failed to move rotator: {e}", level="ERROR")
+
+    def update_device_control_parameters(self):
+        """Update device control parameters from hardware state (PyMoDAQ standards pattern)."""
+        try:
+            # Update laser parameters
+            if hasattr(self, 'device_manager') and self.device_manager:
+                # Get laser wavelength from hardware
+                try:
+                    laser_wavelength = self.get_current_laser_wavelength()
+                    if laser_wavelength is not None:
+                        self.settings.child('device_control', 'laser_control', 'current_wavelength').setValue(laser_wavelength)
+                        
+                    # Update laser status
+                    laser_available = 'MaiTai' in self.available_devices
+                    laser_status = "Connected" if laser_available else "Disconnected"
+                    self.settings.child('device_control', 'laser_control', 'laser_status').setValue(laser_status)
+                    
+                except Exception as e:
+                    logger.debug(f"Could not update laser parameters: {e}")
+                
+                # Update rotator positions
+                try:
+                    positions = self.get_current_elliptec_positions()
+                    if positions:
+                        axis_params = [
+                            ('device_control', 'rotator_control', 'qwp_control', 'qwp_current_pos'),
+                            ('device_control', 'rotator_control', 'hwp_inc_control', 'hwp_inc_current_pos'),
+                            ('device_control', 'rotator_control', 'hwp_ana_control', 'hwp_ana_current_pos')
+                        ]
+                        
+                        for i, param_path in enumerate(axis_params):
+                            if i < len(positions) and positions[i] is not None:
+                                self.settings.child(*param_path).setValue(positions[i])
+                                
+                except Exception as e:
+                    logger.debug(f"Could not update rotator parameters: {e}")
+                
+                # Update power meter parameters
+                try:
+                    # Get power reading
+                    if hasattr(self, 'power_display') and hasattr(self.power_display, 'text'):
+                        power_text = self.power_display.text()
+                        if power_text != "--- mW":
+                            try:
+                                power_value = float(power_text.replace(' mW', ''))
+                                self.settings.child('device_control', 'power_control', 'current_power').setValue(power_value)
+                            except ValueError:
+                                pass
+                    
+                    # Update power meter wavelength if available
+                    if hasattr(self, 'power_wavelength_display') and hasattr(self.power_wavelength_display, 'text'):
+                        wl_text = self.power_wavelength_display.text()
+                        if wl_text != "--- nm":
+                            try:
+                                wl_value = float(wl_text.replace(' nm', ''))
+                                self.settings.child('device_control', 'power_control', 'power_wavelength').setValue(wl_value)
+                            except ValueError:
+                                pass
+                                
+                except Exception as e:
+                    logger.debug(f"Could not update power parameters: {e}")
+                    
+        except Exception as e:
+            logger.debug(f"Error updating device control parameters: {e}")
+
     def setup_widgets(self):
         """
         Set up all widget components for the extension.
@@ -339,259 +869,69 @@ class URASHGMicroscopyExtension(CustomApp):
         logger.info("Created all widgets for μRASHG extension")
 
     def setup_control_widget(self):
-        """Set up the control panel widget."""
+        """Set up the control panel widget using PyMoDAQ parameter-driven approach."""
         self.control_widget = QtWidgets.QWidget()
         control_layout = QtWidgets.QVBoxLayout(self.control_widget)
 
-        # Parameter tree
+        # Parameter tree - PyMoDAQ automatically generates action buttons from parameter tree
         control_layout.addWidget(self.settings_tree)
 
-        # Action buttons layout
-        button_widget = QtWidgets.QWidget()
-        button_layout = QtWidgets.QGridLayout(button_widget)
-
-        # Primary measurement controls
-        self.start_button = QtWidgets.QPushButton('Start μRASHG')
-        self.start_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
-        self.start_button.clicked.connect(self.start_measurement)
-        self.start_button.setMinimumHeight(40)
-
-        self.stop_button = QtWidgets.QPushButton('Stop')
-        self.stop_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaStop))
-        self.stop_button.clicked.connect(self.stop_measurement)
-        self.stop_button.setEnabled(False)
-        self.stop_button.setMinimumHeight(40)
-
-        self.pause_button = QtWidgets.QPushButton('Pause')
-        self.pause_button.setIcon(self.get_style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
-        self.pause_button.clicked.connect(self.pause_measurement)
-        self.pause_button.setEnabled(False)
-        self.pause_button.setMinimumHeight(40)
-
-        button_layout.addWidget(self.start_button, 0, 0, 1, 2)
-        button_layout.addWidget(self.stop_button, 1, 0)
-        button_layout.addWidget(self.pause_button, 1, 1)
-
-        # Device management buttons
-        self.init_devices_button = QtWidgets.QPushButton('Initialize Devices')
-        self.init_devices_button.clicked.connect(self.initialize_devices)
-
-        self.check_devices_button = QtWidgets.QPushButton('Check Devices')
-        self.check_devices_button.clicked.connect(self.check_device_status)
-
-        button_layout.addWidget(self.init_devices_button, 2, 0)
-        button_layout.addWidget(self.check_devices_button, 2, 1)
-
-        # Emergency stop button
-        self.emergency_button = QtWidgets.QPushButton('EMERGENCY STOP')
-        self.emergency_button.setStyleSheet("background-color: red; font-weight: bold;")
-        self.emergency_button.clicked.connect(self.emergency_stop)
-        self.emergency_button.setMinimumHeight(30)
-
-        button_layout.addWidget(self.emergency_button, 3, 0, 1, 2)
-
-        control_layout.addWidget(button_widget)
-
-        # Progress bar
+        # Progress bar for measurement feedback
         self.progress_bar = QtWidgets.QProgressBar()
         self.progress_bar.setVisible(False)
         control_layout.addWidget(self.progress_bar)
 
         # Add to dock
         self.docks['control'].addWidget(self.control_widget)
+        
+        logger.info("Setup control widget with PyMoDAQ parameter-driven approach")
 
     def setup_device_control_widget(self):
-        """Set up the direct device control widget (PHASE 3 FEATURE)."""
+        """Set up the device control widget using PyMoDAQ parameter trees (PyMoDAQ Standards Compliant)."""
+        # Instead of manual Qt widget creation, use PyMoDAQ's parameter tree system
+        # The device control parameters are defined in self.params['device_control']
+        # and will be automatically rendered by PyMoDAQ's ParameterTree widget
+        
+        # Create a simple container widget for the parameter tree
         self.device_control_widget = QtWidgets.QWidget()
-        main_layout = QtWidgets.QVBoxLayout(self.device_control_widget)
-
-        # Create tabbed interface for different device types
-        self.device_tabs = QtWidgets.QTabWidget()
-
-        # === LASER CONTROL TAB ===
-        self.laser_tab = QtWidgets.QWidget()
-        laser_layout = QtWidgets.QVBoxLayout(self.laser_tab)
-
-        # Laser Status Group
-        laser_status_group = QtWidgets.QGroupBox("Laser Status")
-        laser_status_layout = QtWidgets.QGridLayout(laser_status_group)
-
-        self.laser_status_label = QtWidgets.QLabel("Status: Disconnected")
-        self.laser_status_label.setStyleSheet("color: red; font-weight: bold;")
-        laser_status_layout.addWidget(self.laser_status_label, 0, 0, 1, 2)
-
-        laser_layout.addWidget(laser_status_group)
-
-        # Wavelength Control Group
-        wavelength_group = QtWidgets.QGroupBox("Wavelength Control")
-        wavelength_layout = QtWidgets.QGridLayout(wavelength_group)
-
-        # Wavelength display and control
-        wavelength_layout.addWidget(QtWidgets.QLabel("Current Wavelength:"), 0, 0)
-        self.wavelength_display = QtWidgets.QLabel("--- nm")
-        self.wavelength_display.setStyleSheet("font-weight: bold; font-size: 14px;")
-        wavelength_layout.addWidget(self.wavelength_display, 0, 1)
-
-        # Wavelength slider
-        wavelength_layout.addWidget(QtWidgets.QLabel("Set Wavelength:"), 1, 0)
-        self.wavelength_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.wavelength_slider.setMinimum(700)
-        self.wavelength_slider.setMaximum(1000)
-        self.wavelength_slider.setValue(800)
-        self.wavelength_slider.valueChanged.connect(self.on_wavelength_slider_changed)
-        wavelength_layout.addWidget(self.wavelength_slider, 1, 1)
-
-        # Wavelength spinbox
-        self.wavelength_spinbox = QtWidgets.QSpinBox()
-        self.wavelength_spinbox.setMinimum(700)
-        self.wavelength_spinbox.setMaximum(1000)
-        self.wavelength_spinbox.setValue(800)
-        self.wavelength_spinbox.setSuffix(" nm")
-        self.wavelength_spinbox.valueChanged.connect(self.on_wavelength_spinbox_changed)
-        wavelength_layout.addWidget(self.wavelength_spinbox, 1, 2)
-
-        # Wavelength set button
-        self.set_wavelength_button = QtWidgets.QPushButton("Set Wavelength")
-        self.set_wavelength_button.clicked.connect(self.set_laser_wavelength)
-        self.set_wavelength_button.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
-        wavelength_layout.addWidget(self.set_wavelength_button, 2, 0, 1, 3)
-
-        laser_layout.addWidget(wavelength_group)
-
-        # Shutter Control Group
-        shutter_group = QtWidgets.QGroupBox("Shutter Control")
-        shutter_layout = QtWidgets.QGridLayout(shutter_group)
-
-        self.shutter_status_label = QtWidgets.QLabel("Status: Unknown")
-        shutter_layout.addWidget(self.shutter_status_label, 0, 0, 1, 2)
-
-        self.shutter_open_button = QtWidgets.QPushButton("Open Shutter")
-        self.shutter_open_button.clicked.connect(self.open_laser_shutter)
-        self.shutter_open_button.setStyleSheet("background-color: #2196F3; color: white;")
-        shutter_layout.addWidget(self.shutter_open_button, 1, 0)
-
-        self.shutter_close_button = QtWidgets.QPushButton("Close Shutter")
-        self.shutter_close_button.clicked.connect(self.close_laser_shutter)
-        self.shutter_close_button.setStyleSheet("background-color: #FF9800; color: white;")
-        shutter_layout.addWidget(self.shutter_close_button, 1, 1)
-
-        laser_layout.addWidget(shutter_group)
-
-        self.device_tabs.addTab(self.laser_tab, "Laser Control")
-
-        # === ROTATOR CONTROL TAB ===
-        self.rotator_tab = QtWidgets.QWidget()
-        rotator_layout = QtWidgets.QVBoxLayout(self.rotator_tab)
-
-        # Individual rotator controls
-        self.rotator_controls = {}
-        rotator_names = [("QWP", "Quarter Wave Plate", 0),
-                        ("HWP Inc", "Half Wave Plate (Incident)", 1),
-                        ("HWP Ana", "Half Wave Plate (Analyzer)", 2)]
-
-        for short_name, full_name, axis in rotator_names:
-            group = QtWidgets.QGroupBox(f"{short_name} - {full_name}")
-            group_layout = QtWidgets.QGridLayout(group)
-
-            # Current position display
-            group_layout.addWidget(QtWidgets.QLabel("Current Position:"), 0, 0)
-            position_label = QtWidgets.QLabel("--- °")
-            position_label.setStyleSheet("font-weight: bold; font-size: 12px;")
-            group_layout.addWidget(position_label, 0, 1)
-
-            # Position control
-            group_layout.addWidget(QtWidgets.QLabel("Set Position:"), 1, 0)
-            position_spinbox = QtWidgets.QDoubleSpinBox()
-            position_spinbox.setMinimum(0.0)
-            position_spinbox.setMaximum(360.0)
-            position_spinbox.setDecimals(2)
-            position_spinbox.setSuffix(" °")
-            group_layout.addWidget(position_spinbox, 1, 1)
-
-            # Move buttons
-            move_button = QtWidgets.QPushButton(f"Move {short_name}")
-            move_button.clicked.connect(lambda checked, ax=axis: self.move_rotator(ax))
-            move_button.setStyleSheet("background-color: #4CAF50; color: white;")
-            group_layout.addWidget(move_button, 1, 2)
-
-            home_button = QtWidgets.QPushButton(f"Home {short_name}")
-            home_button.clicked.connect(lambda checked, ax=axis: self.home_rotator(ax))
-            home_button.setStyleSheet("background-color: #9E9E9E; color: white;")
-            group_layout.addWidget(home_button, 2, 0, 1, 3)
-
-            # Store references
-            self.rotator_controls[axis] = {
-                'position_label': position_label,
-                'position_spinbox': position_spinbox,
-                'move_button': move_button,
-                'home_button': home_button,
-                'name': short_name
-            }
-
-            rotator_layout.addWidget(group)
-
-        # Emergency stop for all rotators
-        emergency_rotator_button = QtWidgets.QPushButton("EMERGENCY STOP ALL ROTATORS")
-        emergency_rotator_button.setStyleSheet("background-color: red; color: white; font-weight: bold; font-size: 12px;")
-        emergency_rotator_button.clicked.connect(self.emergency_stop_rotators)
-        rotator_layout.addWidget(emergency_rotator_button)
-
-        self.device_tabs.addTab(self.rotator_tab, "Rotator Control")
-
-        # === POWER METER & SYNC TAB ===
-        self.power_tab = QtWidgets.QWidget()
-        power_layout = QtWidgets.QVBoxLayout(self.power_tab)
-
-        # Power reading display
-        power_group = QtWidgets.QGroupBox("Power Monitoring")
-        power_group_layout = QtWidgets.QGridLayout(power_group)
-
-        power_group_layout.addWidget(QtWidgets.QLabel("Current Power:"), 0, 0)
-        self.power_display = QtWidgets.QLabel("--- mW")
-        self.power_display.setStyleSheet("font-weight: bold; font-size: 14px;")
-        power_group_layout.addWidget(self.power_display, 0, 1)
-
-        power_group_layout.addWidget(QtWidgets.QLabel("Wavelength Setting:"), 1, 0)
-        self.power_wavelength_display = QtWidgets.QLabel("--- nm")
-        self.power_wavelength_display.setStyleSheet("font-weight: bold; font-size: 12px;")
-        power_group_layout.addWidget(self.power_wavelength_display, 1, 1)
-
-        power_layout.addWidget(power_group)
-
-        # Wavelength synchronization
-        sync_group = QtWidgets.QGroupBox("Wavelength Synchronization")
-        sync_layout = QtWidgets.QGridLayout(sync_group)
-
-        self.auto_sync_checkbox = QtWidgets.QCheckBox("Auto-sync with laser wavelength")
-        self.auto_sync_checkbox.setChecked(True)
-        self.auto_sync_checkbox.stateChanged.connect(self.on_auto_sync_changed)
-        sync_layout.addWidget(self.auto_sync_checkbox, 0, 0, 1, 2)
-
-        self.sync_status_label = QtWidgets.QLabel("Sync Status: Ready")
-        self.sync_status_label.setStyleSheet("color: green;")
-        sync_layout.addWidget(self.sync_status_label, 1, 0, 1, 2)
-
-        self.manual_sync_button = QtWidgets.QPushButton("Manual Sync Now")
-        self.manual_sync_button.clicked.connect(self.manual_sync_wavelength)
-        self.manual_sync_button.setStyleSheet("background-color: #2196F3; color: white;")
-        sync_layout.addWidget(self.manual_sync_button, 2, 0, 1, 2)
-
-        power_layout.addWidget(sync_group)
-
-        self.device_tabs.addTab(self.power_tab, "Power & Sync")
-
-        # Add tabs to main layout
-        main_layout.addWidget(self.device_tabs)
-
-        # Status update timer for device controls
-        self.device_update_timer = QTimer()
-        self.device_update_timer.timeout.connect(self.update_device_control_displays)
-        self.device_update_timer.setInterval(1000)  # Update every 1 second
-
+        layout = QtWidgets.QVBoxLayout(self.device_control_widget)
+        
+        # Create parameter tree widget for device control parameters
+        from pymodaq.utils.parameter import ParameterTree
+        
+        # Extract device control parameters from main params
+        device_control_params = None
+        for param in self.params:
+            if param.get('name') == 'device_control':
+                device_control_params = param['children']
+                break
+        
+        if device_control_params:
+            # Create parameter tree widget
+            self.device_control_parameter_tree = ParameterTree()
+            self.device_control_parameter_tree.setParameters(device_control_params, showTop=False)
+            
+            # Connect parameter changes to device control actions
+            self.device_control_parameter_tree.sigTreeStateChanged.connect(self._on_device_control_parameter_changed)
+            
+            layout.addWidget(self.device_control_parameter_tree)
+            
+            # Store reference to the parameter object for easy access
+            self.device_control_settings = self.device_control_parameter_tree.p
+        else:
+            # Fallback label if parameters not found
+            fallback_label = QtWidgets.QLabel("Device control parameters not found")
+            layout.addWidget(fallback_label)
+        
         # Add to dock
         self.docks['device_control'].addWidget(self.device_control_widget)
-
-        logger.info("Created device control widget with laser, rotator, and power meter controls")
+        
+        # Start device update monitoring using PyMoDAQ threading patterns
+        self._device_update_active = False
+        self._device_update_thread = None
+        self._device_update_interval = 1.0  # seconds
+        
+        logger.info("Created PyMoDAQ parameter-based device control widget")
 
     def setup_visualization_widget(self):
         """Set up the camera preview widget."""
@@ -602,172 +942,776 @@ class URASHGMicroscopyExtension(CustomApp):
         self.docks['preview'].addWidget(self.camera_view)
 
     def setup_analysis_widget(self):
-        """Set up the analysis plots widget (Enhanced for Phase 3)."""
+        """Set up the analysis widget using PyMoDAQ parameter trees (PyMoDAQ Standards Compliant)."""
+        # Create main analysis widget container
         analysis_widget = QtWidgets.QWidget()
-        analysis_layout = QtWidgets.QVBoxLayout(analysis_widget)
-
-        # Create tab widget for different analysis views
+        main_layout = QtWidgets.QVBoxLayout(analysis_widget)
+        
+        # Create tabs for different analysis views
         self.analysis_tabs = QtWidgets.QTabWidget()
-
-        # === POLAR PLOT TAB (Enhanced) ===
+        
+        # === POLAR PLOT TAB (Enhanced with PyMoDAQ Viewer1D) ===
         polar_widget = QtWidgets.QWidget()
         polar_layout = QtWidgets.QVBoxLayout(polar_widget)
-
-        # Polar plot with enhanced features
-        self.polar_plot = pg.PlotWidget(title='RASHG Polar Response')
-        self.polar_plot.setLabel('left', 'SHG Intensity', 'counts')
-        self.polar_plot.setLabel('bottom', 'Polarization Angle', '°')
-        self.polar_plot.showGrid(True, True)
-        self.polar_plot.addLegend()
-
-        # Fit controls for polar plot
-        fit_controls = QtWidgets.QWidget()
-        fit_layout = QtWidgets.QHBoxLayout(fit_controls)
-
-        self.auto_fit_checkbox = QtWidgets.QCheckBox("Real-time fitting")
-        self.auto_fit_checkbox.setChecked(True)
-        self.auto_fit_checkbox.stateChanged.connect(self.on_auto_fit_changed)
-        fit_layout.addWidget(self.auto_fit_checkbox)
-
-        self.fit_button = QtWidgets.QPushButton("Fit RASHG Pattern")
-        self.fit_button.clicked.connect(self.fit_rashg_pattern)
-        fit_layout.addWidget(self.fit_button)
-
-        fit_layout.addStretch()
-
-        # Fit results display
-        self.fit_results_label = QtWidgets.QLabel("Fit Results: No data")
-        self.fit_results_label.setStyleSheet("font-family: monospace; background: #f0f0f0; padding: 5px;")
-        fit_layout.addWidget(self.fit_results_label)
-
+        
+        # Polar plot using PyMoDAQ Viewer1D
+        self.polar_plot = Viewer1D()
+        self.polar_plot.set_title('RASHG Polar Response')
+        self.polar_plot.set_axis_label('left', 'SHG Intensity')
+        self.polar_plot.set_axis_unit('left', 'counts')
+        self.polar_plot.set_axis_label('bottom', 'Polarization Angle')
+        self.polar_plot.set_axis_unit('bottom', '°')
+        self.polar_plot.show_grid(True)
+        self.polar_plot.show_legend(True)
+        
         polar_layout.addWidget(self.polar_plot)
-        polar_layout.addWidget(fit_controls)
-
         self.analysis_tabs.addTab(polar_widget, 'Polar Analysis')
-
-        # === SPECTRAL ANALYSIS TAB (NEW) ===
+        
+        # === SPECTRAL ANALYSIS TAB ===
         spectral_widget = QtWidgets.QWidget()
         spectral_layout = QtWidgets.QVBoxLayout(spectral_widget)
-
-        self.spectral_plot = pg.PlotWidget(title='Spectral RASHG Analysis')
-        self.spectral_plot.setLabel('left', 'RASHG Amplitude', 'a.u.')
-        self.spectral_plot.setLabel('bottom', 'Wavelength', 'nm')
-        self.spectral_plot.showGrid(True, True)
-        self.spectral_plot.addLegend()
-
-        # Spectral analysis controls
-        spectral_controls = QtWidgets.QWidget()
-        spectral_controls_layout = QtWidgets.QHBoxLayout(spectral_controls)
-
-        spectral_controls_layout.addWidget(QtWidgets.QLabel("Analysis Mode:"))
-
-        self.spectral_mode_combo = QtWidgets.QComboBox()
-        self.spectral_mode_combo.addItems(["RASHG Amplitude", "Phase", "Contrast", "All Parameters"])
-        self.spectral_mode_combo.currentTextChanged.connect(self.update_spectral_analysis)
-        spectral_controls_layout.addWidget(self.spectral_mode_combo)
-
-        spectral_controls_layout.addStretch()
-
-        self.update_spectral_button = QtWidgets.QPushButton("Update Analysis")
-        self.update_spectral_button.clicked.connect(self.update_spectral_analysis)
-        spectral_controls_layout.addWidget(self.update_spectral_button)
-
+        
+        # Spectral plot using PyMoDAQ Viewer1D
+        self.spectral_plot = Viewer1D()
+        self.spectral_plot.set_title('Spectral RASHG Analysis')
+        self.spectral_plot.set_axis_label('left', 'RASHG Amplitude')
+        self.spectral_plot.set_axis_unit('left', 'a.u.')
+        self.spectral_plot.set_axis_label('bottom', 'Wavelength')
+        self.spectral_plot.set_axis_unit('bottom', 'nm')
+        self.spectral_plot.show_grid(True)
+        self.spectral_plot.show_legend(True)
+        
         spectral_layout.addWidget(self.spectral_plot)
-        spectral_layout.addWidget(spectral_controls)
-
         self.analysis_tabs.addTab(spectral_widget, 'Spectral Analysis')
-
+        
         # === POWER MONITORING TAB ===
         power_widget = QtWidgets.QWidget()
         power_layout = QtWidgets.QVBoxLayout(power_widget)
-
-        self.power_plot = pg.PlotWidget(title='Power Stability')
-        self.power_plot.setLabel('left', 'Power', 'mW')
-        self.power_plot.setLabel('bottom', 'Time', 's')
-        self.power_plot.showGrid(True, True)
+        
+        # Power plot using PyMoDAQ Viewer1D  
+        self.power_plot = Viewer1D()
+        self.power_plot.set_title('Power Stability')
+        self.power_plot.set_axis_label('left', 'Power')
+        self.power_plot.set_axis_unit('left', 'mW')
+        self.power_plot.set_axis_label('bottom', 'Time')
+        self.power_plot.set_axis_unit('bottom', 's')
+        self.power_plot.show_grid(True)
+        
         power_layout.addWidget(self.power_plot)
-
         self.analysis_tabs.addTab(power_widget, 'Power Monitor')
-
-        # === 3D ANALYSIS TAB (NEW) ===
-        if self._check_3d_support():
+        
+        # === 3D ANALYSIS TAB ===
+        opengl_available = self._check_3d_support()
+        if opengl_available:
             volume_widget = QtWidgets.QWidget()
             volume_layout = QtWidgets.QVBoxLayout(volume_widget)
-
-            # 3D visualization for wavelength-angle-intensity data
+            
             try:
                 import pyqtgraph.opengl as gl
-
+                
                 self.volume_view = gl.GLViewWidget()
                 self.volume_view.setCameraPosition(distance=50)
                 volume_layout.addWidget(self.volume_view)
-
-                # 3D controls
-                volume_controls = QtWidgets.QWidget()
-                volume_controls_layout = QtWidgets.QHBoxLayout(volume_controls)
-
-                volume_controls_layout.addWidget(QtWidgets.QLabel("3D Visualization:"))
-
-                self.volume_mode_combo = QtWidgets.QComboBox()
-                self.volume_mode_combo.addItems(["Surface", "Scatter", "Wireframe"])
-                self.volume_mode_combo.currentTextChanged.connect(self.update_3d_visualization)
-                volume_controls_layout.addWidget(self.volume_mode_combo)
-
-                volume_controls_layout.addStretch()
-
-                volume_layout.addWidget(volume_controls)
-
+                
                 self.analysis_tabs.addTab(volume_widget, '3D Visualization')
-
+                
             except ImportError:
                 logger.info("OpenGL not available, 3D visualization disabled")
-
-        analysis_layout.addWidget(self.analysis_tabs)
-
-        # Analysis status bar
-        self.analysis_status = QtWidgets.QLabel("Analysis Status: Ready")
-        self.analysis_status.setStyleSheet("background: #e0e0e0; padding: 3px; border: 1px solid #c0c0c0;")
-        analysis_layout.addWidget(self.analysis_status)
-
-        # Store current fit results
+                opengl_available = False
+        
+        # === PARAMETER TREE FOR ANALYSIS CONTROLS ===
+        from pymodaq.utils.parameter import ParameterTree
+        
+        # Extract analysis control parameters from main params
+        analysis_control_params = None
+        for param in self.params:
+            if param.get('name') == 'analysis_control':
+                analysis_control_params = param['children']
+                break
+        
+        if analysis_control_params:
+            # Create parameter tree widget for analysis controls
+            self.analysis_control_parameter_tree = ParameterTree()
+            self.analysis_control_parameter_tree.setParameters(analysis_control_params, showTop=False)
+            
+            # Connect parameter changes to analysis actions
+            self.analysis_control_parameter_tree.sigTreeStateChanged.connect(self._on_analysis_control_parameter_changed)
+            
+            # Store reference to the parameter object for easy access
+            self.analysis_control_settings = self.analysis_control_parameter_tree.p
+            
+            # Update 3D availability parameter
+            self.analysis_control_settings.child('volume_3d', 'opengl_available').setValue(opengl_available)
+            
+            # Create a splitter to show plots and controls
+            splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+            splitter.addWidget(self.analysis_tabs)
+            splitter.addWidget(self.analysis_control_parameter_tree)
+            splitter.setStretchFactor(0, 3)  # Give more space to plots
+            splitter.setStretchFactor(1, 1)  # Less space to parameter tree
+            
+            main_layout.addWidget(splitter)
+        else:
+            # Fallback - just add tabs if parameters not found
+            main_layout.addWidget(self.analysis_tabs)
+        
+        # Initialize analysis data storage
         self.current_fit_results = None
         self.spectral_analysis_data = None
-
+        
         # Add to dock
         self.docks['analysis'].addWidget(analysis_widget)
+        
+        logger.info("Created PyMoDAQ parameter-based analysis widget")
+
+    def _on_analysis_control_parameter_changed(self, param, changes):
+        """Handle analysis control parameter changes (PyMoDAQ standards compliant)."""
+        for param, change, data in changes:
+            path = self.analysis_control_settings.childPath(param)
+            
+            if len(path) >= 2:
+                group_name = path[-2]
+                param_name = path[-1]
+                
+                try:
+                    # Polar Analysis Actions
+                    if group_name == 'polar_analysis':
+                        if param_name == 'auto_fit':
+                            # Real-time fitting toggle
+                            self.on_auto_fit_changed()
+                        elif param_name == 'fit_rashg':
+                            # Manual fit trigger
+                            self.fit_rashg_pattern()
+                    
+                    # Spectral Analysis Actions
+                    elif group_name == 'spectral_analysis':
+                        if param_name == 'spectral_mode':
+                            # Mode change triggers update
+                            self.update_spectral_analysis()
+                        elif param_name == 'update_spectral':
+                            # Manual update trigger
+                            self.update_spectral_analysis()
+                    
+                    # 3D Visualization Actions
+                    elif group_name == 'volume_3d':
+                        if param_name == 'volume_mode':
+                            # Mode change triggers 3D update
+                            self.update_3d_visualization()
+                        elif param_name == 'update_3d':
+                            # Manual 3D update trigger
+                            self.update_3d_visualization()
+                            
+                except Exception as e:
+                    logger.error(f"Error handling analysis control parameter change {path}: {e}")
+                    self.log_message(f"Analysis control error: {e}", level="ERROR")
+    
+    def update_analysis_control_parameters(self):
+        """Update analysis control parameters with current analysis state (PyMoDAQ standards)."""
+        try:
+            if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                # Update polar analysis results
+                if self.current_fit_results:
+                    fit_text = f"A={self.current_fit_results.get('amplitude', 0):.3f}, φ={self.current_fit_results.get('phase', 0):.2f}°"
+                    self.analysis_control_settings.child('polar_analysis', 'fit_results').setValue(fit_text)
+                    self.analysis_control_settings.child('polar_analysis', 'rashg_amplitude').setValue(self.current_fit_results.get('amplitude', 0))
+                    self.analysis_control_settings.child('polar_analysis', 'phase_degrees').setValue(self.current_fit_results.get('phase', 0))
+                    self.analysis_control_settings.child('polar_analysis', 'r_squared').setValue(self.current_fit_results.get('r_squared', 0))
+                
+                # Update spectral analysis status
+                if hasattr(self, 'spectral_analysis_data') and self.spectral_analysis_data:
+                    self.analysis_control_settings.child('spectral_analysis', 'spectral_status').setValue("Data Available")
+                else:
+                    self.analysis_control_settings.child('spectral_analysis', 'spectral_status').setValue("No Data")
+                
+                # Update power monitoring if available
+                if hasattr(self, '_power_history') and self._power_history and len(self._power_history['power']) > 0:
+                    current_power = self._power_history['power'][-1]
+                    self.analysis_control_settings.child('power_monitoring', 'live_power').setValue(current_power)
+                    
+                    # Calculate power stability (coefficient of variation)
+                    if len(self._power_history['power']) > 1:
+                        import numpy as np
+                        power_array = np.array(self._power_history['power'])
+                        mean_power = np.mean(power_array)
+                        std_power = np.std(power_array)
+                        stability = (1 - std_power / mean_power) * 100 if mean_power > 0 else 0
+                        self.analysis_control_settings.child('power_monitoring', 'power_stability').setValue(max(0, stability))
+                
+                # Update general analysis status
+                import datetime
+                current_time = datetime.datetime.now().strftime("%H:%M:%S")
+                self.analysis_control_settings.child('general_analysis', 'last_analysis_time').setValue(current_time)
+                
+                # Update data points count
+                if hasattr(self, 'current_measurement_data') and self.current_measurement_data:
+                    data_count = len(self.current_measurement_data) if isinstance(self.current_measurement_data, list) else 1
+                    self.analysis_control_settings.child('general_analysis', 'data_points_count').setValue(data_count)
+                    
+        except Exception as e:
+            logger.debug(f"Error updating analysis control parameters: {e}")
 
     def setup_status_widget(self):
-        """Set up the status monitoring widget."""
+        """Set up the status monitoring widget using PyMoDAQ parameter trees (PyMoDAQ Standards Compliant)."""
+        # Create main status widget container
         self.status_widget = QtWidgets.QWidget()
-        status_layout = QtWidgets.QHBoxLayout(self.status_widget)
-
-        # Device status table
-        self.device_status_table = QtWidgets.QTableWidget()
-        self.device_status_table.setColumnCount(3)
-        self.device_status_table.setHorizontalHeaderLabels(['Device', 'Status', 'Details'])
-        self.device_status_table.horizontalHeader().setStretchLastSection(True)
-
-        # Log display
+        main_layout = QtWidgets.QVBoxLayout(self.status_widget)
+        
+        # Create splitter for parameter tree and log display
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        
+        # === STATUS PARAMETER TREE ===
+        from pymodaq.utils.parameter import ParameterTree
+        
+        # Extract status monitoring parameters from main params
+        status_monitoring_params = None
+        for param in self.params:
+            if param.get('name') == 'status_monitoring':
+                status_monitoring_params = param['children']
+                break
+        
+        if status_monitoring_params:
+            # Create parameter tree widget for status monitoring
+            self.status_monitoring_parameter_tree = ParameterTree()
+            self.status_monitoring_parameter_tree.setParameters(status_monitoring_params, showTop=False)
+            
+            # Store reference to the parameter object for easy access
+            self.status_monitoring_settings = self.status_monitoring_parameter_tree.p
+            
+            # Initialize system information
+            self._initialize_system_info()
+            
+            splitter.addWidget(self.status_monitoring_parameter_tree)
+        else:
+            # Fallback if parameters not found
+            fallback_label = QtWidgets.QLabel("Status monitoring parameters not found")
+            splitter.addWidget(fallback_label)
+        
+        # === LOG DISPLAY (Keep as QTextEdit for real-time log viewing) ===
+        log_container = QtWidgets.QWidget()
+        log_layout = QtWidgets.QVBoxLayout(log_container)
+        
+        log_layout.addWidget(QtWidgets.QLabel('Activity Log:'))
+        
         self.log_display = QtWidgets.QTextEdit()
-        self.log_display.setMaximumHeight(150)
+        self.log_display.setMaximumHeight(200)
         self.log_display.setReadOnly(True)
-
-        # Layout
-        left_widget = QtWidgets.QWidget()
-        left_layout = QtWidgets.QVBoxLayout(left_widget)
-        left_layout.addWidget(QtWidgets.QLabel('Device Status:'))
-        left_layout.addWidget(self.device_status_table)
-
-        right_widget = QtWidgets.QWidget()
-        right_layout = QtWidgets.QVBoxLayout(right_widget)
-        right_layout.addWidget(QtWidgets.QLabel('Activity Log:'))
-        right_layout.addWidget(self.log_display)
-
-        status_layout.addWidget(left_widget)
-        status_layout.addWidget(right_widget)
-
+        self.log_display.setStyleSheet("""
+            QTextEdit {
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 9pt;
+                background-color: #f8f8f8;
+                border: 1px solid #ccc;
+            }
+        """)
+        
+        # Add log controls
+        log_controls = QtWidgets.QWidget()
+        log_controls_layout = QtWidgets.QHBoxLayout(log_controls)
+        
+        clear_log_button = QtWidgets.QPushButton("Clear Log")
+        clear_log_button.clicked.connect(lambda: self.log_display.clear())
+        clear_log_button.setMaximumWidth(100)
+        log_controls_layout.addWidget(clear_log_button)
+        
+        log_level_combo = QtWidgets.QComboBox()
+        log_level_combo.addItems(["All", "INFO", "WARNING", "ERROR"])
+        log_level_combo.setMaximumWidth(100)
+        log_controls_layout.addWidget(log_level_combo)
+        
+        log_controls_layout.addStretch()
+        
+        log_layout.addWidget(log_controls)
+        log_layout.addWidget(self.log_display)
+        
+        splitter.addWidget(log_container)
+        
+        # Set splitter proportions (70% for parameter tree, 30% for log)
+        splitter.setStretchFactor(0, 7)
+        splitter.setStretchFactor(1, 3)
+        
+        main_layout.addWidget(splitter)
+        
         # Add to dock
         self.docks['status'].addWidget(self.status_widget)
+        
+        # Initialize status update tracking
+        self._last_status_update = None
+        self._status_update_counter = 0
+        
+        logger.info("Created PyMoDAQ parameter-based status monitoring widget")
+
+    def _initialize_system_info(self):
+        """Initialize system information in status parameters (PyMoDAQ Standards)."""
+        try:
+            if hasattr(self, 'status_monitoring_settings') and self.status_monitoring_settings:
+                import datetime
+                
+                # Set session start time
+                start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.status_monitoring_settings.child('system_info', 'session_start').setValue(start_time)
+                
+                # Set extension version
+                self.status_monitoring_settings.child('system_info', 'extension_version').setValue(self.version)
+                
+                # Try to get PyMoDAQ version
+                try:
+                    import pymodaq
+                    pymodaq_version = getattr(pymodaq, '__version__', 'Unknown')
+                    self.status_monitoring_settings.child('system_info', 'pymodaq_version').setValue(pymodaq_version)
+                except:
+                    pass
+                
+                # Initialize device counts
+                if hasattr(self, 'available_devices') and hasattr(self, 'missing_devices'):
+                    self.status_monitoring_settings.child('system_info', 'available_devices_count').setValue(len(self.available_devices))
+                    self.status_monitoring_settings.child('system_info', 'missing_devices_count').setValue(len(self.missing_devices))
+                
+                # Initialize connection uptime tracking
+                self._connection_start_time = datetime.datetime.now()
+                
+        except Exception as e:
+            logger.debug(f"Error initializing system info: {e}")
+    
+    def update_status_monitoring_parameters(self):
+        """Update status monitoring parameters with current system state (PyMoDAQ Standards)."""
+        try:
+            if not hasattr(self, 'status_monitoring_settings') or not self.status_monitoring_settings:
+                return
+            
+            import datetime
+            
+            # Update device status
+            if hasattr(self, 'device_manager') and self.device_manager:
+                # Camera status
+                camera = self.device_manager.get_camera()
+                if camera:
+                    camera_status = "Connected" if camera.initialized else "Disconnected"
+                    self.status_monitoring_settings.child('device_status', 'camera_status').setValue(camera_status)
+                    
+                    # Try to get camera temperature
+                    try:
+                        if hasattr(camera, 'controller') and camera.controller and hasattr(camera.controller, 'get_temperature'):
+                            temp = camera.controller.get_temperature()
+                            self.status_monitoring_settings.child('device_status', 'camera_temperature').setValue(temp)
+                    except:
+                        pass
+                
+                # Laser status
+                laser_available = 'MaiTai' in self.available_devices
+                laser_status = "Connected" if laser_available else "Disconnected"
+                self.status_monitoring_settings.child('device_status', 'laser_status_display').setValue(laser_status)
+                
+                if laser_available:
+                    try:
+                        wavelength = self.get_current_laser_wavelength()
+                        if wavelength:
+                            self.status_monitoring_settings.child('device_status', 'laser_wavelength_display').setValue(wavelength)
+                    except:
+                        pass
+                
+                # Rotator status
+                rotator_available = 'Elliptec' in self.available_devices
+                rotator_status = "Connected" if rotator_available else "Disconnected"
+                self.status_monitoring_settings.child('device_status', 'rotator_status').setValue(rotator_status)
+                
+                # Power meter status
+                power_meter_available = 'Newport1830C' in self.available_devices
+                power_status = "Connected" if power_meter_available else "Disconnected"
+                self.status_monitoring_settings.child('device_status', 'power_meter_status').setValue(power_status)
+                
+                # Overall system status
+                connected_devices = len(self.available_devices)
+                total_expected = connected_devices + len(self.missing_devices)
+                if connected_devices == total_expected:
+                    system_status = "All Systems Operational"
+                elif connected_devices > 0:
+                    system_status = f"Partial ({connected_devices}/{total_expected} devices)"
+                else:
+                    system_status = "No Devices Connected"
+                self.status_monitoring_settings.child('device_status', 'system_status').setValue(system_status)
+            
+            # Update measurement status
+            if hasattr(self, 'is_measuring'):
+                measurement_state = "Measuring" if self.is_measuring else "Idle"
+                self.status_monitoring_settings.child('measurement_status', 'measurement_state').setValue(measurement_state)
+            
+            # Update data points if available
+            if hasattr(self, 'current_measurement_data') and self.current_measurement_data:
+                if isinstance(self.current_measurement_data, dict):
+                    angles = self.current_measurement_data.get('angles', [])
+                    data_points = len(angles) if angles else 0
+                    self.status_monitoring_settings.child('measurement_status', 'data_points_collected').setValue(data_points)
+            
+            # Update connection uptime
+            if hasattr(self, '_connection_start_time'):
+                uptime = datetime.datetime.now() - self._connection_start_time
+                uptime_str = str(uptime).split('.')[0]  # Remove microseconds
+                self.status_monitoring_settings.child('hardware_health', 'connection_uptime').setValue(uptime_str)
+            
+            # Update device counts
+            if hasattr(self, 'available_devices') and hasattr(self, 'missing_devices'):
+                self.status_monitoring_settings.child('system_info', 'available_devices_count').setValue(len(self.available_devices))
+                self.status_monitoring_settings.child('system_info', 'missing_devices_count').setValue(len(self.missing_devices))
+            
+            # Calculate performance score (simple metric based on connected devices and errors)
+            try:
+                total_devices = len(self.available_devices) + len(self.missing_devices)
+                connected_ratio = len(self.available_devices) / total_devices if total_devices > 0 else 0
+                error_penalty = min(self._status_update_counter * 2, 20)  # Max 20% penalty for errors
+                performance = max(0, connected_ratio * 100 - error_penalty)
+                self.status_monitoring_settings.child('hardware_health', 'performance_score').setValue(performance)
+            except:
+                pass
+            
+            # Update counter
+            self._status_update_counter += 1
+            self._last_status_update = datetime.datetime.now()
+            
+        except Exception as e:
+            logger.debug(f"Error updating status monitoring parameters: {e}")
+            self._status_update_counter += 1  # Count this as an error
+
+    # === SCANNER INTEGRATION METHODS (PyMoDAQ Coordinated Measurements) ===
+    
+    def _connect_scanner_parameter_actions(self):
+        """Connect scanner parameter actions to methods (PyMoDAQ Standards)."""
+        try:
+            # Scanner control actions
+            self.settings.child('scanner_integration', 'scan_control', 'start_scan').sigActivated.connect(self.start_scanner_measurement)
+            self.settings.child('scanner_integration', 'scan_control', 'stop_scan').sigActivated.connect(self.stop_scanner_measurement)
+            self.settings.child('scanner_integration', 'scan_control', 'pause_scan').sigActivated.connect(self.pause_scanner_measurement)
+            self.settings.child('scanner_integration', 'scan_control', 'resume_scan').sigActivated.connect(self.resume_scanner_measurement)
+            self.settings.child('scanner_integration', 'scan_control', 'preview_scan').sigActivated.connect(self.preview_scanner_measurement)
+            
+            # Scanner enable/disable
+            self.settings.child('scanner_integration', 'scan_config', 'enable_scanner').sigValueChanged.connect(self.on_scanner_enable_changed)
+            self.settings.child('scanner_integration', 'scan_config', 'scan_type').sigValueChanged.connect(self.on_scan_type_changed)
+            
+            logger.info("Connected scanner integration parameter actions (PyMoDAQ standards)")
+        except Exception as e:
+            logger.warning(f"Could not connect all scanner parameter actions: {e}")
+    
+    def on_scanner_enable_changed(self):
+        """Handle scanner enable/disable changes (PyMoDAQ Standards)."""
+        try:
+            scanner_enabled = self.settings.child('scanner_integration', 'scan_config', 'enable_scanner').value()
+            
+            if scanner_enabled:
+                self.log_message("Scanner integration enabled", level="INFO")
+                self.settings.child('scanner_integration', 'scan_status', 'current_status').setValue("Ready")
+            else:
+                self.log_message("Scanner integration disabled", level="INFO")  
+                self.settings.child('scanner_integration', 'scan_status', 'current_status').setValue("Disabled")
+                
+                # Stop any ongoing scans
+                if hasattr(self, '_scanner_active') and self._scanner_active:
+                    self.stop_scanner_measurement()
+                    
+        except Exception as e:
+            logger.error(f"Error handling scanner enable change: {e}")
+    
+    def on_scan_type_changed(self):
+        """Handle scan type selection changes (PyMoDAQ Standards)."""
+        try:
+            scan_type = self.settings.child('scanner_integration', 'scan_config', 'scan_type').value()
+            
+            # Calculate and update total points based on scan type
+            total_points = self._calculate_scan_points(scan_type)
+            self.settings.child('scanner_integration', 'scan_status', 'total_points').setValue(total_points)
+            
+            self.log_message(f"Scan type changed to: {scan_type} ({total_points} points)", level="INFO")
+            
+        except Exception as e:
+            logger.error(f"Error handling scan type change: {e}")
+    
+    def _calculate_scan_points(self, scan_type):
+        """Calculate total scan points based on scan configuration (PyMoDAQ Standards)."""
+        try:
+            if scan_type == 'None':
+                return 0
+            elif scan_type == 'Polarization Scan':
+                start = self.settings.child('scanner_integration', 'polarization_scan', 'pol_start_angle').value()
+                end = self.settings.child('scanner_integration', 'polarization_scan', 'pol_end_angle').value()
+                step = self.settings.child('scanner_integration', 'polarization_scan', 'pol_step_size').value()
+                return int((end - start) / step) + 1
+            elif scan_type == 'Wavelength Scan':
+                start = self.settings.child('scanner_integration', 'wavelength_scan', 'wl_start').value()
+                end = self.settings.child('scanner_integration', 'wavelength_scan', 'wl_end').value()
+                step = self.settings.child('scanner_integration', 'wavelength_scan', 'wl_step_size').value()
+                return int((end - start) / step) + 1
+            elif scan_type == 'Multi-Parameter Scan':
+                # Calculate combination of polarization and wavelength points
+                pol_points = self._calculate_scan_points('Polarization Scan')
+                wl_points = self._calculate_scan_points('Wavelength Scan')
+                return pol_points * wl_points
+            else:
+                return 0
+        except Exception as e:
+            logger.error(f"Error calculating scan points: {e}")
+            return 0
+    
+    def start_scanner_measurement(self):
+        """Start coordinated scanner measurement (PyMoDAQ Standards)."""
+        logger.info("Starting scanner measurement...")
+        
+        try:
+            # Check if scanner is enabled
+            if not self.settings.child('scanner_integration', 'scan_config', 'enable_scanner').value():
+                self.log_message("Cannot start scan: Scanner integration is disabled", level="WARNING")
+                return
+            
+            # Check scan type
+            scan_type = self.settings.child('scanner_integration', 'scan_config', 'scan_type').value()
+            if scan_type == 'None':
+                self.log_message("Cannot start scan: No scan type selected", level="WARNING")
+                return
+            
+            # Pre-flight checks
+            if not self._scanner_preflight_checks():
+                return
+            
+            # Initialize scanner state
+            self._scanner_active = True
+            self._scanner_paused = False
+            self._current_scan_point = 0
+            
+            # Update status
+            self.settings.child('scanner_integration', 'scan_status', 'current_status').setValue("Running")
+            self.settings.child('scanner_integration', 'scan_status', 'scan_progress').setValue(0)
+            self.settings.child('scanner_integration', 'scan_status', 'points_completed').setValue(0)
+            
+            self.log_message(f"Started {scan_type} measurement", level="INFO")
+            
+            # Start the appropriate scan type
+            if scan_type == 'Polarization Scan':
+                self._start_polarization_scan()
+            elif scan_type == 'Wavelength Scan':
+                self._start_wavelength_scan()
+            elif scan_type == 'Multi-Parameter Scan':
+                self._start_multi_parameter_scan()
+            else:
+                self.log_message(f"Scan type '{scan_type}' not yet implemented", level="WARNING")
+                self.stop_scanner_measurement()
+                
+        except Exception as e:
+            error_msg = f"Error starting scanner measurement: {str(e)}"
+            self.log_message(error_msg, level="ERROR")
+            self.stop_scanner_measurement()
+    
+    def stop_scanner_measurement(self):
+        """Stop coordinated scanner measurement (PyMoDAQ Standards)."""
+        logger.info("Stopping scanner measurement...")
+        
+        try:
+            # Update scanner state
+            self._scanner_active = False
+            self._scanner_paused = False
+            
+            # Update status
+            self.settings.child('scanner_integration', 'scan_status', 'current_status').setValue("Stopped")
+            self.settings.child('scanner_integration', 'scan_status', 'current_position').setValue("N/A")
+            self.settings.child('scanner_integration', 'scan_status', 'eta').setValue("--:--")
+            
+            self.log_message("Scanner measurement stopped", level="INFO")
+            
+        except Exception as e:
+            logger.error(f"Error stopping scanner measurement: {e}")
+    
+    def pause_scanner_measurement(self):
+        """Pause coordinated scanner measurement (PyMoDAQ Standards)."""
+        try:
+            if hasattr(self, '_scanner_active') and self._scanner_active:
+                self._scanner_paused = True
+                self.settings.child('scanner_integration', 'scan_status', 'current_status').setValue("Paused")
+                self.log_message("Scanner measurement paused", level="INFO")
+            
+        except Exception as e:
+            logger.error(f"Error pausing scanner measurement: {e}")
+    
+    def resume_scanner_measurement(self):
+        """Resume coordinated scanner measurement (PyMoDAQ Standards)."""
+        try:
+            if hasattr(self, '_scanner_active') and self._scanner_active and hasattr(self, '_scanner_paused') and self._scanner_paused:
+                self._scanner_paused = False
+                self.settings.child('scanner_integration', 'scan_status', 'current_status').setValue("Running")
+                self.log_message("Scanner measurement resumed", level="INFO")
+            
+        except Exception as e:
+            logger.error(f"Error resuming scanner measurement: {e}")
+    
+    def preview_scanner_measurement(self):
+        """Preview scanner measurement parameters (PyMoDAQ Standards)."""
+        try:
+            scan_type = self.settings.child('scanner_integration', 'scan_config', 'scan_type').value()
+            total_points = self.settings.child('scanner_integration', 'scan_status', 'total_points').value()
+            
+            if scan_type == 'None':
+                self.log_message("No scan type selected for preview", level="WARNING")
+                return
+            
+            # Calculate estimated measurement time
+            integration_time = self.settings.child('experiment', 'integration_time').value() / 1000.0  # Convert to seconds
+            averages = self.settings.child('experiment', 'averages').value()
+            
+            base_time_per_point = integration_time * averages
+            
+            # Add settling times based on scan type
+            if scan_type == 'Polarization Scan':
+                settle_time = self.settings.child('scanner_integration', 'polarization_scan', 'pol_settle_time').value() / 1000.0
+                total_time = total_points * (base_time_per_point + settle_time)
+            elif scan_type == 'Wavelength Scan':
+                stabilize_time = self.settings.child('scanner_integration', 'wavelength_scan', 'wl_stabilize_time').value()
+                total_time = total_points * (base_time_per_point + stabilize_time)
+            else:
+                total_time = total_points * base_time_per_point
+            
+            # Format time estimate
+            hours = int(total_time // 3600)
+            minutes = int((total_time % 3600) // 60)
+            seconds = int(total_time % 60)
+            time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            
+            preview_msg = f"Scan Preview - Type: {scan_type}, Points: {total_points}, Est. Time: {time_str}"
+            self.log_message(preview_msg, level="INFO")
+            
+            # Show preview using PyMoDAQ messagebox
+            from pymodaq.utils.messenger import messagebox
+            preview_details = f"""
+Scan Configuration Preview:
+
+Scan Type: {scan_type}
+Total Points: {total_points}
+Estimated Duration: {time_str}
+
+Integration Time: {integration_time:.3f} s per point
+Averages: {averages}
+            """
+            
+            result = messagebox(title="Scan Preview", text=preview_details.strip(), informative_text="Proceed with scan?")
+            if result:
+                self.start_scanner_measurement()
+            
+        except Exception as e:
+            logger.error(f"Error generating scan preview: {e}")
+            self.log_message(f"Preview error: {str(e)}", level="ERROR")
+    
+    def _scanner_preflight_checks(self):
+        """Perform pre-flight checks for scanner measurement (PyMoDAQ Standards)."""
+        try:
+            # Check device availability
+            if not hasattr(self, 'device_manager') or not self.device_manager:
+                self.log_message("Device manager not available", level="ERROR")
+                return False
+            
+            # Check if already measuring
+            if hasattr(self, 'is_measuring') and self.is_measuring:
+                self.log_message("Cannot start scan: Another measurement is in progress", level="WARNING")
+                return False
+            
+            scan_type = self.settings.child('scanner_integration', 'scan_config', 'scan_type').value()
+            
+            # Type-specific checks
+            if scan_type in ['Polarization Scan', 'Multi-Parameter Scan']:
+                if 'Elliptec' not in self.available_devices:
+                    self.log_message("Polarization scan requires Elliptec rotators", level="ERROR")
+                    return False
+            
+            if scan_type in ['Wavelength Scan', 'Multi-Parameter Scan']:
+                if 'MaiTai' not in self.available_devices:
+                    self.log_message("Wavelength scan requires MaiTai laser", level="ERROR")
+                    return False
+            
+            # Check camera availability for all scans
+            if 'PrimeBSI' not in self.available_devices:
+                self.log_message("Scanner measurement requires camera", level="ERROR")
+                return False
+            
+            self.log_message("Scanner pre-flight checks passed", level="INFO")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error in scanner pre-flight checks: {e}")
+            return False
+    
+    def _start_polarization_scan(self):
+        """Start polarization scanning sequence (PyMoDAQ Standards Implementation)."""
+        self.log_message("Starting polarization scan sequence...", level="INFO")
+        
+        # This would be implemented as a coordinated measurement
+        # For now, create a framework that can be extended
+        try:
+            start_angle = self.settings.child('scanner_integration', 'polarization_scan', 'pol_start_angle').value()
+            end_angle = self.settings.child('scanner_integration', 'polarization_scan', 'pol_end_angle').value()
+            step_size = self.settings.child('scanner_integration', 'polarization_scan', 'pol_step_size').value()
+            
+            self.log_message(f"Polarization scan: {start_angle}° to {end_angle}° in {step_size}° steps", level="INFO")
+            
+            # Framework for future implementation:
+            # - Move rotator to start position
+            # - For each angle step:
+            #   - Move rotator to angle
+            #   - Wait for settling
+            #   - Trigger camera acquisition
+            #   - Store data with position metadata
+            # - Compile results into multi-dimensional dataset
+            
+            self.log_message("Polarization scan framework ready (implementation pending)", level="INFO")
+            
+        except Exception as e:
+            logger.error(f"Error starting polarization scan: {e}")
+            self.stop_scanner_measurement()
+    
+    def _start_wavelength_scan(self):
+        """Start wavelength scanning sequence (PyMoDAQ Standards Implementation)."""
+        self.log_message("Starting wavelength scan sequence...", level="INFO")
+        
+        # Framework for coordinated wavelength measurement
+        try:
+            start_wl = self.settings.child('scanner_integration', 'wavelength_scan', 'wl_start').value()
+            end_wl = self.settings.child('scanner_integration', 'wavelength_scan', 'wl_end').value()
+            step_size = self.settings.child('scanner_integration', 'wavelength_scan', 'wl_step_size').value()
+            
+            self.log_message(f"Wavelength scan: {start_wl} nm to {end_wl} nm in {step_size} nm steps", level="INFO")
+            
+            # Framework for future implementation:
+            # - Set laser to start wavelength
+            # - For each wavelength step:
+            #   - Set laser wavelength
+            #   - Wait for stabilization
+            #   - Sync power meter wavelength if enabled
+            #   - Trigger measurement
+            #   - Store spectral data
+            # - Compile spectroscopic dataset
+            
+            self.log_message("Wavelength scan framework ready (implementation pending)", level="INFO")
+            
+        except Exception as e:
+            logger.error(f"Error starting wavelength scan: {e}")
+            self.stop_scanner_measurement()
+    
+    def _start_multi_parameter_scan(self):
+        """Start multi-parameter scanning sequence (PyMoDAQ Standards Implementation)."""
+        self.log_message("Starting multi-parameter scan sequence...", level="INFO")
+        
+        # Framework for coordinated multi-parameter measurement
+        try:
+            self.log_message("Multi-parameter scan combines polarization and wavelength scanning", level="INFO")
+            
+            # Framework for future implementation:
+            # - Nested loops: wavelength outer, polarization inner (or vice versa)
+            # - For each wavelength:
+            #   - Set laser wavelength and wait for stabilization
+            #   - For each polarization angle:
+            #     - Move rotator and wait for settling
+            #     - Trigger measurement
+            #     - Store data with both wavelength and angle metadata
+            # - Compile 3D dataset (wavelength, angle, intensity)
+            
+            self.log_message("Multi-parameter scan framework ready (implementation pending)", level="INFO")
+            
+        except Exception as e:
+            logger.error(f"Error starting multi-parameter scan: {e}")
+            self.stop_scanner_measurement()
 
     def connect_things(self):
         """
@@ -793,7 +1737,7 @@ class URASHGMicroscopyExtension(CustomApp):
 
         # Start device control update timer (PHASE 3 FEATURE)
         if hasattr(self, 'device_update_timer'):
-            self.device_update_timer.start()
+            self.start_device_update_monitoring()
             logger.info("Started device control update timer")
 
         logger.info("Connected signals and slots for μRASHG extension")
@@ -815,7 +1759,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Setting laser wavelength to {target_wavelength} nm")
 
         try:
-            laser = self.device_manager.get_laser()
+            laser = self.dashboard.modules_manager.get_module_by_name('MaiTai')
             if not laser:
                 self.log_message("ERROR: Laser device not available", level='error')
                 return
@@ -849,7 +1793,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Opening laser shutter")
 
         try:
-            laser = self.device_manager.get_laser()
+            laser = self.dashboard.modules_manager.get_module_by_name('MaiTai')
             if not laser:
                 self.log_message("ERROR: Laser device not available", level='error')
                 return
@@ -880,7 +1824,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("Closing laser shutter")
 
         try:
-            laser = self.device_manager.get_laser()
+            laser = self.dashboard.modules_manager.get_module_by_name('MaiTai')
             if not laser:
                 self.log_message("ERROR: Laser device not available", level='error')
                 return
@@ -930,7 +1874,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Moving {rotator_name} to {target_position}°")
 
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self.dashboard.modules_manager.get_module_by_name('Elliptec')
             if not elliptec:
                 self.log_message("ERROR: Elliptec device not available", level='error')
                 return
@@ -984,7 +1928,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Homing {rotator_name}")
 
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self.dashboard.modules_manager.get_module_by_name('Elliptec')
             if not elliptec:
                 self.log_message("ERROR: Elliptec device not available", level='error')
                 return
@@ -1013,7 +1957,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message("EMERGENCY STOP - All rotators", level='error')
 
         try:
-            elliptec = self.device_manager.get_elliptec()
+            elliptec = self.dashboard.modules_manager.get_module_by_name('Elliptec')
             if elliptec:
                 if hasattr(elliptec, 'stop_motion'):
                     elliptec.stop_motion()
@@ -1260,34 +2204,37 @@ class URASHGMicroscopyExtension(CustomApp):
         logger.info("Initializing devices...")
         self.log_message("Starting device initialization...")
 
-        if not self.device_manager:
-            self.log_message("ERROR: Device manager not available", level='error')
+        if not self.dashboard or not hasattr(self.dashboard, 'modules_manager'):
+            self.log_message("ERROR: Dashboard or modules_manager not available", level='error')
             return
 
         try:
-            # Discover devices first
-            available_devices, missing_devices = self.device_manager.discover_devices()
-            self.available_devices = available_devices
-            self.missing_devices = missing_devices
+            # Get available modules from the dashboard
+            self.available_devices = {name: mod for name, mod in self.dashboard.modules_manager.modules_by_name.items()}
+            
+            # Check for required devices
+            self.missing_devices = []
+            for device_key, device_config in URASHGDeviceManager.REQUIRED_DEVICES.items():
+                if device_config.get('required', True):
+                    found = False
+                    for pattern in device_config['name_patterns']:
+                        if any(pattern in name for name in self.available_devices):
+                            found = True
+                            break
+                    if not found:
+                        self.missing_devices.append(device_key)
 
             # Report discovery results
-            if available_devices:
-                self.log_message(f"Found {len(available_devices)} devices: {list(available_devices.keys())}")
+            if self.available_devices:
+                self.log_message(f"Found {len(self.available_devices)} devices: {list(self.available_devices.keys())}")
 
-            if missing_devices:
-                self.log_message(f"Missing required devices: {missing_devices}", level='error')
+            if self.missing_devices:
+                self.log_message(f"Missing required devices: {self.missing_devices}", level='error')
                 return False
 
-            # Initialize all devices
-            success = self.device_manager.initialize_all_devices()
-
-            if success:
-                self.log_message("All devices initialized successfully")
-                self.device_manager.start_monitoring()
-                return True
-            else:
-                self.log_message("Some devices failed to initialize", level='error')
-                return False
+            self.log_message("All required devices are present.")
+            self.device_manager.start_monitoring()
+            return True
 
         except Exception as e:
             error_msg = f"Device initialization failed: {str(e)}"
@@ -1300,27 +2247,18 @@ class URASHGMicroscopyExtension(CustomApp):
         logger.info("Checking device status...")
         self.log_message("Checking device status...")
 
-        if not self.device_manager:
-            self.log_message("ERROR: Device manager not available", level='error')
+        if not self.dashboard or not hasattr(self.dashboard, 'modules_manager'):
+            self.log_message("ERROR: Dashboard or modules_manager not available", level='error')
             return
 
         try:
             # Update status for all devices
-            self.device_manager.update_all_device_status()
-
-            # Get status summary
-            all_device_info = self.device_manager.get_all_device_info()
-
-            for device_key, device_info in all_device_info.items():
-                status_msg = f"Device '{device_key}': {device_info.status.value}"
-                if device_info.last_error:
-                    status_msg += f" (Error: {device_info.last_error})"
-
-                level = 'info' if device_info.status == DeviceStatus.CONNECTED else 'warning'
-                self.log_message(status_msg, level=level)
+            for device_name, mod in self.available_devices.items():
+                status = "Connected" if mod.controller.is_connected() else "Disconnected"
+                self.log_message(f"Device '{device_name}': {status}")
 
             # Check if all required devices are ready
-            all_ready = self.device_manager.is_all_devices_ready()
+            all_ready = all("Connected" == mod.controller.is_connected() for mod in self.available_devices.values())
             ready_msg = "All required devices are ready" if all_ready else "Some required devices are not ready"
             self.log_message(ready_msg, level='info' if all_ready else 'warning')
 
@@ -1374,13 +2312,10 @@ class URASHGMicroscopyExtension(CustomApp):
         max_power = self.settings.child('hardware', 'safety', 'max_power').value()
         if max_power > 80.0:
             self.log_message(f"WARNING: High power limit set ({max_power}%)", level='warning')
-            reply = QtWidgets.QMessageBox.question(
-                self.control_widget, 'High Power Warning',
-                f'Power limit is set to {max_power}%. Continue?',
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No
-            )
-            if reply == QtWidgets.QMessageBox.No:
+            reply = messagebox(severity='question', 
+                             title='High Power Warning',
+                             text=f'Power limit is set to {max_power}%. Continue?')
+            if not reply:
                 return False
 
         # Check measurement parameters
@@ -1479,9 +2414,10 @@ class URASHGMicroscopyExtension(CustomApp):
                 self.log_message("Emergency stop applied to all devices")
 
             # Reset UI state
-            self.start_button.setEnabled(True)
-            self.stop_button.setEnabled(False)
-            self.pause_button.setEnabled(False)
+            # PyMoDAQ parameter-driven approach: actions auto-manage state
+            self.settings.child('measurement_control', 'start_measurement').setOpts(enabled=True)
+            self.settings.child('measurement_control', 'stop_measurement').setOpts(enabled=False)
+            self.settings.child('measurement_control', 'pause_measurement').setOpts(enabled=False)
             self.progress_bar.setVisible(False)
 
             self.log_message("Emergency stop completed")
@@ -1521,12 +2457,14 @@ class URASHGMicroscopyExtension(CustomApp):
             self.update_analysis_status("Analysis failed")
 
     def fit_rashg_pattern(self):
-        """Fit RASHG pattern to current data (PHASE 3 FEATURE)."""
+        """Fit RASHG pattern to current data (PHASE 3 FEATURE) - PyMoDAQ Standards Compliant."""
         logger.info("Fitting RASHG pattern...")
         self.log_message("Fitting RASHG pattern...")
 
         if not self.current_measurement_data:
             self.log_message("No measurement data available for fitting", level='warning')
+            # Update parameter tree with no data status
+            self.update_analysis_control_parameters()
             return
 
         try:
@@ -1537,6 +2475,10 @@ class URASHGMicroscopyExtension(CustomApp):
 
             if len(angles) < 4 or len(intensities) < 4:
                 self.log_message("Insufficient data points for fitting (minimum 4 required)", level='warning')
+                # Update parameter tree with insufficient data status
+                if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                    self.analysis_control_settings.child('polar_analysis', 'fit_results').setValue("Insufficient data")
+                    self.analysis_control_settings.child('general_analysis', 'analysis_status').setValue("Insufficient data")
                 return
 
             # Perform RASHG fitting
@@ -1549,14 +2491,32 @@ class URASHGMicroscopyExtension(CustomApp):
 
                 self.log_message(f"RASHG fit completed: A={fit_results['A']:.2f}, B={fit_results['B']:.2f}, φ={fit_results['phi_deg']:.1f}°")
                 self.update_analysis_status("RASHG pattern fitted successfully")
+                
+                # Update parameter tree with fit results (PyMoDAQ Standards)
+                if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                    self.analysis_control_settings.child('general_analysis', 'analysis_status').setValue("Fit completed successfully")
             else:
                 self.log_message("RASHG fitting failed", level='error')
                 self.update_analysis_status("RASHG fitting failed")
+                
+                # Update parameter tree with failure status (PyMoDAQ Standards)
+                if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                    self.analysis_control_settings.child('polar_analysis', 'fit_results').setValue("Fit failed")
+                    self.analysis_control_settings.child('general_analysis', 'analysis_status').setValue("Fit failed")
 
         except Exception as e:
             error_msg = f"RASHG fitting failed: {str(e)}"
             self.log_message(error_msg, level='error')
             self.update_analysis_status("RASHG fitting failed")
+            
+            # Update parameter tree with error status (PyMoDAQ Standards)
+            if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                self.analysis_control_settings.child('polar_analysis', 'fit_results').setValue(f"Error: {str(e)}")
+                self.analysis_control_settings.child('general_analysis', 'analysis_status').setValue("Error in fitting")
+        
+        finally:
+            # Always update analysis control parameters to synchronize parameter tree (PyMoDAQ Standards)
+            self.update_analysis_control_parameters()
 
     def export_analysis_results(self):
         """Export analysis results (PHASE 3 FEATURE)."""
@@ -2038,53 +2998,135 @@ class URASHGMicroscopyExtension(CustomApp):
             self.log_display.moveCursor(QtGui.QTextCursor.End)
 
     def update_device_status(self):
-        """Update device status display (periodic)."""
-        if not self.device_manager or not hasattr(self, 'device_status_table'):
+        """Update device status display using PyMoDAQ parameter trees (PyMoDAQ Standards Compliant)."""
+        if not self.device_manager:
             return
 
         try:
-            # Get all device information
-            all_device_info = self.device_manager.get_all_device_info()
+            # Update legacy table widget if it still exists (for backward compatibility)
+            if hasattr(self, 'device_status_table') and self.device_status_table:
+                # Get all device information
+                all_device_info = self.device_manager.get_all_device_info()
 
-            # Update table row count
-            self.device_status_table.setRowCount(len(all_device_info))
+                # Update table row count
+                self.device_status_table.setRowCount(len(all_device_info))
 
-            # Update each device row
-            for row, (device_key, device_info) in enumerate(all_device_info.items()):
-                # Device name
-                name_item = QtWidgets.QTableWidgetItem(device_key.title())
-                self.device_status_table.setItem(row, 0, name_item)
+                # Update each device row
+                for row, (device_key, device_info) in enumerate(all_device_info.items()):
+                    # Device name
+                    name_item = QtWidgets.QTableWidgetItem(device_key.title())
+                    self.device_status_table.setItem(row, 0, name_item)
 
-                # Status with color coding
-                status_item = QtWidgets.QTableWidgetItem(device_info.status.value)
-                if device_info.status == DeviceStatus.CONNECTED:
-                    status_item.setBackground(QtGui.QColor(144, 238, 144))  # Light green
-                elif device_info.status == DeviceStatus.DISCONNECTED:
-                    status_item.setBackground(QtGui.QColor(255, 182, 193))  # Light pink
-                elif device_info.status == DeviceStatus.ERROR:
-                    status_item.setBackground(QtGui.QColor(255, 99, 71))   # Tomato red
-                else:
-                    status_item.setBackground(QtGui.QColor(211, 211, 211)) # Light gray
+                    # Status with color coding
+                    status_item = QtWidgets.QTableWidgetItem(device_info.status.value)
+                    if device_info.status == DeviceStatus.CONNECTED:
+                        status_item.setBackground(QtGui.QColor(144, 238, 144))  # Light green
+                    elif device_info.status == DeviceStatus.DISCONNECTED:
+                        status_item.setBackground(QtGui.QColor(255, 182, 193))  # Light pink
+                    elif device_info.status == DeviceStatus.ERROR:
+                        status_item.setBackground(QtGui.QColor(255, 99, 71))   # Tomato red
+                    else:
+                        status_item.setBackground(QtGui.QColor(211, 211, 211)) # Light gray
 
-                self.device_status_table.setItem(row, 1, status_item)
+                    self.device_status_table.setItem(row, 1, status_item)
 
-                # Details (error message or module info)
-                details = ""
-                if device_info.last_error:
-                    details = f"Error: {device_info.last_error}"
-                elif device_info.module_name:
-                    details = f"Module: {device_info.module_name}"
-                else:
-                    details = "No details available"
+                    # Details (error message or module info)
+                    details = ""
+                    if device_info.last_error:
+                        details = f"Error: {device_info.last_error}"
+                    elif device_info.module_name:
+                        details = f"Module: {device_info.module_name}"
+                    else:
+                        details = "No details available"
 
-                details_item = QtWidgets.QTableWidgetItem(details)
-                self.device_status_table.setItem(row, 2, details_item)
+                    details_item = QtWidgets.QTableWidgetItem(details)
+                    self.device_status_table.setItem(row, 2, details_item)
+
+            # Update status monitoring parameters (PyMoDAQ Standards)
+            self.update_status_monitoring_parameters()
 
             # Update specific device information if available
             self._update_live_device_data()
 
         except Exception as e:
             logger.error(f"Error updating device status display: {e}")
+            # Track error in status monitoring
+            if hasattr(self, 'status_monitoring_settings') and self.status_monitoring_settings:
+                self.status_monitoring_settings.child('measurement_status', 'last_error').setValue(str(e))
+
+    def start_status_monitoring(self):
+        """Start PyMoDAQ-style status monitoring using threading instead of QTimer."""
+        if self._status_monitoring_active:
+            return
+            
+        self._status_monitoring_active = True
+        
+        import threading
+        import time
+        
+        def status_worker():
+            """Worker thread for periodic status updates."""
+            while self._status_monitoring_active:
+                try:
+                    self.update_device_status()
+                    time.sleep(self._status_update_interval)
+                except Exception as e:
+                    logger.error(f"Error in extension status monitoring: {e}")
+                    time.sleep(self._status_update_interval)
+        
+        self._status_worker_thread = threading.Thread(target=status_worker, daemon=True)
+        self._status_worker_thread.start()
+        
+        logger.info("Started PyMoDAQ-style extension status monitoring")
+
+    def stop_status_monitoring(self):
+        """Stop PyMoDAQ-style status monitoring."""
+        if not self._status_monitoring_active:
+            return
+            
+        self._status_monitoring_active = False
+        
+        if self._status_worker_thread and self._status_worker_thread.is_alive():
+            self._status_worker_thread.join(timeout=2.0)
+            
+        logger.info("Stopped PyMoDAQ-style extension status monitoring")
+
+    def start_device_update_monitoring(self):
+        """Start PyMoDAQ-style device update monitoring using threading instead of QTimer."""
+        if self._device_update_active:
+            return
+            
+        self._device_update_active = True
+        
+        import threading
+        import time
+        
+        def device_update_worker():
+            """Worker thread for periodic device updates."""
+            while self._device_update_active:
+                try:
+                    self.update_device_control_displays()
+                    time.sleep(self._device_update_interval)
+                except Exception as e:
+                    logger.error(f"Error in device update monitoring: {e}")
+                    time.sleep(self._device_update_interval)
+        
+        self._device_update_thread = threading.Thread(target=device_update_worker, daemon=True)
+        self._device_update_thread.start()
+        
+        logger.info("Started PyMoDAQ-style device update monitoring")
+
+    def stop_device_update_monitoring(self):
+        """Stop PyMoDAQ-style device update monitoring."""
+        if not self._device_update_active:
+            return
+            
+        self._device_update_active = False
+        
+        if self._device_update_thread and self._device_update_thread.is_alive():
+            self._device_update_thread.join(timeout=2.0)
+            
+        logger.info("Stopped PyMoDAQ-style device update monitoring")
 
     def _update_live_device_data(self):
         """Update live data from specific devices (power, temperature, etc)."""
@@ -2117,8 +3159,13 @@ class URASHGMicroscopyExtension(CustomApp):
                             if len(self._power_history['time']) > 1:
                                 # Convert to relative time
                                 rel_time = [t - self._power_history['time'][0] for t in self._power_history['time']]
-                                self.power_plot.clear()
-                                self.power_plot.plot(rel_time, self._power_history['power'], pen='b')
+                                # Update plot using PyMoDAQ DataRaw
+                                time_axis = Axis('Time', units='s', data=np.array(rel_time))
+                                power_data = DataRaw('Power Monitor', 
+                                                   data=[np.array(self._power_history['power'])],
+                                                   axes=[time_axis],
+                                                   labels=['Power'])
+                                self.power_plot.show_data(power_data)
 
                 except Exception as e:
                     logger.debug(f"Could not update power meter data: {e}")
@@ -2135,6 +3182,9 @@ class URASHGMicroscopyExtension(CustomApp):
                 except Exception as e:
                     logger.debug(f"Could not get camera temperature: {e}")
 
+            # Update device control parameters to keep parameter tree synchronized (PyMoDAQ Standards)
+            self.update_device_control_parameters()
+
         except Exception as e:
             logger.debug(f"Error updating live device data: {e}")
 
@@ -2142,18 +3192,20 @@ class URASHGMicroscopyExtension(CustomApp):
 
     def on_measurement_started(self):
         """Handle measurement started signal."""
-        self.start_button.setEnabled(False)
-        self.stop_button.setEnabled(True)
-        self.pause_button.setEnabled(True)
+        # PyMoDAQ parameter-driven approach: manage action states via parameter tree
+        self.settings.child('measurement_control', 'start_measurement').setOpts(enabled=False)
+        self.settings.child('measurement_control', 'stop_measurement').setOpts(enabled=True)
+        self.settings.child('measurement_control', 'pause_measurement').setOpts(enabled=True)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         self.is_measuring = True
 
     def on_measurement_finished(self):
         """Handle measurement finished signal."""
-        self.start_button.setEnabled(True)
-        self.stop_button.setEnabled(False)
-        self.pause_button.setEnabled(False)
+        # PyMoDAQ parameter-driven approach: reset action states
+        self.settings.child('measurement_control', 'start_measurement').setOpts(enabled=True)
+        self.settings.child('measurement_control', 'stop_measurement').setOpts(enabled=False)
+        self.settings.child('measurement_control', 'pause_measurement').setOpts(enabled=False)
         self.progress_bar.setVisible(False)
         self.is_measuring = False
 
@@ -2172,9 +3224,10 @@ class URASHGMicroscopyExtension(CustomApp):
         logger.error(f"Extension error: {error_message}")
         self.log_message(f"ERROR: {error_message}", level='error')
 
-        # Show error dialog
-        QtWidgets.QMessageBox.critical(self.control_widget, 'μRASHG Extension Error',
-                                     f"An error occurred:\n\n{error_message}")
+        # Show error dialog using PyMoDAQ messaging
+        messagebox(severity='critical', 
+                  title='μRASHG Extension Error',
+                  text=f"An error occurred:\n\n{error_message}")
 
     def on_device_error(self, device_name: str, error_message: str):
         """Handle device-specific error."""
@@ -2186,11 +3239,11 @@ class URASHGMicroscopyExtension(CustomApp):
         if ready:
             logger.info("All required devices are ready")
             self.log_message("All required devices are ready for measurements")
-            self.start_button.setEnabled(True)
+            self.settings.child('measurement_control', 'start_measurement').setOpts(enabled=True)
         else:
             logger.warning("Not all required devices are ready")
             self.log_message("Some required devices are not ready", level='warning')
-            self.start_button.setEnabled(False)
+            self.settings.child('measurement_control', 'start_measurement').setOpts(enabled=False)
 
 
     def _on_measurement_completed(self, measurement_data):
@@ -2452,11 +3505,15 @@ class URASHGMicroscopyExtension(CustomApp):
         self.log_message(f"Real-time RASHG fitting {'enabled' if enabled else 'disabled'}")
 
     def update_spectral_analysis(self):
-        """Update spectral analysis display (PHASE 3 FEATURE)."""
+        """Update spectral analysis display (PHASE 3 FEATURE) - PyMoDAQ Standards Compliant."""
         try:
             if not self.current_measurement_data or not self.current_measurement_data.get('multi_wavelength', False):
                 if hasattr(self, 'spectral_plot'):
                     self.spectral_plot.clear()
+                
+                # Update parameter tree with no data status (PyMoDAQ Standards)
+                if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                    self.analysis_control_settings.child('spectral_analysis', 'spectral_status').setValue("No multi-wavelength data")
                 return
 
             self.update_analysis_status("Updating spectral analysis...")
@@ -2467,14 +3524,26 @@ class URASHGMicroscopyExtension(CustomApp):
             angles = self.current_measurement_data.get('angles', [])
 
             if not wavelengths or not intensities:
+                # Update parameter tree with no data status (PyMoDAQ Standards)
+                if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                    self.analysis_control_settings.child('spectral_analysis', 'spectral_status').setValue("No wavelength data")
                 return
 
             # Organize data by wavelength
             spectral_data = self._organize_spectral_data(wavelengths, intensities, angles)
 
-            # Perform spectral analysis based on mode
-            mode = self.spectral_mode_combo.currentText() if hasattr(self, 'spectral_mode_combo') else 'RASHG Amplitude'
+            # Get spectral analysis mode from parameter tree (PyMoDAQ Standards)
+            mode = 'RASHG Amplitude'  # default
+            if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                try:
+                    mode = self.analysis_control_settings.child('spectral_analysis', 'spectral_mode').value()
+                except:
+                    pass
+            elif hasattr(self, 'spectral_mode_combo'):
+                # Fallback to combo box if parameter tree not available
+                mode = self.spectral_mode_combo.currentText()
 
+            # Perform spectral analysis based on mode
             if mode == 'RASHG Amplitude':
                 self._plot_spectral_amplitude(spectral_data)
             elif mode == 'Phase':
@@ -2488,10 +3557,22 @@ class URASHGMicroscopyExtension(CustomApp):
             self.spectral_analysis_data = spectral_data
 
             self.update_analysis_status("Spectral analysis updated")
+            
+            # Update parameter tree with success status (PyMoDAQ Standards)
+            if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                self.analysis_control_settings.child('spectral_analysis', 'spectral_status').setValue("Analysis completed")
 
         except Exception as e:
             logger.error(f"Error updating spectral analysis: {e}")
             self.update_analysis_status("Spectral analysis failed")
+            
+            # Update parameter tree with error status (PyMoDAQ Standards)
+            if hasattr(self, 'analysis_control_settings') and self.analysis_control_settings:
+                self.analysis_control_settings.child('spectral_analysis', 'spectral_status').setValue(f"Error: {str(e)}")
+        
+        finally:
+            # Always update analysis control parameters to synchronize parameter tree (PyMoDAQ Standards)
+            self.update_analysis_control_parameters()
 
     def _organize_spectral_data(self, wavelengths, intensities, angles):
         """Organize measurement data by wavelength for spectral analysis."""
@@ -2724,25 +3805,22 @@ class URASHGMicroscopyExtension(CustomApp):
     def closeEvent(self, event):
         """Handle extension close event."""
         if self.is_measuring:
-            reply = QtWidgets.QMessageBox.question(
-                self.control_widget, 'Confirm Close',
-                'A measurement is in progress. Stop measurement and close?',
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No
-            )
+            reply = messagebox(severity='question',
+                             title='Confirm Close',
+                             text='A measurement is in progress. Stop measurement and close?')
 
-            if reply == QtWidgets.QMessageBox.Yes:
+            if reply:
                 self.stop_measurement()
             else:
                 event.ignore()
                 return
 
         # Cleanup
-        self.status_timer.stop()
+        self.stop_status_monitoring()
 
         # Stop device control update timer (PHASE 3 FEATURE)
         if hasattr(self, 'device_update_timer'):
-            self.device_update_timer.stop()
+            self.stop_device_update_monitoring()
             logger.info("Stopped device control update timer")
 
         if hasattr(self, 'device_manager') and self.device_manager:

@@ -62,6 +62,12 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "type": "float",
                     "value": 2.0,
                 },
+                {
+                    "title": "Mock Mode:",
+                    "name": "mock_mode",
+                    "type": "bool",
+                    "value": False,
+                },
             ],
         },
         # Measurement settings
@@ -174,10 +180,11 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             port = self.settings.child("connection_group", "serial_port").value()
             baudrate = self.settings.child("connection_group", "baudrate").value()
             timeout = self.settings.child("connection_group", "timeout").value()
+            mock_mode = self.settings.child("connection_group", "mock_mode").value()
 
             # Create controller
             self.controller = Newport1830CController(
-                port=port, baudrate=baudrate, timeout=timeout
+                port=port, baudrate=baudrate, timeout=timeout, mock_mode=mock_mode
             )
 
             # Connect to device

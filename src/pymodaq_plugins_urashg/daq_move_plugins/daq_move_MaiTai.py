@@ -8,7 +8,7 @@ from pymodaq.control_modules.move_utility_classes import (
 )
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataActuator
-from qtpy.QtCore import QTimer
+# QTimer replaced with PyMoDAQ threading patterns
 
 
 class DAQ_Move_MaiTai(DAQ_Move_base):
@@ -187,10 +187,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         # Hardware controller
         self.controller = None
 
-        # Status update timer
-        self.status_timer = QTimer()
-        self.status_timer.timeout.connect(self.update_status)
-        self.status_timer.setInterval(1000)  # Update every second
+        # PyMoDAQ will handle periodic polling via built-in poll_time parameter
 
         # Initialization flag for enhanced status monitoring
         self._fully_initialized = False
@@ -229,8 +226,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 except Exception:
                     pass  # Ignore errors during initialization
 
-                # Start status monitoring
-                self.status_timer.start()
+                # Status monitoring handled by PyMoDAQ polling (set poll_time in UI)
 
                 # Enable enhanced status monitoring after initialization
                 self._fully_initialized = True
@@ -246,8 +242,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         """Close the hardware connection."""
         try:
             # Stop status monitoring
-            if self.status_timer.isActive():
-                self.status_timer.stop()
+            # Status monitoring cleanup handled by PyMoDAQ
 
             # Disconnect hardware
             if self.controller and self.controller.connected:
@@ -263,19 +258,45 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             )
 
     def get_actuator_value(self):
-        """Get current wavelength."""
+        """
+        Get current wavelength as DataActuator object and update all status parameters.
+        
+        This method is called periodically by PyMoDAQ's polling mechanism (when poll_time > 0),
+        replacing the need for custom threading for status updates.
+        """
         if not self.controller or not self.controller.connected:
-            return 0.0
+            return DataActuator(data=[np.array([0.0])])
 
         try:
+            # Get wavelength and update status parameters (PyMoDAQ polling pattern)
             wavelength = self.controller.get_wavelength()
             if wavelength is not None:
                 self.current_position = wavelength
-                return wavelength
+                # Update status parameter for UI display
+                self.settings.child("status_group", "current_wavelength").setValue(wavelength)
+                
+                # Update power status
+                try:
+                    power = self.controller.get_power()
+                    if power is not None:
+                        self.settings.child("status_group", "current_power").setValue(power)
+                except Exception:
+                    pass  # Don't fail main operation for power reading
+                
+                # Update shutter state (if fully initialized)
+                if hasattr(self, '_fully_initialized') and self._fully_initialized:
+                    try:
+                        shutter_open, emission_possible = self.controller.get_enhanced_shutter_state()
+                        self.settings.child("status_group", "shutter_open").setValue(shutter_open)
+                    except Exception:
+                        pass  # Don't fail main operation for shutter status
+                
+                return DataActuator(data=[np.array([wavelength])])
             else:
-                return (
+                fallback_position = (
                     self.current_position if hasattr(self, "current_position") else 0.0
                 )
+                return DataActuator(data=[np.array([fallback_position])])
 
         except Exception as e:
             self.emit_status(
@@ -283,7 +304,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "Update_Status", [f"Error reading wavelength: {str(e)}", "log"]
                 )
             )
-            return self.current_position if hasattr(self, "current_position") else 0.0
+            fallback_position = self.current_position if hasattr(self, "current_position") else 0.0
+            return DataActuator(data=[np.array([fallback_position])])
 
     def move_abs(self, position: Union[float, DataActuator]):
         """
@@ -475,6 +497,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "Update_Status", [f"Status update error: {str(e)}", "log"]
                 )
             )
+
+    # Custom threading methods removed - PyMoDAQ polling handles status updates via get_actuator_value
 
     def commit_settings(self, param=None):
         """

@@ -2,17 +2,13 @@ import time
 from typing import List, Union
 import numpy as np
 
-import time
-from typing import List, Union
-import numpy as np
-
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataActuator
-from qtpy.QtCore import QTimer
+# QTimer replaced with PyMoDAQ threading patterns
 
 
 class DAQ_Move_Elliptec(DAQ_Move_base):
@@ -110,10 +106,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         # Hardware controller
         self.controller = None
 
-        # Status update timer
-        self.status_timer = QTimer()
-        self.status_timer.timeout.connect(self.update_status)
-        self.status_timer.setInterval(2000)  # Update every 2 seconds
+        # PyMoDAQ will handle periodic polling via built-in poll_time parameter
 
     def _update_ui_from_settings(self):
         """Dynamically create UI elements based on mount addresses."""
@@ -189,7 +182,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 )
                 self.emit_status(ThreadCommand("Update_Status", ["Elliptec mounts connected.", "good"]))
                 self.update_status()
-                self.status_timer.start()
+                # Status monitoring handled by PyMoDAQ polling (set poll_time in UI)
                 return "Elliptec mounts initialized successfully", True
             else:
                 self.emit_status(ThreadCommand("Update_Status", ["Failed to connect to Elliptec mounts.", "bad"]))
@@ -202,8 +195,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
     def close(self):
         """Close the hardware connection."""
         try:
-            if self.status_timer.isActive():
-                self.status_timer.stop()
+            # Status monitoring cleanup handled by PyMoDAQ
             if self.controller and self.controller.connected:
                 self.controller.disconnect()
             self.settings.child("status_group", "connection_status").setValue(
@@ -311,19 +303,36 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             self.emit_status(ThreadCommand("Update_Status", [f"Connection test error: {str(e)}", "error"]))
 
     def get_actuator_value(self):
-        """Get current positions of all mounts as a list of numpy arrays."""
+        """
+        Get current positions of all mounts as DataActuator object and update status parameters.
+        
+        This method is called periodically by PyMoDAQ's polling mechanism (when poll_time > 0),
+        replacing the need for custom threading for status updates.
+        """
         if not self.controller or not self.controller.connected:
             default_len = len(self.settings.child("connection_group", "mount_addresses").value().split(','))
-            return [np.array([0.0] * default_len)]
+            return DataActuator(data=[np.array([0.0] * default_len)])
 
         try:
+            # Get positions and update status parameters (PyMoDAQ polling pattern)
             positions = self.controller.get_all_positions()
             position_list = [positions.get(addr, 0.0) for addr in self.controller.mount_addresses]
-            return [np.array(position_list)]
+            
+            # Update UI status parameters during polling
+            try:
+                for i, addr in enumerate(self.controller.mount_addresses):
+                    param_name = f"mount_{addr}_pos"
+                    status_param = self.settings.child("status_group", param_name)
+                    if status_param:
+                        status_param.setValue(position_list[i])
+            except Exception:
+                pass  # Don't fail main operation for UI updates
+            
+            return DataActuator(data=[np.array(position_list)])
         except Exception as e:
             self.emit_status(ThreadCommand("Update_Status", [f"Error reading positions: {str(e)}", "error"]))
-            fallback_len = len(self.controller.mount_addresses) if self.controller else 0
-            return [np.array([0.0] * fallback_len)]
+            fallback_len = len(self.controller.mount_addresses) if self.controller else 3
+            return DataActuator(data=[np.array([0.0] * fallback_len)])
 
     def move_abs(self, positions: Union[List[float], DataActuator]):
         """
@@ -432,6 +441,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
         except Exception as e:
             self.emit_status(ThreadCommand("Update_Status", [f"Status update error: {str(e)}", "error"]))
+
+    # Custom threading methods removed - PyMoDAQ polling handles status updates via get_actuator_value
 
 
 
