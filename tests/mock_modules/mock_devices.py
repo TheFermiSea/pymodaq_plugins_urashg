@@ -151,18 +151,17 @@ class MockMovePlugin(DAQ_Move_base):
     ]
 
     def __init__(self, name: str = "MockMove"):
-        super().__init__()
-        self.name = name
+        self.name = name  # Set name before calling super().__init__()
         self.controller = None
-        self.settings = {}
         self.initialized = False
         self.connected = False
         self.closed = False
-        self.current_position = 0.0
         self.is_moving = False
         self.simulate_error = False
+        
+        super().__init__()  # This will call ini_attributes()
 
-        # Mock signals
+        # Mock signals (set after parent initialization)
         self.status_sig = Signal(str)
         self.settings_tree = Mock()
 
