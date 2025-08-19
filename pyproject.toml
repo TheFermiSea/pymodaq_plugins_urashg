@@ -50,11 +50,13 @@ dependencies = [
     "scipy>=1.7.0",
     "matplotlib>=3.3.0",
     "pyserial>=3.4",
-    "pyvcam",
     "elliptec>=0.0.6",
 ]
 
 [project.optional-dependencies]
+hardware = [
+    "pyvcam",  # Camera support (optional - not available in all environments)
+]
 dev = [
     "pytest>=6.0",
     "pytest-cov>=2.0",

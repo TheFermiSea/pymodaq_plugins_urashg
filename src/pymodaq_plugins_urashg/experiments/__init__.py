@@ -1,7 +1,7 @@
 """
 PyMoDAQ Experiments for μRASHG (micro Rotational Anisotropy Second Harmonic Generation)
 
-This module provides a comprehensive suite of PyMoDAQ experiments for advanced 
+This module provides a comprehensive suite of PyMoDAQ experiments for advanced
 polarimetric SHG measurements with precise control over:
 - Laser wavelength and power via EOM control
 - Multi-rotator polarization states (QWP and dual HWP system)
@@ -38,29 +38,26 @@ except NotImplementedError:
     WavelengthDependentRASHGExperiment = None
 
 __all__ = [
-    'URASHGBaseExperiment',
-    'EOMCalibrationExperiment', 
-    'ElliptecCalibrationExperiment',
-    'VariableAttenuatorCalibrationExperiment',
-    'PDSHGExperiment',
+    "URASHGBaseExperiment",
+    "EOMCalibrationExperiment",
+    "ElliptecCalibrationExperiment",
+    "VariableAttenuatorCalibrationExperiment",
+    "PDSHGExperiment",
     # 'BasicURASHGExperiment',  # Future implementation
     # 'WavelengthDependentRASHGExperiment'  # Future implementation
 ]
 
 # Implemented experiments (ready for use)
 IMPLEMENTED_EXPERIMENTS = [
-    'URASHGBaseExperiment',
-    'EOMCalibrationExperiment',
-    'ElliptecCalibrationExperiment', 
-    'VariableAttenuatorCalibrationExperiment',
-    'PDSHGExperiment'
+    "URASHGBaseExperiment",
+    "EOMCalibrationExperiment",
+    "ElliptecCalibrationExperiment",
+    "VariableAttenuatorCalibrationExperiment",
+    "PDSHGExperiment",
 ]
 
 # Future experiments (placeholders)
-FUTURE_EXPERIMENTS = [
-    'BasicURASHGExperiment',
-    'WavelengthDependentRASHGExperiment'
-]
+FUTURE_EXPERIMENTS = ["BasicURASHGExperiment", "WavelengthDependentRASHGExperiment"]
 
 __version__ = "1.0.0"
 __author__ = "PyMoDAQ URASHG Development Team"

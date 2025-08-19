@@ -22,7 +22,11 @@ class Newport1830CController:
     """
 
     def __init__(
-        self, port: str = "/dev/ttyUSB2", baudrate: int = 9600, timeout: float = 2.0, mock_mode: bool = False
+        self,
+        port: str = "/dev/ttyUSB2",
+        baudrate: int = 9600,
+        timeout: float = 2.0,
+        mock_mode: bool = False,
     ):
         """Initialize controller with connection parameters."""
         self.port = port
@@ -37,13 +41,15 @@ class Newport1830CController:
         self._current_wavelength = 800.0
         self._current_units = "W"
         self._current_range = "Auto"
-        
+
         # Mock state for realistic simulation
         self._mock_power_base = 0.0035  # 3.5 mW baseline
         self._mock_zero_offset = 0.0
         self._mock_filter_speed = "Medium"
 
-        logger.info(f"Newport1830C controller initialized for {port} (mock_mode: {mock_mode})")
+        logger.info(
+            f"Newport1830C controller initialized for {port} (mock_mode: {mock_mode})"
+        )
 
     def connect(self) -> bool:
         """
@@ -66,7 +72,7 @@ class Newport1830CController:
 
             # Real hardware connection would go here
             import serial
-            
+
             self._serial = serial.Serial(
                 port=self.port,
                 baudrate=self.baudrate,
@@ -90,7 +96,9 @@ class Newport1830CController:
                 raise ConnectionError("No response from Newport 1830-C")
 
             self._connected = True
-            logger.info(f"Newport 1830-C connected successfully ({len(working_commands)}/{len(test_commands)} commands working)")
+            logger.info(
+                f"Newport 1830-C connected successfully ({len(working_commands)}/{len(test_commands)} commands working)"
+            )
             self._initialize_settings()
             return True
 
@@ -117,71 +125,87 @@ class Newport1830CController:
         except Exception:
             pass
 
-    def _send_command(self, command: str, expect_response: bool = True) -> Optional[str]:
+    def _send_command(
+        self, command: str, expect_response: bool = True
+    ) -> Optional[str]:
         """
         Send command to power meter and get response with realistic mock simulation.
         """
         if self.mock_mode:
             # Enhanced mock responses based on Newport 1830-C protocol
             time.sleep(random.uniform(0.1, 0.3))  # Simulate communication delay
-            
+
             command = command.strip().upper()
-            logger.debug(f"Mock Newport 1830-C command: '{command}' (expect_response: {expect_response})")
-            
+            logger.debug(
+                f"Mock Newport 1830-C command: '{command}' (expect_response: {expect_response})"
+            )
+
             # Handle query commands (response expected)
             if command == "W?":
                 # Get wavelength
                 response = str(int(self._current_wavelength))
                 logger.debug(f"Mock Newport wavelength query: {response}")
                 return response
-                
+
             elif command == "U?":
                 # Get units
                 response = "1" if self._current_units == "W" else "3"
-                logger.debug(f"Mock Newport units query: {response} ({self._current_units})")
+                logger.debug(
+                    f"Mock Newport units query: {response} ({self._current_units})"
+                )
                 return response
-                
+
             elif command == "D?":
                 # Get power reading - realistic simulation with noise
                 base_power = self._mock_power_base
-                
+
                 # Add realistic power fluctuations and noise
                 time_factor = time.time() % 100  # Slow variations
                 noise_1f = 0.02 * math.sin(time_factor * 0.1) * base_power
-                
+
                 # Add white noise
                 white_noise = random.gauss(0, 0.001 * base_power)
-                
+
                 # Add wavelength dependence (realistic detector response)
                 wl_factor = 1.0
                 if 700 <= self._current_wavelength <= 900:
                     wl_factor = 1.1  # Better response in NIR
                 elif self._current_wavelength < 500:
                     wl_factor = 0.7  # Reduced response in blue
-                    
+
                 # Calculate final power
-                measured_power = (base_power + noise_1f + white_noise + self._mock_zero_offset) * wl_factor
-                
+                measured_power = (
+                    base_power + noise_1f + white_noise + self._mock_zero_offset
+                ) * wl_factor
+
                 # Ensure positive power
                 measured_power = max(measured_power, 0.0)
-                
+
                 # Format based on current units
                 if self._current_units == "W":
                     if measured_power >= 0.001:
-                        response = f"{measured_power:.6f}"  # 6 decimal places for mW range
+                        response = (
+                            f"{measured_power:.6f}"  # 6 decimal places for mW range
+                        )
                     else:
-                        response = f"{measured_power:.9f}"  # More precision for μW range
+                        response = (
+                            f"{measured_power:.9f}"  # More precision for μW range
+                        )
                 else:
                     # Convert to dBm
                     if measured_power > 0:
-                        dbm_value = 10 * math.log10(measured_power / 0.001)  # Convert W to dBm
+                        dbm_value = 10 * math.log10(
+                            measured_power / 0.001
+                        )  # Convert W to dBm
                         response = f"{dbm_value:.3f}"
                     else:
                         response = "-50.000"  # Very low power in dBm
-                        
-                logger.debug(f"Mock Newport power reading: {response} {self._current_units}")
+
+                logger.debug(
+                    f"Mock Newport power reading: {response} {self._current_units}"
+                )
                 return response
-                
+
             else:
                 # Handle set commands or unknown queries
                 if not expect_response:
@@ -206,7 +230,9 @@ class Newport1830CController:
 
             if expect_response:
                 time.sleep(0.5)
-                response = self._serial.read(1000).decode("ascii", errors="ignore").strip()
+                response = (
+                    self._serial.read(1000).decode("ascii", errors="ignore").strip()
+                )
                 return response if response else None
             else:
                 time.sleep(0.1)

@@ -530,18 +530,18 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
             # Create position array and notify main PyMoDAQ UI
             current_positions = self.get_actuator_value()
-            plugin_name = getattr(self, 'title', self.__class__.__name__)
+            plugin_name = getattr(self, "title", self.__class__.__name__)
             if self.is_multiaxes:
                 data_actuator = DataActuator(
                     name=plugin_name,
                     data=[np.array(current_positions)],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
             else:
                 data_actuator = DataActuator(
                     name=plugin_name,
                     data=[np.array([current_positions])],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
             # Status update - no specific signal needed for GET_ACTUATOR_VALUE in PyMoDAQ 5.x
 
@@ -620,7 +620,11 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if isinstance(position, DataActuator):
                     if self.is_multiaxes:
                         target_positions_array = position.data[0]
-                        target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
+                        target_positions_list = (
+                            target_positions_array.tolist()
+                            if hasattr(target_positions_array, "tolist")
+                            else list(target_positions_array)
+                        )
                     else:
                         target_positions_list = float(position.value())
                 else:
@@ -632,18 +636,18 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
                 # Emit move done signal for mock mode
                 current_positions = self.get_actuator_value()
-                plugin_name = getattr(self, 'title', self.__class__.__name__)
+                plugin_name = getattr(self, "title", self.__class__.__name__)
                 if self.is_multiaxes:
                     data_actuator = DataActuator(
                         name=plugin_name,
                         data=[np.array(current_positions)],
-                        units=self._controller_units
+                        units=self._controller_units,
                     )
                 else:
                     data_actuator = DataActuator(
                         name=plugin_name,
                         data=[np.array([current_positions])],
-                        units=self._controller_units
+                        units=self._controller_units,
                     )
                 self.move_done()  # Emit move_done signal
                 return
@@ -661,7 +665,11 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if self.is_multiaxes:
                     # Multi-axis: position.data[0] is numpy array with multiple values
                     target_positions_array = position.data[0]
-                    target_positions_list = target_positions_array.tolist() if hasattr(target_positions_array, 'tolist') else list(target_positions_array)
+                    target_positions_list = (
+                        target_positions_array.tolist()
+                        if hasattr(target_positions_array, "tolist")
+                        else list(target_positions_array)
+                    )
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
                     target_positions_list = float(position.value())
@@ -710,18 +718,18 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
             # Emit move done signal with proper DataActuator
             current_positions = self.get_actuator_value()
-            plugin_name = getattr(self, 'title', self.__class__.__name__)
+            plugin_name = getattr(self, "title", self.__class__.__name__)
             if self.is_multiaxes:
                 data_actuator = DataActuator(
                     name=plugin_name,
                     data=[np.array(current_positions)],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
             else:
                 data_actuator = DataActuator(
                     name=plugin_name,
                     data=[np.array([current_positions])],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
             self.move_done()  # Emit move_done signal
 
@@ -745,7 +753,11 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if self.is_multiaxes:
                     # Multi-axis: position.data[0] is numpy array with multiple values
                     relative_moves_array = position.data[0]
-                    relative_moves_list = relative_moves_array.tolist() if hasattr(relative_moves_array, 'tolist') else list(relative_moves_array)
+                    relative_moves_list = (
+                        relative_moves_array.tolist()
+                        if hasattr(relative_moves_array, "tolist")
+                        else list(relative_moves_array)
+                    )
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
                     relative_moves_list = float(position.value())
@@ -767,22 +779,22 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     target_positions.append(current + relative)
 
                 # Create DataActuator for target positions
-                plugin_name = getattr(self, 'title', self.__class__.__name__)
+                plugin_name = getattr(self, "title", self.__class__.__name__)
                 target_data = DataActuator(
                     name=plugin_name,
                     data=[np.array(target_positions)],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
                 self.move_abs(target_data)
             else:
                 target_position = current_positions + relative_moves_list
 
                 # Create DataActuator for target position
-                plugin_name = getattr(self, 'title', self.__class__.__name__)
+                plugin_name = getattr(self, "title", self.__class__.__name__)
                 target_data = DataActuator(
                     name=plugin_name,
                     data=[np.array([target_position])],
-                    units=self._controller_units
+                    units=self._controller_units,
                 )
                 self.move_abs(target_data)
 

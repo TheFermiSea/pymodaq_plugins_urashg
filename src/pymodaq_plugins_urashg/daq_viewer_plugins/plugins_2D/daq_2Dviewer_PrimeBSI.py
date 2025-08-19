@@ -2,6 +2,7 @@ import numpy as np
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
+
 try:
     from pymodaq.control_modules.thread_commands import ThreadStatusViewer
 except ImportError:
@@ -17,6 +18,7 @@ try:
     from pyvcam import pvc
     from pyvcam.camera import Camera
     from pyvcam.constants import CLEAR_NEVER, CLEAR_PRE_SEQUENCE, EXT_TRIG_INTERNAL
+
     PYVCAM_AVAILABLE = True
 except ImportError as e:
     print(f"PyVCAM import error: {e}")
@@ -185,7 +187,9 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
             cameras = list(Camera.detect_camera())
             if len(cameras) == 0:
-                raise RuntimeError("No cameras detected by PyVCAM Camera.detect_camera()")
+                raise RuntimeError(
+                    "No cameras detected by PyVCAM Camera.detect_camera()"
+                )
 
             self.camera = cameras[0]  # Use first camera
             self.camera.open()
@@ -202,9 +206,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
         except Exception as e:
             error_msg = f"Camera Initialization Failed: {str(e)}"
-            self.status.update(
-                msg=error_msg, busy=False
-            )
+            self.status.update(msg=error_msg, busy=False)
             self.initialized = False
             return self.status
 
@@ -221,7 +223,9 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         )
         # Get available speeds from current port
         current_port = self.camera.readout_port
-        port_name = list(self.camera.readout_ports.keys())[list(self.camera.readout_ports.values()).index(current_port)]
+        port_name = list(self.camera.readout_ports.keys())[
+            list(self.camera.readout_ports.values()).index(current_port)
+        ]
         port_info = self.camera.port_speed_gain_table[port_name]
         speed_names = [k for k in port_info.keys() if k.startswith("Speed_")]
         self.settings.child("camera_settings", "speed_index").setLimits(speed_names)
@@ -229,7 +233,11 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         current_speed_name = f"Speed_{self.camera.speed}"
         if current_speed_name in port_info:
             speed_info = port_info[current_speed_name]
-            gain_names = [k for k in speed_info.keys() if k not in ["speed_index", "pixel_time", "bit_depth", "gain_range"]]
+            gain_names = [
+                k
+                for k in speed_info.keys()
+                if k not in ["speed_index", "pixel_time", "bit_depth", "gain_range"]
+            ]
             self.settings.child("camera_settings", "gain").setLimits(gain_names)
         self.settings.child("camera_settings", "trigger_mode").setLimits(
             list(self.camera.exp_modes.keys())
@@ -246,10 +254,14 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         )
         self.settings.child("camera_settings", "gain").setValue(self.camera.gain_name)
         self.settings.child("camera_settings", "trigger_mode").setValue(
-            list(self.camera.exp_modes.keys())[list(self.camera.exp_modes.values()).index(self.camera.exp_mode)]
+            list(self.camera.exp_modes.keys())[
+                list(self.camera.exp_modes.values()).index(self.camera.exp_mode)
+            ]
         )
         self.settings.child("camera_settings", "clear_mode").setValue(
-            list(self.camera.clear_modes.keys())[list(self.camera.clear_modes.values()).index(self.camera.clear_mode)]
+            list(self.camera.clear_modes.keys())[
+                list(self.camera.clear_modes.values()).index(self.camera.clear_mode)
+            ]
         )
         self.settings.child("camera_settings", "temperature_setpoint").setValue(
             self.camera.temp_setpoint
@@ -310,7 +322,14 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
         # Set of parameters already handled in the main 'Camera Settings' group
         if PYVCAM_AVAILABLE:
-            from pyvcam.constants import PARAM_EXP_TIME, PARAM_READOUT_PORT, PARAM_PIX_TIME, PARAM_GAIN_INDEX, PARAM_TEMP_SETPOINT
+            from pyvcam.constants import (
+                PARAM_EXP_TIME,
+                PARAM_READOUT_PORT,
+                PARAM_PIX_TIME,
+                PARAM_GAIN_INDEX,
+                PARAM_TEMP_SETPOINT,
+            )
+
             handled_params = {
                 PARAM_EXP_TIME,
                 PARAM_READOUT_PORT,
@@ -378,10 +397,14 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                 self.camera.readout_port = param.value()
                 # Update speed limits when port changes
                 current_port = param.value()
-                port_name = list(self.camera.readout_ports.keys())[list(self.camera.readout_ports.values()).index(current_port)]
+                port_name = list(self.camera.readout_ports.keys())[
+                    list(self.camera.readout_ports.values()).index(current_port)
+                ]
                 port_info = self.camera.port_speed_gain_table[port_name]
                 speed_names = [k for k in port_info.keys() if k.startswith("Speed_")]
-                self.settings.child("camera_settings", "speed_index").setLimits(speed_names)
+                self.settings.child("camera_settings", "speed_index").setLimits(
+                    speed_names
+                )
             elif param.name() == "speed_index":
                 # Extract speed index from Speed_X format
                 speed_index = int(param.value().split("_")[1])
@@ -389,7 +412,9 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             elif param.name() == "gain":
                 # Find gain_index from gain name
                 current_port = self.camera.readout_port
-                port_name = list(self.camera.readout_ports.keys())[list(self.camera.readout_ports.values()).index(current_port)]
+                port_name = list(self.camera.readout_ports.keys())[
+                    list(self.camera.readout_ports.values()).index(current_port)
+                ]
                 port_info = self.camera.port_speed_gain_table[port_name]
                 speed_info = port_info[f"Speed_{self.camera.speed}"]
                 if param.value() in speed_info:

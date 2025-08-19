@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 
 class ElliptecError(Exception):
     """Elliptec specific exception"""
+
     pass
 
 
@@ -86,7 +87,7 @@ class ElliptecController:
 
         try:
             import serial
-            
+
             with self._lock:
                 self._connection = serial.Serial(
                     self.port, self.baudrate, timeout=self.timeout
@@ -138,33 +139,33 @@ class ElliptecController:
             # Realistic mock responses based on ELLx protocol documentation
             # Simulate communication delay
             time.sleep(random.uniform(0.05, 0.15))
-            
+
             command_lower = command.lower().strip()
-            
+
             # Parse command: address + instruction
             if len(command_lower) >= 3:
                 address = command_lower[0]
                 instruction = command_lower[1:]
             else:
                 return b"ER01"  # Invalid command format
-            
+
             # Validate address is in our configured mounts
             if address not in self.mount_addresses:
                 return b"ER02"  # Invalid address
-            
+
             # Handle specific commands with realistic responses
             if instruction == "in":
                 # Device info command - return realistic device information
                 # Format: ADDR + IN + device_type(2) + serial_number(8) + firmware(4) + year(4) + pulses_per_rev(8)
                 device_responses = {
                     "2": b"2IN0E11400517202317000005A00",  # ELL14 rotator
-                    "3": b"3IN0E11400284202115000005A00",  # ELL14 rotator  
-                    "8": b"8IN0E11400609202317000005A00"   # ELL14 rotator
+                    "3": b"3IN0E11400284202115000005A00",  # ELL14 rotator
+                    "8": b"8IN0E11400609202317000005A00",  # ELL14 rotator
                 }
                 response = device_responses.get(address, b"ER03")
                 self.logger.debug(f"Mock device info for mount {address}: {response}")
                 return response
-                
+
             elif instruction == "gp":
                 # Get position command - return current mock position in hex format
                 # Format: ADDR + PO + hex_position(8)
@@ -174,19 +175,21 @@ class ElliptecController:
                 if pulses < 0:
                     pulses += 0x100000000  # Handle negative values
                 hex_pos = f"{pulses:08X}"
-                response = f"{address}PO{hex_pos}".encode('ascii')
-                self.logger.debug(f"Mock position for mount {address}: {current_pos_degrees}° -> {response}")
+                response = f"{address}PO{hex_pos}".encode("ascii")
+                self.logger.debug(
+                    f"Mock position for mount {address}: {current_pos_degrees}° -> {response}"
+                )
                 return response
-                
+
             elif instruction == "gs":
                 # Get status command - return status code
                 # Format: ADDR + GS + status(2)
                 # "00" = ready, "09" = moving, "0A" = homing, "0B" = homed, "0C" = tracking
                 status_code = "00"  # Always ready in mock mode
-                response = f"{address}GS{status_code}".encode('ascii')
+                response = f"{address}GS{status_code}".encode("ascii")
                 self.logger.debug(f"Mock status for mount {address}: {response}")
                 return response
-                
+
             elif instruction.startswith("ma"):
                 # Move absolute command
                 # Format: ADDR + ma + hex_position(8)
@@ -196,27 +199,29 @@ class ElliptecController:
                         pulses = int(hex_pos, 16)
                         if pulses > 0x7FFFFFFF:  # Handle negative values
                             pulses -= 0x100000000
-                        
+
                         # Convert pulses to degrees
                         degrees = (pulses / self._pulses_per_rev) * 360.0
-                        
+
                         # Update mock position
                         self._positions[address] = degrees
-                        
+
                         # Simulate movement delay based on distance
                         old_pos = self._positions.get(address, 0.0)
                         distance = abs(degrees - old_pos)
                         move_time = min(distance / 180.0, 2.0)  # Max 2 seconds for 180°
-                        
-                        self.logger.debug(f"Mock move absolute for mount {address}: {degrees}° (delay: {move_time:.1f}s)")
-                        
+
+                        self.logger.debug(
+                            f"Mock move absolute for mount {address}: {degrees}° (delay: {move_time:.1f}s)"
+                        )
+
                         # Return success (no response for move commands typically)
                         return b""
                     except ValueError:
                         return b"ER04"  # Invalid hex value
                 else:
                     return b"ER05"  # Invalid command length
-                    
+
             elif instruction.startswith("mr"):
                 # Move relative command
                 # Format: ADDR + mr + hex_offset(8)
@@ -226,22 +231,24 @@ class ElliptecController:
                         pulses = int(hex_offset, 16)
                         if pulses > 0x7FFFFFFF:  # Handle negative values
                             pulses -= 0x100000000
-                        
+
                         # Convert pulses to degrees
                         offset_degrees = (pulses / self._pulses_per_rev) * 360.0
-                        
+
                         # Update mock position
                         current_pos = self._positions.get(address, 0.0)
                         new_pos = current_pos + offset_degrees
                         self._positions[address] = new_pos
-                        
-                        self.logger.debug(f"Mock move relative for mount {address}: {offset_degrees}° -> {new_pos}°")
+
+                        self.logger.debug(
+                            f"Mock move relative for mount {address}: {offset_degrees}° -> {new_pos}°"
+                        )
                         return b""
                     except ValueError:
                         return b"ER06"  # Invalid hex value
                 else:
                     return b"ER07"  # Invalid command length
-                    
+
             elif instruction == "ho":
                 # Home command - simulate homing process
                 # Longer delay for homing (1-2 seconds realistic)
@@ -249,7 +256,7 @@ class ElliptecController:
                 self._positions[address] = 0.0  # Reset to home position
                 self.logger.debug(f"Mock homing complete for mount {address}")
                 return b""  # No response for home command
-                
+
             elif instruction.startswith("sv"):
                 # Set velocity command
                 # Format: ADDR + sv + hex_velocity(8)
@@ -258,29 +265,33 @@ class ElliptecController:
                         hex_vel = instruction[2:10]
                         velocity = int(hex_vel, 16)
                         self._current_velocity = min(velocity, self._max_velocity)
-                        self.logger.debug(f"Mock set velocity for mount {address}: {self._current_velocity}")
+                        self.logger.debug(
+                            f"Mock set velocity for mount {address}: {self._current_velocity}"
+                        )
                         return b""
                     except ValueError:
                         return b"ER08"  # Invalid velocity
                 else:
                     return b"ER09"  # Invalid command length
-                    
+
             elif instruction == "gv":
                 # Get velocity command
                 # Format: ADDR + GV + hex_velocity(8)
                 hex_vel = f"{self._current_velocity:08X}"
-                response = f"{address}GV{hex_vel}".encode('ascii')
+                response = f"{address}GV{hex_vel}".encode("ascii")
                 self.logger.debug(f"Mock get velocity for mount {address}: {response}")
                 return response
-                
+
             elif instruction == "st":
                 # Stop command
                 self.logger.debug(f"Mock stop command for mount {address}")
                 return b""
-                
+
             else:
                 # Unknown command
-                self.logger.warning(f"Mock: Unknown command '{instruction}' for mount {address}")
+                self.logger.warning(
+                    f"Mock: Unknown command '{instruction}' for mount {address}"
+                )
                 return b"ER10"  # Unknown command
 
         # Real hardware communication (unchanged)

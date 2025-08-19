@@ -1,7 +1,7 @@
 """
 Enhanced MaiTai Laser Controller with Realistic Mock Implementation
 
-This module provides comprehensive hardware abstraction for Spectra-Physics MaiTai 
+This module provides comprehensive hardware abstraction for Spectra-Physics MaiTai
 Titanium Sapphire laser with realistic mock behavior that matches actual hardware responses.
 """
 
@@ -14,6 +14,7 @@ from typing import Tuple, List, Optional
 
 class MaiTaiError(Exception):
     """MaiTai specific exception"""
+
     pass
 
 
@@ -86,7 +87,7 @@ class MaiTaiController:
 
             try:
                 import serial
-                
+
                 self._serial_connection = serial.Serial(
                     port=self.port,
                     baudrate=self.baudrate,
@@ -134,7 +135,7 @@ class MaiTaiController:
         try:
             # Try multiple commands for better communication test
             test_commands = ["WAVELENGTH?", "*IDN?", "READ:POW?"]
-            
+
             for cmd in test_commands:
                 try:
                     time.sleep(0.2)
@@ -145,7 +146,7 @@ class MaiTaiController:
                 except Exception as e:
                     self.logger.debug(f"Command {cmd} failed: {e}")
                     continue
-            
+
             self.logger.warning("MaiTai not responding to any test commands")
             return False
         except Exception:
@@ -207,10 +208,12 @@ class MaiTaiController:
         """Enhanced mock command handling with realistic SCPI protocol simulation."""
         # Simulate realistic communication delay
         time.sleep(random.uniform(0.1, 0.3))
-        
+
         command = command.strip().upper()
-        self.logger.debug(f"Mock MaiTai command: '{command}' (expect_response: {expect_response})")
-        
+        self.logger.debug(
+            f"Mock MaiTai command: '{command}' (expect_response: {expect_response})"
+        )
+
         if not expect_response:
             # Handle set commands (no response expected)
             if command.startswith("WAVELENGTH"):
@@ -226,13 +229,19 @@ class MaiTaiController:
                             tune_time = abs(wl - old_wl) * 0.01  # ~10ms per nm
                             if tune_time > 0.1:
                                 time.sleep(min(tune_time, 2.0))  # Max 2 seconds
-                            self.logger.debug(f"Mock MaiTai wavelength set to {wl}nm (tune time: {tune_time:.2f}s)")
+                            self.logger.debug(
+                                f"Mock MaiTai wavelength set to {wl}nm (tune time: {tune_time:.2f}s)"
+                            )
                         else:
-                            self.logger.warning(f"Mock MaiTai: Wavelength {wl}nm out of range (690-1040nm)")
+                            self.logger.warning(
+                                f"Mock MaiTai: Wavelength {wl}nm out of range (690-1040nm)"
+                            )
                 except (ValueError, IndexError):
-                    self.logger.error(f"Mock MaiTai: Invalid wavelength command format: {command}")
+                    self.logger.error(
+                        f"Mock MaiTai: Invalid wavelength command format: {command}"
+                    )
                 return ""
-                
+
             elif command.startswith("SHUTTER"):
                 try:
                     parts = command.split()
@@ -242,14 +251,18 @@ class MaiTaiController:
                             self._mock_shutter = True
                             self.logger.debug("Mock MaiTai shutter opened")
                         elif state in ["CLOSE", "0", "OFF"]:
-                            self._mock_shutter = False  
+                            self._mock_shutter = False
                             self.logger.debug("Mock MaiTai shutter closed")
                         else:
-                            self.logger.warning(f"Mock MaiTai: Invalid shutter state: {state}")
+                            self.logger.warning(
+                                f"Mock MaiTai: Invalid shutter state: {state}"
+                            )
                 except IndexError:
-                    self.logger.error(f"Mock MaiTai: Invalid shutter command format: {command}")
+                    self.logger.error(
+                        f"Mock MaiTai: Invalid shutter command format: {command}"
+                    )
                 return ""
-                
+
             elif command.startswith("*RST"):
                 # Reset command - restore defaults
                 self._mock_wavelength = 780.0
@@ -257,7 +270,7 @@ class MaiTaiController:
                 self._mock_shutter = False
                 self.logger.debug("Mock MaiTai system reset")
                 return ""
-                
+
             else:
                 self.logger.debug(f"Mock MaiTai: Unhandled set command: {command}")
                 return ""
@@ -265,11 +278,15 @@ class MaiTaiController:
         # Handle query commands (response expected)
         if command == "WAVELENGTH?" or command == "WAVEL?":
             # Return wavelength with realistic format variations
-            formats = [f"{self._mock_wavelength:.1f}nm", f"{self._mock_wavelength:.2f}", f"{self._mock_wavelength:g}"]
+            formats = [
+                f"{self._mock_wavelength:.1f}nm",
+                f"{self._mock_wavelength:.2f}",
+                f"{self._mock_wavelength:g}",
+            ]
             response = random.choice(formats)
             self.logger.debug(f"Mock MaiTai wavelength query: {response}")
             return response
-            
+
         elif command == "POWER?" or command == "POW?":
             # Simulate power fluctuations (±5% realistic for Ti:Sapphire)
             fluctuation = random.uniform(-0.05, 0.05)
@@ -280,18 +297,18 @@ class MaiTaiController:
             response = f"{actual_power:.3f}W"
             self.logger.debug(f"Mock MaiTai power query: {response}")
             return response
-            
+
         elif command == "SHUTTER?" or command == "SHUT?":
             response = "1" if self._mock_shutter else "0"
             self.logger.debug(f"Mock MaiTai shutter query: {response}")
             return response
-            
+
         elif command == "*IDN?":
             # Standard SCPI identification
             response = "Coherent,MaiTai-DeepSee,SN123456,v2.1.0"
             self.logger.debug(f"Mock MaiTai identification: {response}")
             return response
-            
+
         elif command == "*STB?":
             # Status byte - simulate realistic laser status
             status_byte = 0
@@ -301,25 +318,25 @@ class MaiTaiController:
                 status_byte |= 2  # Modelocked
             if 750 <= self._mock_wavelength <= 850:
                 status_byte |= 4  # Optimal wavelength range
-                
+
             response = str(status_byte)
             self.logger.debug(f"Mock MaiTai status byte: {response}")
             return response
-            
+
         elif command == "SYSTEM:ERR?" or command == "SYST:ERR?":
             # System error queue - usually empty in mock mode
             if random.random() < 0.05:  # 5% chance of minor warning
                 warnings = [
                     "100,Temperature warning - cavity",
-                    "101,Humidity sensor drift",  
-                    "102,Pump power fluctuation"
+                    "101,Humidity sensor drift",
+                    "102,Pump power fluctuation",
                 ]
                 response = random.choice(warnings)
             else:
                 response = "0,No error"
             self.logger.debug(f"Mock MaiTai system error: {response}")
             return response
-            
+
         else:
             # Unknown command - return error or empty response
             self.logger.warning(f"Mock MaiTai: Unknown command '{command}'")
@@ -373,17 +390,17 @@ class MaiTaiController:
                 # MaiTai expects decimal format: "WAVELENGTH 801.0"
                 wavelength_rounded = round(wavelength, 1)
                 command = f"WAVELENGTH {wavelength_rounded}"
-                
+
                 self.logger.info(f"Sending command: {command}")
                 response = self._send_command(command, expect_response=False)
-                
+
                 if response is not None:
                     self.logger.info(f"Wavelength set command sent successfully")
                     return True
                 else:
                     self.logger.error("Failed to send wavelength command")
                     return False
-                    
+
             except Exception as e:
                 self.logger.error(f"Error setting wavelength: {e}")
                 return False
@@ -416,18 +433,18 @@ class MaiTaiController:
     def open_shutter(self) -> bool:
         """
         Open shutter.
-        
+
         Returns
         -------
         bool
             True if command sent successfully, False otherwise
         """
         return self.set_shutter(True)
-    
+
     def close_shutter(self) -> bool:
         """
         Close shutter.
-        
+
         Returns
         -------
         bool
@@ -457,17 +474,17 @@ class MaiTaiController:
             try:
                 command = "SHUTTER 1" if open_shutter else "SHUTTER 0"
                 action = "open" if open_shutter else "close"
-                
+
                 self.logger.info(f"Sending command: {command} (to {action} shutter)")
                 response = self._send_command(command, expect_response=False)
-                
+
                 if response is not None:
                     self.logger.info(f"Shutter {action} command sent successfully")
                     return True
                 else:
                     self.logger.error(f"Failed to send shutter {action} command")
                     return False
-                    
+
             except Exception as e:
                 self.logger.error(f"Error setting shutter: {e}")
                 return False
@@ -475,7 +492,7 @@ class MaiTaiController:
     def get_enhanced_shutter_state(self) -> Tuple[bool, bool]:
         """
         Get enhanced shutter state using both SHUTTER? and status byte.
-        
+
         Returns
         -------
         Tuple[bool, bool]
@@ -491,13 +508,13 @@ class MaiTaiController:
                 shutter_open = False
                 if shutter_response:
                     shutter_open = shutter_response.strip() == "1"
-                
+
                 # Get emission status from status byte
                 _, status_info = self.get_status_byte()
                 emission_possible = status_info.get("emission_possible", False)
-                
+
                 return shutter_open, emission_possible
-                
+
             except Exception as e:
                 self.logger.error(f"Error getting enhanced shutter state: {e}")
                 return False, False
@@ -505,7 +522,7 @@ class MaiTaiController:
     def get_status_byte(self) -> Tuple[int, dict]:
         """
         Get product status byte using *STB? command.
-        
+
         Returns
         -------
         Tuple[int, dict]
@@ -519,19 +536,19 @@ class MaiTaiController:
                 response = self._send_command("*STB?")
                 if response:
                     status_byte = int(response.strip())
-                    
+
                     # Decode status byte based on documentation
                     status_info = {
                         "connected": True,
                         "emission_possible": bool(status_byte & 1),  # Bit 0
-                        "modelocked": bool(status_byte & 2),         # Bit 1
-                        "raw_status": status_byte
+                        "modelocked": bool(status_byte & 2),  # Bit 1
+                        "raw_status": status_byte,
                     }
-                    
+
                     return status_byte, status_info
                 else:
                     return 0, {"connected": False, "error": "No response"}
-                    
+
             except Exception as e:
                 self.logger.error(f"Error getting status byte: {e}")
                 return 0, {"connected": False, "error": str(e)}
@@ -539,12 +556,12 @@ class MaiTaiController:
     def check_system_errors(self, quick_check: bool = False) -> Tuple[bool, List[str]]:
         """
         Check for system errors using SYSTem:ERR command.
-        
+
         Parameters
         ----------
         quick_check : bool
             If True, only check once instead of emptying full buffer
-        
+
         Returns
         -------
         Tuple[bool, List[str]]
@@ -556,26 +573,32 @@ class MaiTaiController:
 
             errors = []
             has_errors = False
-            
+
             try:
                 # Query system errors - limit iterations for quick check
                 max_iterations = 1 if quick_check else 5
-                
+
                 for _ in range(max_iterations):
                     response = self._send_command("SYSTem:ERR?")
                     if response and response.strip():
                         # Parse error code and message
-                        parts = response.split(',', 1) if ',' in response else [response]
+                        parts = (
+                            response.split(",", 1) if "," in response else [response]
+                        )
                         error_code = parts[0].strip()
-                        error_msg = parts[1].strip() if len(parts) > 1 else "Unknown error"
-                        
+                        error_msg = (
+                            parts[1].strip() if len(parts) > 1 else "Unknown error"
+                        )
+
                         # Check if this is a real error (non-zero error code)
                         try:
                             code_num = int(error_code)
                             if code_num != 0:
                                 has_errors = True
                                 errors.append(f"Error {code_num}: {error_msg}")
-                                if quick_check:  # For quick check, stop after first error
+                                if (
+                                    quick_check
+                                ):  # For quick check, stop after first error
                                     break
                             else:
                                 # Error code 0 means no more errors
@@ -589,11 +612,11 @@ class MaiTaiController:
                                     break
                     else:
                         break
-                        
+
             except Exception as e:
                 self.logger.error(f"Error checking system errors: {e}")
                 return True, [f"Error checking failed: {e}"]
-                
+
             return has_errors, errors
 
     @property
