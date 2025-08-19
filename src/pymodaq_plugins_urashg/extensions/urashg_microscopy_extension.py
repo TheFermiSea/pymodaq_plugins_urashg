@@ -1641,9 +1641,9 @@ class URASHGMicroscopyExtension(CustomApp):
             self.settings.child(
                 "device_management", "initialize_devices"
             ).sigActivated.connect(self.initialize_devices)
-            self.settings.child("device_management", "check_devices").sigActivated.connect(
-                self.check_device_status
-            )
+            self.settings.child(
+                "device_management", "check_devices"
+            ).sigActivated.connect(self.check_device_status)
             self.settings.child(
                 "device_management", "emergency_stop"
             ).sigActivated.connect(self.emergency_stop)

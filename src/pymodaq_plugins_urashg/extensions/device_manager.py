@@ -139,7 +139,8 @@ class URASHGDeviceManager(QObject):
 
         # Get all available pymodaq plugins
         from importlib.metadata import entry_points
-        all_plugins = entry_points(group='pymodaq.plugins')
+
+        all_plugins = entry_points(group="pymodaq.plugins")
 
         for device_key, device_config in self.REQUIRED_DEVICES.items():
             device_found = False
@@ -823,7 +824,9 @@ class URASHGDeviceManager(QObject):
                 try:
                     plugin_instance = self.get_device_module(device_key)
                     if plugin_instance:
-                        port = plugin_instance.settings.child("connection_group", "serial_port").value()
+                        port = plugin_instance.settings.child(
+                            "connection_group", "serial_port"
+                        ).value()
                         config["port"] = port
                         self._create_mock_device(device_key, config)
                 except Exception as e:

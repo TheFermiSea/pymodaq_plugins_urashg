@@ -61,7 +61,8 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": "", "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1"
+                    "value": "",
+                    "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1",
                 },
                 {
                     "title": "Baudrate:",
