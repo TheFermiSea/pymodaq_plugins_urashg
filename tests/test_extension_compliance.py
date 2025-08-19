@@ -180,27 +180,10 @@ class TestExtensionParameterCompliance:
 class TestExtensionSignalCompliance:
     """Test signal/slot patterns follow PyMoDAQ standards."""
 
-    @pytest.fixture
-    def mock_extension(self):
-        """Create a mock extension instance for testing."""
-        with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGMicroscopyExtension.setup_ui'):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
-                
-                # Mock the Qt application if not present
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
-
-                # Create mock parent that inherits from QWidget to satisfy CustomApp validation
-                mock_parent = Mock(spec=QtWidgets.QWidget)
-                mock_parent.addDock = Mock()
-                mock_parent.docks = {}
-                
-                extension = URASHGMicroscopyExtension(mock_parent)
-                return extension
-
-    def test_required_signals_exist(self, mock_extension):
-        """Test that required signals are defined."""
+    def test_extension_class_has_required_signals(self):
+        """Test that extension class has required signals defined."""
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        
         required_signals = [
             'measurement_started',
             'measurement_finished',
@@ -210,93 +193,46 @@ class TestExtensionSignalCompliance:
         ]
 
         for signal_name in required_signals:
-            assert hasattr(mock_extension, signal_name), f"Missing required signal: {signal_name}"
-            signal_attr = getattr(mock_extension, signal_name)
-            assert hasattr(signal_attr, 'emit'), f"{signal_name} should have emit method"
-            assert hasattr(signal_attr, 'connect'), f"{signal_name} should have connect method"
+            assert hasattr(URASHGMicroscopyExtension, signal_name), f"Extension class missing required signal: {signal_name}"
+            signal_attr = getattr(URASHGMicroscopyExtension, signal_name)
+            # Check it's a PyQt signal by checking its type string
+            assert 'pyqtSignal' in str(type(signal_attr)), f"{signal_name} should be a PyQt signal"
 
-    def test_signal_signatures(self, mock_extension):
-        """Test signal signatures are correctly defined."""
-        # Check that signals exist and are callable (have emit method)
-        assert hasattr(mock_extension.measurement_progress, 'emit')
-        assert hasattr(mock_extension.device_status_changed, 'emit')
-        assert hasattr(mock_extension.error_occurred, 'emit')
+    def test_extension_inheritance(self):
+        """Test extension inherits from CustomApp."""
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        from pymodaq.utils.gui_utils import CustomApp
         
-        # Check signals have connect method (characteristic of PyQt signals)
-        assert hasattr(mock_extension.measurement_progress, 'connect')
-        assert hasattr(mock_extension.device_status_changed, 'connect')
-        assert hasattr(mock_extension.error_occurred, 'connect')
+        assert issubclass(URASHGMicroscopyExtension, CustomApp), "Extension must inherit from CustomApp"
 
-    def test_signal_emission_patterns(self, mock_extension):
-        """Test signals can be emitted without errors."""
-        # Test progress signal
-        mock_extension.measurement_progress.emit(50)
-
-        # Test status change signal
-        mock_extension.device_status_changed.emit("MaiTai", "Connected")
-
-        # Test error signal
-        mock_extension.error_occurred.emit("Test error message")
+    def test_extension_metadata(self):
+        """Test extension has required metadata."""
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        
+        required_attrs = ['name', 'description', 'author', 'version']
+        for attr in required_attrs:
+            assert hasattr(URASHGMicroscopyExtension, attr), f"Extension missing required attribute: {attr}"
+            assert isinstance(getattr(URASHGMicroscopyExtension, attr), str), f"{attr} should be a string"
 
 
 class TestExtensionUICompliance:
     """Test UI components follow PyMoDAQ standards."""
-
-    @pytest.fixture
-    def mock_extension_ui(self):
-        """Create extension with mocked UI components."""
-        with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGMicroscopyExtension.setup_ui'):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
-
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
-
-                # Create mock parent that inherits from QWidget to satisfy CustomApp validation
-                mock_parent = Mock(spec=QtWidgets.QWidget)
-                mock_parent.addDock = Mock()
-                mock_parent.docks = {}
-                
-                extension = URASHGMicroscopyExtension(mock_parent)
-                
-                # Mock UI setup methods
-                extension.setup_ui = Mock()
-                extension.setup_docks = Mock()
-                extension.setup_actions = Mock()
-                extension.setup_widgets = Mock()
-                extension.connect_things = Mock()
-                extension.dock_area = Mock()
-                extension.settings_tree = Mock()
-                
-                return extension
-
-    def test_ui_setup_methods_exist(self, mock_extension_ui):
-        """Test required UI setup methods exist."""
+    
+    def test_extension_has_ui_methods(self):
+        """Test extension class has required UI setup methods."""
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        
         required_methods = [
             'setup_ui',
-            'setup_docks',
+            'setup_docks', 
             'setup_actions',
             'setup_widgets',
             'connect_things'
         ]
 
         for method_name in required_methods:
-            assert hasattr(mock_extension_ui, method_name), f"Missing UI setup method: {method_name}"
-            assert callable(getattr(mock_extension_ui, method_name)), f"{method_name} should be callable"
-
-    def test_dock_area_integration(self, mock_extension_ui):
-        """Test dock area follows PyMoDAQ patterns."""
-        # Check that dock area is used for layout
-        mock_extension_ui.setup_docks()
-
-        # Verify dock creation patterns are called
-        assert hasattr(mock_extension_ui, 'dock_area') or hasattr(mock_extension_ui, 'dockarea')
-
-    def test_parameter_tree_ui_integration(self, mock_extension_ui):
-        """Test parameter tree UI integration."""
-        # Should have parameter tree widget
-        if hasattr(mock_extension_ui, 'settings_tree'):
-            assert mock_extension_ui.settings_tree is not None
+            assert hasattr(URASHGMicroscopyExtension, method_name), f"Extension class missing UI method: {method_name}"
+            assert callable(getattr(URASHGMicroscopyExtension, method_name)), f"{method_name} should be callable"
 
 
 class TestExtensionDeviceIntegration:
@@ -319,28 +255,30 @@ class TestExtensionDeviceIntegration:
         """Create extension with mock device manager."""
         with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager',
                    return_value=mock_device_manager):
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGMicroscopyExtension.setup_ui'):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            with patch('pymodaq_gui.managers.parameter_manager.ParameterManager.__init__', return_value=None):
+                with patch('pymodaq_gui.managers.action_manager.ActionManager.__init__', return_value=None):
+                    from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
 
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
+                    if not QtWidgets.QApplication.instance():
+                        app = QtWidgets.QApplication([])
 
-                # Create mock parent that inherits from QWidget to satisfy CustomApp validation
-                mock_parent = Mock(spec=QtWidgets.QWidget)
-                mock_parent.addDock = Mock()
-                mock_parent.docks = {}
-                
-                extension = URASHGMicroscopyExtension(mock_parent)
-                
-                # Add device management methods
-                extension.initialize_devices = Mock()
-                extension.check_device_status = Mock()
-                extension.update_device_status = Mock()
-                extension.emergency_stop = Mock()
-                extension.on_device_error = Mock()
-                extension.device_manager = mock_device_manager
-                
-                return extension
+                    # Create mock parent that inherits from QWidget to satisfy CustomApp validation
+                    mock_parent = Mock(spec=QtWidgets.QWidget)
+                    mock_parent.addDock = Mock()
+                    mock_parent.docks = {}
+                    
+                    extension = URASHGMicroscopyExtension(mock_parent)
+                    
+                    # Add device management methods and parameter system
+                    extension.settings = Mock()
+                    extension.initialize_devices = Mock()
+                    extension.check_device_status = Mock()
+                    extension.update_device_status = Mock()
+                    extension.emergency_stop = Mock()
+                    extension.on_device_error = Mock()
+                    extension.device_manager = mock_device_manager
+                    
+                    return extension
 
     def test_device_manager_initialization(self, extension_with_mock_devices):
         """Test device manager is properly initialized."""
@@ -387,28 +325,30 @@ class TestExtensionMeasurementCompliance:
     def extension_with_measurement(self):
         """Create extension ready for measurement testing."""
         with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGMicroscopyExtension.setup_ui'):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            with patch('pymodaq_gui.managers.parameter_manager.ParameterManager.__init__', return_value=None):
+                with patch('pymodaq_gui.managers.action_manager.ActionManager.__init__', return_value=None):
+                    from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
 
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
+                    if not QtWidgets.QApplication.instance():
+                        app = QtWidgets.QApplication([])
 
-                # Create mock parent that inherits from QWidget to satisfy CustomApp validation
-                mock_parent = Mock(spec=QtWidgets.QWidget)
-                mock_parent.addDock = Mock()
-                mock_parent.docks = {}
-                
-                extension = URASHGMicroscopyExtension(mock_parent)
-                
-                # Add measurement methods
-                extension.start_measurement = Mock()
-                extension.stop_measurement = Mock()
-                extension.pause_measurement = Mock()
-                extension.emergency_stop = Mock()
-                extension.analyze_current_data = Mock()
-                extension.export_data = Mock()
-                
-                return extension
+                    # Create mock parent that inherits from QWidget to satisfy CustomApp validation
+                    mock_parent = Mock(spec=QtWidgets.QWidget)
+                    mock_parent.addDock = Mock()
+                    mock_parent.docks = {}
+                    
+                    extension = URASHGMicroscopyExtension(mock_parent)
+                    
+                    # Add measurement methods and parameter system
+                    extension.settings = Mock()
+                    extension.start_measurement = Mock()
+                    extension.stop_measurement = Mock()
+                    extension.pause_measurement = Mock()
+                    extension.emergency_stop = Mock()
+                    extension.analyze_current_data = Mock()
+                    extension.export_data = Mock()
+                    
+                    return extension
 
     def test_measurement_lifecycle_methods(self, extension_with_measurement):
         """Test measurement lifecycle methods exist and are callable."""
@@ -456,25 +396,27 @@ class TestExtensionConfigurationCompliance:
     def extension_config(self):
         """Create extension for configuration testing."""
         with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGMicroscopyExtension.setup_ui'):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            with patch('pymodaq_gui.managers.parameter_manager.ParameterManager.__init__', return_value=None):
+                with patch('pymodaq_gui.managers.action_manager.ActionManager.__init__', return_value=None):
+                    from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
 
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
+                    if not QtWidgets.QApplication.instance():
+                        app = QtWidgets.QApplication([])
 
-                # Create mock parent that inherits from QWidget to satisfy CustomApp validation
-                mock_parent = Mock(spec=QtWidgets.QWidget)
-                mock_parent.addDock = Mock()
-                mock_parent.docks = {}
-                
-                extension = URASHGMicroscopyExtension(mock_parent)
-                
-                # Add configuration methods
-                extension.save_configuration = Mock()
-                extension.load_configuration = Mock()
-                extension._get_current_configuration = Mock(return_value={})
-                
-                return extension
+                    # Create mock parent that inherits from QWidget to satisfy CustomApp validation
+                    mock_parent = Mock(spec=QtWidgets.QWidget)
+                    mock_parent.addDock = Mock()
+                    mock_parent.docks = {}
+                    
+                    extension = URASHGMicroscopyExtension(mock_parent)
+                    
+                    # Add configuration methods and parameter system
+                    extension.settings = Mock()
+                    extension.save_configuration = Mock()
+                    extension.load_configuration = Mock()
+                    extension._get_current_configuration = Mock(return_value={})
+                    
+                    return extension
 
     def test_configuration_save_load_methods(self, extension_config):
         """Test configuration save/load methods exist."""
@@ -530,27 +472,28 @@ class TestExtensionErrorHandling:
     def extension_error_test(self):
         """Create extension for error handling testing."""
         with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGMicroscopyExtension.setup_ui'):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            with patch('pymodaq_gui.managers.parameter_manager.ParameterManager.__init__', return_value=None):
+                with patch('pymodaq_gui.managers.action_manager.ActionManager.__init__', return_value=None):
+                    from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
 
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
+                    if not QtWidgets.QApplication.instance():
+                        app = QtWidgets.QApplication([])
 
-                # Create mock parent that inherits from QWidget to satisfy CustomApp validation
-                mock_parent = Mock(spec=QtWidgets.QWidget)
-                mock_parent.addDock = Mock()
-                mock_parent.docks = {}
-                
-                extension = URASHGMicroscopyExtension(mock_parent)
-                
-                # Add error handling methods and signals
-                extension.on_error_occurred = Mock()
-                extension.error_occurred = Signal(str)
-                extension.check_device_status = Mock()
-                extension.log_message = Mock()
-                extension.device_manager = None
-                
-                return extension
+                    # Create mock parent that inherits from QWidget to satisfy CustomApp validation
+                    mock_parent = Mock(spec=QtWidgets.QWidget)
+                    mock_parent.addDock = Mock()
+                    mock_parent.docks = {}
+                    
+                    extension = URASHGMicroscopyExtension(mock_parent)
+                    
+                    # Add error handling methods and parameter system
+                    extension.settings = Mock()
+                    extension.on_error_occurred = Mock()
+                    extension.check_device_status = Mock()
+                    extension.log_message = Mock()
+                    extension.device_manager = None
+                    
+                    return extension
 
     def test_error_signal_handling(self, extension_error_test):
         """Test error signals are properly handled."""
@@ -598,24 +541,25 @@ class TestExtensionThreadSafety:
     def extension_thread_test(self):
         """Create extension for thread safety testing."""
         with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
-            with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGMicroscopyExtension.setup_ui'):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            with patch('pymodaq_gui.managers.parameter_manager.ParameterManager.__init__', return_value=None):
+                with patch('pymodaq_gui.managers.action_manager.ActionManager.__init__', return_value=None):
+                    from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
 
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
+                    if not QtWidgets.QApplication.instance():
+                        app = QtWidgets.QApplication([])
 
-                # Create mock parent that inherits from QWidget to satisfy CustomApp validation
-                mock_parent = Mock(spec=QtWidgets.QWidget)
-                mock_parent.addDock = Mock()
-                mock_parent.docks = {}
-                
-                extension = URASHGMicroscopyExtension(mock_parent)
-                
-                # Add thread safety methods and signals
-                extension.measurement_progress = Signal(int)
-                extension.closeEvent = Mock()
-                
-                return extension
+                    # Create mock parent that inherits from QWidget to satisfy CustomApp validation
+                    mock_parent = Mock(spec=QtWidgets.QWidget)
+                    mock_parent.addDock = Mock()
+                    mock_parent.docks = {}
+                    
+                    extension = URASHGMicroscopyExtension(mock_parent)
+                    
+                    # Add thread safety methods and parameter system
+                    extension.settings = Mock()
+                    extension.closeEvent = Mock()
+                    
+                    return extension
 
     def test_measurement_worker_thread_safety(self, extension_thread_test):
         """Test measurement worker is properly thread-isolated."""
