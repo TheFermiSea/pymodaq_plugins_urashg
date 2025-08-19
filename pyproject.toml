@@ -55,7 +55,10 @@ dependencies = [
 
 [project.optional-dependencies]
 hardware = [
-    "pyvcam",  # Camera support (optional - not available in all environments)
+    # Camera and hardware support (optional - not available in all environments)
+    "pyvcam",
+    "opencv-python>=4.5.0", # Image processing
+    "scikit-image>=0.18.0", # Advanced image analysis
 ]
 dev = [
     "pytest>=6.0",
@@ -78,11 +81,6 @@ test = [
     "pytest-mock>=3.0",
     "pytest-xvfb>=3.0",
     "pytest-benchmark>=4.0",
-]
-hardware = [
-    # Hardware-specific dependencies (optional for basic functionality)
-    "opencv-python>=4.5.0", # Image processing
-    "scikit-image>=0.18.0", # Advanced image analysis
 ]
 pyrpl = [
     # PyRPL Red Pitaya control integration (optional)
