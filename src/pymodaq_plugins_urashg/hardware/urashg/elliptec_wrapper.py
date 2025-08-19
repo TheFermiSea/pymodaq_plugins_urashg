@@ -31,7 +31,7 @@ class ElliptecController:
 
     def __init__(
         self,
-        port: str = "/dev/ttyUSB1",
+        port: str = "",
         baudrate: int = 9600,
         timeout: float = 2.0,
         mount_addresses: str = "2,3,8",

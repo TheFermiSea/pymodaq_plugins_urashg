@@ -167,6 +167,7 @@ def test_individual_plugins():
             test_results.append("✅ ElliptecController: Mock mode working")
             
             from src.pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController  
+            # Mock port for testing
             laser = MaiTaiController('/dev/ttyUSB2', mock_mode=True)
             test_results.append("✅ MaiTaiController: Mock mode working")
             

@@ -62,6 +62,7 @@ def test_esp300_controller_mock_creation():
     """Test ESP300 controller creation"""
     from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
     # ESP300 controller doesn't have mock mode, but we test without connecting
+    # Mock port for testing
     controller = ESP300Controller(port='/dev/ttyUSB3')
     assert controller is not None
     assert controller.port == '/dev/ttyUSB3'

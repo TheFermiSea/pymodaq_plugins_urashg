@@ -20,25 +20,7 @@ topic = [
     "Scientific/Engineering :: Visualization",
 ]
 
-[plugin-info.entry-points]
 
-[plugin-info.entry-points.move_plugins]
-DAQ_Move_Elliptec = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
-DAQ_Move_MaiTai = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"
-DAQ_Move_ESP300 = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300:DAQ_Move_ESP300"
-
-[plugin-info.entry-points.viewer_plugins]
-DAQ_2DViewer_PrimeBSI = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
-DAQ_0DViewer_Newport1830C = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
-
-[plugin-info.entry-points.h5exporters]
-# Future: Custom HDF5 exporters for μRASHG data
-
-[plugin-info.entry-points.extensions]
-URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
-
-[plugin-info.entry-points.pid_models]
-# Future: Custom PID models for laser stabilization
 
 [hardware-compatibility]
 manufacturers = ["Thorlabs", "Photometrics", "Red Pitaya", "Spectra-Physics"]

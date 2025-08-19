@@ -23,7 +23,7 @@ class Newport1830CController:
 
     def __init__(
         self,
-        port: str = "/dev/ttyUSB2",
+        port: str = "",
         baudrate: int = 9600,
         timeout: float = 2.0,
         mock_mode: bool = False,

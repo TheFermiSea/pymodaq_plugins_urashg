@@ -42,7 +42,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": "/dev/ttyUSB1",  # Correct port based on hardware detection
+                    "value": "", "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1"
                 },
                 {
                     "title": "Baudrate:",

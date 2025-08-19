@@ -45,6 +45,7 @@ def identify_elliptec(port):
     return False
 
 if __name__ == '__main__':
+    # Mock ports for testing
     ports = ['/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyUSB2']
     baudrates = [9600, 19200, 38400, 57600, 115200]
     

@@ -61,7 +61,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": "/dev/ttyUSB2",
+                    "value": "", "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1"
                 },
                 {
                     "title": "Baudrate:",
@@ -553,9 +553,9 @@ class DAQ_Move_ESP300(DAQ_Move_base):
     def close(self):
         """Close connection to ESP300."""
         try:
-            if self.controller:
+            if self.controller is not None:
                 self.controller.disconnect()
-                self.controller = None
+            self.controller = None
             self.settings.child("status_group", "connection_status").setValue(
                 "Disconnected"
             )

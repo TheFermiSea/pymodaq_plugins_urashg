@@ -127,27 +127,51 @@ class URASHGDeviceManager(QObject):
 
     def discover_devices(self) -> Tuple[Dict[str, DeviceInfo], List[str]]:
         """
-        Discover and validate all required devices by directly instantiating plugins.
+        Discover and validate all required devices using the standard PyMoDAQ plugin discovery mechanism.
 
         Returns:
             Tuple of (available_devices, missing_devices)
         """
         logger.info("Starting PyMoDAQ-compliant device discovery...")
 
-        # Directly instantiate and initialize plugins
         found_devices = {}
         missing_devices = []
 
-        for device_key, device_config in self.REQUIRED_DEVICES.items():
-            device_info = self._instantiate_device_plugin(device_key, device_config)
+        # Get all available pymodaq plugins
+        from importlib.metadata import entry_points
+        all_plugins = entry_points(group='pymodaq.plugins')
 
-            if device_info:
-                found_devices[device_key] = device_info
-                self.devices[device_key] = device_info
-                logger.info(
-                    f"Successfully instantiated device '{device_key}': {device_info.module_name}"
-                )
-            else:
+        for device_key, device_config in self.REQUIRED_DEVICES.items():
+            device_found = False
+            for plugin in all_plugins:
+                if plugin.name in device_config["name_patterns"]:
+                    try:
+                        plugin_class = plugin.load()
+                        plugin_instance = plugin_class(parent=self.dashboard)
+                        init_result = plugin_instance.ini_stage()
+                        if init_result and len(init_result) >= 2 and init_result[1]:
+                            logger.info(f"Successfully initialized {device_key} plugin")
+                            device_info = DeviceInfo(
+                                name=device_key,
+                                device_type=device_config["type"],
+                                module_name=plugin.name,
+                            )
+                            device_info.plugin_instance = plugin_instance
+                            device_info.update_status(DeviceStatus.CONNECTED)
+                            found_devices[device_key] = device_info
+                            self.devices[device_key] = device_info
+                            device_found = True
+                            break  # Move to the next required device
+                        else:
+                            logger.warning(
+                                f"Plugin {device_key} initialization failed: {init_result}"
+                            )
+                            if hasattr(plugin_instance, "close"):
+                                plugin_instance.close()
+                    except Exception as e:
+                        logger.warning(f"Error instantiating {device_key} plugin: {e}")
+
+            if not device_found:
                 if device_config.get("required", True):
                     missing_devices.append(device_key)
                     logger.warning(
@@ -787,19 +811,21 @@ class URASHGDeviceManager(QObject):
             # Mock device configurations
             mock_configs = {
                 "elliptec": {
-                    "port": "/dev/ttyUSB1",
-                    "mock_mode": True,
                     "mount_addresses": "2,3,8",
                 },
-                "laser": {"port": "/dev/ttyUSB0", "mock_mode": True},
-                "power_meter": {"port": "/dev/ttyS0", "mock_mode": True},
-                "camera": {"mock_mode": True},
+                "laser": {},
+                "power_meter": {},
+                "camera": {},
             }
 
             # Initialize mock devices
             for device_key, config in mock_configs.items():
                 try:
-                    self._create_mock_device(device_key, config)
+                    plugin_instance = self.get_device_module(device_key)
+                    if plugin_instance:
+                        port = plugin_instance.settings.child("connection_group", "serial_port").value()
+                        config["port"] = port
+                        self._create_mock_device(device_key, config)
                 except Exception as e:
                     logger.warning(f"Failed to create mock device '{device_key}': {e}")
 

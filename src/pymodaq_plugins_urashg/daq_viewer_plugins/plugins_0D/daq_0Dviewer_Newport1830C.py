@@ -49,7 +49,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": "/dev/ttyS0",
+                    "value": "", "placeholder": "Enter serial port e.g. /dev/ttyS0 or COM1"
                 },
                 {
                     "title": "Baudrate:",

@@ -28,7 +28,7 @@ class MaiTaiController:
 
     def __init__(
         self,
-        port: str = "/dev/ttyUSB0",
+        port: str = "",
         baudrate: int = 115200,
         timeout: float = 2.0,
         mock_mode: bool = False,

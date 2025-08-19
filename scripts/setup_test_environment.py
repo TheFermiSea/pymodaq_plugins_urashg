@@ -14,6 +14,7 @@ import importlib
 from pathlib import Path
 
 
+def check_python_version():
     """Ensure Python 3.8+ is being used"""
     if sys.version_info < (3, 8):
         raise RuntimeError("Python 3.8+ is required for PyMoDAQ v5")
@@ -91,25 +92,25 @@ class Serial:
 
             # Elliptec device responses
             if 'in' in last_cmd:
-                return b'2IN0F14290000602019050105016800000004000\\r\\n'
+                return b'2IN0F14290000602019050105016800000004000\r\n'
             elif 'gp' in last_cmd:
-                return b'2PO00000000\\r\\n'
+                return b'2PO00000000\r\n'
             elif 'gs' in last_cmd:
-                return b'2GS00\\r\\n'
+                return b'2GS00\r\n'
             elif 'ma' in last_cmd:
-                return b'2MA\\r\\n'
+                return b'2MA\r\n'
             elif 'ho' in last_cmd:
-                return b'2HO1\\r\\n'
+                return b'2HO1\r\n'
 
             # MaiTai responses
             elif 'wavelength' in last_cmd:
-                return b'800.0\\r\\n'
+                return b'800.0\r\n'
             elif 'power' in last_cmd:
-                return b'1.5\\r\\n'
+                return b'1.5\r\n'
             elif 'stb' in last_cmd:
-                return b'66\\r\\n'  # Status byte with modelocking
+                return b'66\r\n'  # Status byte with modelocking
 
-        return b'\\r\\n'
+        return b'\r\n'
 
     def reset_input_buffer(self):
         """Mock buffer reset"""

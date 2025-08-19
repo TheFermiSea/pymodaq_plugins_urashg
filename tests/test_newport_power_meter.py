@@ -451,6 +451,7 @@ class TestNewportPowerMeterHardware:
             from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
             
             # Try common serial ports
+            # Try common serial ports (for testing purposes)
             test_ports = ["/dev/ttyS0", "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2"]
             
             controller = None

@@ -352,7 +352,7 @@ class ESP300Controller:
 
     def __init__(
         self,
-        port: str = "/dev/ttyUSB0",
+        port: str = "",
         baudrate: int = 19200,
         timeout: float = 3.0,
         axes_config: Optional[List[AxisConfig]] = None,
