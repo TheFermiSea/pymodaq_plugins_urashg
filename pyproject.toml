@@ -169,6 +169,17 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "camera: marks tests for camera functionality",
+    "device_manager: marks tests for device manager functionality",
+    "plugin: marks tests for plugin functionality",
+    "extension: marks tests for extension functionality",
+    "measurement_worker: marks tests for measurement worker functionality",
+    "threading: marks tests for threading functionality",
+    "performance: marks tests for performance",
+    "pymodaq_standards: marks tests for PyMoDAQ standards compliance",
+    "plugin_integration: marks tests for plugin integration",
+    "suite_overview: marks test suite overview tests",
+    "compliance_critical: marks critical compliance tests",
+    "integration_full: marks full integration tests",
 ]
 
 [tool.coverage.run]

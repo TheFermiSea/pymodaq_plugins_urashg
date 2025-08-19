@@ -17,6 +17,7 @@ import sys
 import time
 import logging
 import gc
+import pytest
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -30,7 +31,7 @@ from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_Mai
 from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C import DAQ_0DViewer_Newport1830C
 from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
 
-def test_plugin_threading_safety(plugin_class, plugin_name: str, mock_settings: Dict[str, Any] = None) -> bool:
+def check_plugin_threading_safety(plugin_class, plugin_name: str, mock_settings: Dict[str, Any] = None) -> bool:
     """
     Test a single plugin for threading safety.
     
@@ -113,7 +114,7 @@ def test_plugin_threading_safety(plugin_class, plugin_name: str, mock_settings: 
         traceback.print_exc()
         return False
 
-def test_stress_initialization(plugin_class, plugin_name: str, iterations: int = 10) -> bool:
+def check_stress_initialization(plugin_class, plugin_name: str, iterations: int = 10) -> bool:
     """
     Stress test plugin initialization and cleanup multiple times.
     
@@ -209,7 +210,7 @@ def main():
     print("-" * 35)
     
     for plugin_config in test_plugins:
-        success = test_plugin_threading_safety(
+        success = check_plugin_threading_safety(
             plugin_config['class'],
             plugin_config['name'],
             plugin_config.get('mock_settings')
@@ -222,7 +223,7 @@ def main():
     
     stress_results = []
     for plugin_config in test_plugins:
-        success = test_stress_initialization(
+        success = check_stress_initialization(
             plugin_config['class'],
             plugin_config['name'],
             iterations=5  # Reduced for faster testing
@@ -276,6 +277,13 @@ def main():
         print("Review failed plugins for remaining threading issues.")
     
     return 0 if all_passed else 1
+
+@pytest.mark.threading
+@pytest.mark.integration
+def test_comprehensive_threading_safety():
+    """Pytest wrapper for comprehensive threading safety tests."""
+    exit_code = main()
+    assert exit_code == 0, "Threading safety tests failed"
 
 if __name__ == "__main__":
     exit_code = main()
