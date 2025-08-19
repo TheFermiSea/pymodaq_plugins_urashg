@@ -6,8 +6,8 @@ with realistic mock behavior that matches actual hardware responses.
 """
 
 import logging
-import time
 import random
+import time
 from threading import Lock
 from typing import Dict, List, Optional
 

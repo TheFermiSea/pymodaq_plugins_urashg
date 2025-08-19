@@ -22,26 +22,22 @@ Experiment Capabilities:
 
 import logging
 import time
-from typing import Dict, List, Optional, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-
-from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import QObject, Signal
 import pyqtgraph as pg
-from pyqtgraph.dockarea import Dock, DockArea
-
-from pymodaq.utils.gui_utils import CustomApp
-from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataWithAxes, Axis
-from pymodaq.utils.logger import set_logger, get_module_name
 from pymodaq.utils.config import Config
+from pymodaq.utils.data import Axis, DataWithAxes
+from pymodaq.utils.gui_utils import CustomApp
+from pymodaq.utils.logger import get_module_name, set_logger
 from pymodaq.utils.messenger import messagebox
-from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
+from pymodaq.utils.parameter import Parameter
 from pymodaq_data.data import DataRaw
-
-
-from pathlib import Path
+from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
+from pyqtgraph.dockarea import Dock, DockArea
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import QObject, Signal
 
 logger = set_logger(get_module_name(__file__))
 
@@ -5514,8 +5510,8 @@ Averages: {averages}
                 return
 
             # Create 3D scatter plot
-            import pyqtgraph.opengl as gl
             import numpy as np
+            import pyqtgraph.opengl as gl
 
             # Normalize data for visualization
             wl_norm = np.array(wavelengths) / np.max(wavelengths)

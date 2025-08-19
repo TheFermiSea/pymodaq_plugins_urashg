@@ -6,10 +6,10 @@ Titanium Sapphire laser with realistic mock behavior that matches actual hardwar
 """
 
 import logging
-import time
 import random
+import time
 from threading import Lock
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 
 class MaiTaiError(Exception):

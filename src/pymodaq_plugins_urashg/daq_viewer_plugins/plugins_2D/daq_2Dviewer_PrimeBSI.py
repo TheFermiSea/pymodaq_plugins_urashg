@@ -324,9 +324,9 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         if PYVCAM_AVAILABLE:
             from pyvcam.constants import (
                 PARAM_EXP_TIME,
-                PARAM_READOUT_PORT,
-                PARAM_PIX_TIME,
                 PARAM_GAIN_INDEX,
+                PARAM_PIX_TIME,
+                PARAM_READOUT_PORT,
                 PARAM_TEMP_SETPOINT,
             )
 

@@ -31,14 +31,14 @@ __all__ = [
 # Import all extensions for PyMoDAQ discovery
 try:
     # Primary comprehensive extension
-    from .urashg_microscopy_extension import URASHGMicroscopyExtension
+    from .basic_urashg_extension import URASHG_Basic_Experiment
+    from .elliptec_calibration_extension import URASHG_Elliptec_Calibration
 
     # Legacy individual extensions
     from .eom_calibration_extension import URASHG_EOM_Calibration
-    from .elliptec_calibration_extension import URASHG_Elliptec_Calibration
-    from .variable_attenuator_extension import URASHG_Variable_Attenuator
     from .pdshg_experiment_extension import URASHG_PDSHG_Experiment
-    from .basic_urashg_extension import URASHG_Basic_Experiment
+    from .urashg_microscopy_extension import URASHGMicroscopyExtension
+    from .variable_attenuator_extension import URASHG_Variable_Attenuator
 
 except ImportError as e:
     # Graceful handling for development/testing

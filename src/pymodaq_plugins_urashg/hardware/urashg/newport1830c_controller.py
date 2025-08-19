@@ -6,9 +6,9 @@ Provides clean interface for PyMoDAQ plugin.
 """
 
 import logging
-import time
-import random
 import math
+import random
+import time
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)

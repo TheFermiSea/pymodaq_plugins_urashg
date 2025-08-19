@@ -9,14 +9,13 @@ control of all hardware devices through PyMoDAQ's dashboard framework.
 
 import logging
 import time
-from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from qtpy.QtCore import QObject, Signal
 import numpy as np
-
-from pymodaq.utils.data import DataWithAxes, Axis
-from pymodaq.utils.logger import set_logger, get_module_name
+from pymodaq.utils.data import Axis, DataWithAxes
+from pymodaq.utils.logger import get_module_name, set_logger
+from qtpy.QtCore import QObject, Signal
 
 logger = set_logger(get_module_name(__file__))
 

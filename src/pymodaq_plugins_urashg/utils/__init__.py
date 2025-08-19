@@ -3,31 +3,31 @@
 Utilities for URASHG plugins.
 """
 
-from pymodaq.utils.logger import set_logger, get_module_name
+from pymodaq.utils.logger import get_module_name, set_logger
 
 # PyRPL wrapper utilities for hardware integration
 try:
     from .pyrpl_wrapper import (
-        PyRPLManager,
-        PyRPLConnection,
-        PIDChannel,
-        InputChannel,
-        OutputChannel,
-        PIDConfiguration,
-        ASGConfiguration,
-        IQConfiguration,
-        ScopeConfiguration,
-        ConnectionState,
         ASGChannel,
-        ASGWaveform,
+        ASGConfiguration,
         ASGTriggerSource,
+        ASGWaveform,
+        ConnectionState,
+        InputChannel,
         IQChannel,
+        IQConfiguration,
         IQOutputDirect,
-        ScopeTriggerSource,
+        OutputChannel,
+        PIDChannel,
+        PIDConfiguration,
+        PyRPLConnection,
+        PyRPLManager,
+        ScopeConfiguration,
         ScopeDecimation,
-        get_pyrpl_manager,
+        ScopeTriggerSource,
         connect_redpitaya,
         disconnect_redpitaya,
+        get_pyrpl_manager,
     )
 
     PYRPL_WRAPPER_AVAILABLE = True

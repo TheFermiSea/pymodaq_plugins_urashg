@@ -1,7 +1,7 @@
 import time
 from typing import List, Union
-import numpy as np
 
+import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,

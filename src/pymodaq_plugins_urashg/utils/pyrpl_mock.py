@@ -8,8 +8,9 @@ cannot be installed due to dependency conflicts.
 """
 
 import logging
+from typing import Any, Dict, Optional
+
 import numpy as np
-from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
