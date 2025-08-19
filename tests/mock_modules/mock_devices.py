@@ -28,12 +28,16 @@ from pathlib import Path
 try:
     from pymodaq.utils.data import DataWithAxes, Axis, DataSource
     from pymodaq.utils.parameter import Parameter
-    from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
+    from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, comon_parameters_fun
     from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
     from pymodaq.utils.logger import set_logger, get_module_name
     PYMODAQ_AVAILABLE = True
 except ImportError:
     # Create mock classes if PyMoDAQ not available
+    def comon_parameters_fun(is_multiaxes=False, axis_names=None, epsilon=0.1):
+        """Mock comon_parameters_fun for when PyMoDAQ not available."""
+        return []
+    
     class DataWithAxes:
         def __init__(self, name, data=None, axes=None, units=None, source=None):
             self.name = name
@@ -129,8 +133,15 @@ class MockMovePlugin(DAQ_Move_base):
     requiring actual hardware.
     """
 
-    # Mock PyMoDAQ plugin attributes
-    params = [
+    # Mock PyMoDAQ plugin attributes - use proper PyMoDAQ parameter structure
+    is_multiaxes = False  # Default to single axis
+    _axis_names = ["MockAxis"]
+    _controller_units = "deg"
+    _epsilon = 0.1
+
+    params = comon_parameters_fun(
+        is_multiaxes=False, axis_names=_axis_names, epsilon=_epsilon
+    ) + [
         {'title': 'Mock Settings', 'name': 'mock_settings', 'type': 'group', 'children': [
             {'title': 'Device ID:', 'name': 'device_id', 'type': 'str', 'value': 'mock_device'},
             {'title': 'Mock Mode:', 'name': 'mock_mode', 'type': 'bool', 'value': True},
@@ -138,8 +149,6 @@ class MockMovePlugin(DAQ_Move_base):
             {'title': 'Position (deg):', 'name': 'position', 'type': 'float', 'value': 0.0, 'min': -180, 'max': 180},
         ]},
     ]
-
-    _controller_units = "deg"
 
     def __init__(self, name: str = "MockMove"):
         super().__init__()

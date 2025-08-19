@@ -32,6 +32,7 @@ import logging
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -46,7 +47,7 @@ from ..hardware.urashg.redpitaya_control import (
     PowerTarget,
     StabilizationConfiguration,
 )
-from .base_experiment import ExperimentState, URASHGBaseExperiment
+from .base_experiment import ExperimentError, ExperimentState, URASHGBaseExperiment
 
 logger = logging.getLogger(__name__)
 

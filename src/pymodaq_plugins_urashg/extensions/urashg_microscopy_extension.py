@@ -20,6 +20,7 @@ Experiment Capabilities:
 - Automated calibration sequences
 """
 
+import json
 import logging
 import time
 from pathlib import Path
@@ -37,7 +38,9 @@ from pymodaq_data.data import DataRaw
 from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
 from pyqtgraph.dockarea import Dock, DockArea
 from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import QObject, Signal
+from qtpy.QtCore import QObject, QThread, Signal
+
+from .device_manager import DeviceStatus, URASHGDeviceManager
 
 logger = set_logger(get_module_name(__file__))
 
