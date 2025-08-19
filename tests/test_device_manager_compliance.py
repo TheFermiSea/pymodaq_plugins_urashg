@@ -237,21 +237,51 @@ class TestMultiDeviceCoordination:
     @pytest.fixture
     def coordinated_device_manager(self):
         """Create device manager with multiple coordinated devices."""
+        from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
+        
         mock_devices = {
             'MaiTai': MockMovePlugin('MaiTai'),
             'Elliptec': MockMovePlugin('Elliptec'),
             'PrimeBSI': MockViewerPlugin('PrimeBSI')
         }
 
-        with patch.multiple(
-            'pymodaq_plugins_urashg.extensions.device_manager',
-            **{f'DAQ_Move_{name}' if name != 'PrimeBSI' else 'DAQ_2DViewer_PrimeBSI':
-               lambda d=device: d for name, device in mock_devices.items()}
-        ):
-            from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
-            dm = URASHGDeviceManager()
-            dm.devices = mock_devices
-            return dm
+        # Mock the _instantiate_device_plugin method
+        def mock_instantiate_device_plugin(self, device_key, device_config):
+            """Mock device plugin instantiation for coordination testing."""
+            device_type = device_config["type"]
+            
+            if device_key == "laser":
+                device_info = MagicMock()
+                device_info.plugin_instance = mock_devices['MaiTai']
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "MaiTai"
+                device_info.status = "connected"
+                return device_info
+            elif device_key == "elliptec":
+                device_info = MagicMock() 
+                device_info.plugin_instance = mock_devices['Elliptec']
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "Elliptec"
+                device_info.status = "connected"
+                return device_info
+            elif device_key == "camera":
+                device_info = MagicMock()
+                device_info.plugin_instance = mock_devices['PrimeBSI'] 
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "PrimeBSI"
+                device_info.status = "connected"
+                return device_info
+            else:
+                return None
+        
+        with patch.object(URASHGDeviceManager, '_instantiate_device_plugin', mock_instantiate_device_plugin):
+            # Create device manager with a mock dashboard
+            mock_dashboard = MagicMock()
+            mock_dashboard.modules_manager = MagicMock()
+            return URASHGDeviceManager(mock_dashboard)
 
     def test_simultaneous_device_operations(self, coordinated_device_manager):
         """Test coordination of simultaneous device operations."""
@@ -262,8 +292,8 @@ class TestMultiDeviceCoordination:
             assert callable(dm.coordinate_devices)
 
         # Should handle simultaneous operations without conflicts
-        assert hasattr(dm, 'emergency_stop_all')
-        assert callable(dm.emergency_stop_all)
+        assert hasattr(dm, 'emergency_stop_all_devices')
+        assert callable(dm.emergency_stop_all_devices)
 
     def test_device_synchronization(self, coordinated_device_manager):
         """Test device synchronization capabilities."""
@@ -307,6 +337,8 @@ class TestDeviceManagerErrorHandling:
     @pytest.fixture
     def error_test_device_manager(self):
         """Create device manager for error testing."""
+        from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
+        
         # Create mock devices that can simulate errors
         mock_devices = {
             'MaiTai': MockMovePlugin('MaiTai'),
@@ -316,15 +348,35 @@ class TestDeviceManagerErrorHandling:
         # Make one device prone to errors
         mock_devices['MaiTai'].simulate_error = True
 
-        with patch.multiple(
-            'pymodaq_plugins_urashg.extensions.device_manager',
-            DAQ_Move_MaiTai=lambda: mock_devices['MaiTai'],
-            DAQ_Move_Elliptec=lambda: mock_devices['Elliptec']
-        ):
-            from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
-            dm = URASHGDeviceManager()
-            dm.devices = mock_devices
-            return dm
+        # Mock the _instantiate_device_plugin method
+        def mock_instantiate_device_plugin(self, device_key, device_config):
+            """Mock device plugin instantiation for error testing."""
+            device_type = device_config["type"]
+            
+            if device_key == "laser":
+                device_info = MagicMock()
+                device_info.plugin_instance = mock_devices['MaiTai']
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "MaiTai"
+                device_info.status = "connected"
+                return device_info
+            elif device_key == "elliptec":
+                device_info = MagicMock() 
+                device_info.plugin_instance = mock_devices['Elliptec']
+                device_info.name = device_key
+                device_info.device_type = device_type
+                device_info.module_name = "Elliptec"
+                device_info.status = "connected"
+                return device_info
+            else:
+                return None
+        
+        with patch.object(URASHGDeviceManager, '_instantiate_device_plugin', mock_instantiate_device_plugin):
+            # Create device manager with a mock dashboard
+            mock_dashboard = MagicMock()
+            mock_dashboard.modules_manager = MagicMock()
+            return URASHGDeviceManager(mock_dashboard)
 
     def test_device_error_detection(self, error_test_device_manager):
         """Test detection of device errors."""
