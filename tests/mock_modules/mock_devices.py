@@ -266,8 +266,8 @@ class MockViewerPlugin(DAQ_Viewer_base):
     _controller_units = "counts"
 
     def __init__(self, name: str = "MockViewer"):
+        self.name = name  # Set name before calling super().__init__()
         super().__init__()
-        self.name = name
         self.controller = None
         self.settings = {}
         self.initialized = False
