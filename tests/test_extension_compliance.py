@@ -185,12 +185,15 @@ class TestExtensionSignalCompliance:
         """Create a mock extension instance for testing."""
         with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            from pyqtgraph.dockarea import DockArea
 
             # Mock the Qt application if not present
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            # Create mock parent DockArea (expected by extension)
+            mock_parent = DockArea()
+            extension = URASHGMicroscopyExtension(mock_parent)
             return extension
 
     def test_required_signals_exist(self, mock_extension):
@@ -238,18 +241,16 @@ class TestExtensionUICompliance:
     def mock_extension_ui(self):
         """Create extension with mocked UI components."""
         with patch('pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager'):
-            with patch.multiple(
-                'pymodaq_plugins_urashg.extensions.urashg_microscopy_extension',
-                DockArea=MagicMock(),
-                Dock=MagicMock(),
-            ):
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+            from pyqtgraph.dockarea import DockArea
 
-                if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
+            if not QtWidgets.QApplication.instance():
+                app = QtWidgets.QApplication([])
 
-                extension = URASHGMicroscopyExtension()
-                return extension
+            # Create mock parent DockArea
+            mock_parent = DockArea()
+            extension = URASHGMicroscopyExtension(mock_parent)
+            return extension
 
     def test_ui_setup_methods_exist(self, mock_extension_ui):
         """Test required UI setup methods exist."""
@@ -286,7 +287,14 @@ class TestExtensionDeviceIntegration:
     @pytest.fixture
     def mock_device_manager(self):
         """Create mock device manager."""
-        return MockDeviceManager()
+        # Use a simple mock instead of the complex MockDeviceManager
+        mock_dm = MagicMock()
+        mock_dm.devices = {}
+        mock_dm.missing_devices = []
+        mock_dm.device_status_changed = MagicMock()
+        mock_dm.device_error = MagicMock()
+        mock_dm.all_devices_ready = MagicMock()
+        return mock_dm
 
     @pytest.fixture
     def extension_with_mock_devices(self, mock_device_manager):
@@ -298,7 +306,10 @@ class TestExtensionDeviceIntegration:
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            # Create mock parent DockArea
+            from pyqtgraph.dockarea import DockArea
+            mock_parent = DockArea()
+            extension = URASHGMicroscopyExtension(mock_parent)
             return extension
 
     def test_device_manager_initialization(self, extension_with_mock_devices):
@@ -351,7 +362,10 @@ class TestExtensionMeasurementCompliance:
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            # Create mock parent DockArea
+            from pyqtgraph.dockarea import DockArea
+            mock_parent = DockArea()
+            extension = URASHGMicroscopyExtension(mock_parent)
             return extension
 
     def test_measurement_lifecycle_methods(self, extension_with_measurement):
@@ -405,7 +419,10 @@ class TestExtensionConfigurationCompliance:
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            # Create mock parent DockArea
+            from pyqtgraph.dockarea import DockArea
+            mock_parent = DockArea()
+            extension = URASHGMicroscopyExtension(mock_parent)
             return extension
 
     def test_configuration_save_load_methods(self, extension_config):
@@ -467,7 +484,10 @@ class TestExtensionErrorHandling:
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            # Create mock parent DockArea
+            from pyqtgraph.dockarea import DockArea
+            mock_parent = DockArea()
+            extension = URASHGMicroscopyExtension(mock_parent)
             return extension
 
     def test_error_signal_handling(self, extension_error_test):
@@ -521,7 +541,10 @@ class TestExtensionThreadSafety:
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            # Create mock parent DockArea
+            from pyqtgraph.dockarea import DockArea
+            mock_parent = DockArea()
+            extension = URASHGMicroscopyExtension(mock_parent)
             return extension
 
     def test_measurement_worker_thread_safety(self, extension_thread_test):
