@@ -248,9 +248,9 @@ class URASHGMicroscopyExtension(CustomApp):
     # Required signals for PyMoDAQ extension compliance
     measurement_started = Signal()
     measurement_finished = Signal(bool)  # True if successful
-    measurement_progress = Signal(int)   # Progress percentage
+    measurement_progress = Signal(int)  # Progress percentage
     device_status_changed = Signal(str, str)  # device_name, status
-    error_occurred = Signal(str)         # error_message
+    error_occurred = Signal(str)  # error_message
 
     # Extension parameters following PyMoDAQ patterns
     params = [
@@ -744,8 +744,10 @@ class URASHGMicroscopyExtension(CustomApp):
 
     def save_configuration(self, filepath: str = None):
         """Save current extension configuration."""
-        if hasattr(self, 'settings'):
-            config_data = self.settings.to_dict() if hasattr(self.settings, 'to_dict') else {}
+        if hasattr(self, "settings"):
+            config_data = (
+                self.settings.to_dict() if hasattr(self.settings, "to_dict") else {}
+            )
             self.log_message(f"Configuration saved: {filepath}", "info")
         else:
             self.log_message("No configuration to save", "warning")

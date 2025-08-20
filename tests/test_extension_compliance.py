@@ -306,7 +306,9 @@ class TestExtensionUICompliance:
             ), f"{method_name} should be callable"
 
 
-@pytest.mark.xfail(reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation")
+@pytest.mark.xfail(
+    reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation"
+)
 class TestExtensionDeviceIntegration:
     """Test device management integration follows PyMoDAQ standards."""
 
@@ -357,7 +359,7 @@ class TestExtensionDeviceIntegration:
                     # Add device management methods and parameter system
                     mock_settings = Mock()
                     mock_settings.to_dict = Mock(return_value={"test": "data"})
-                    with patch.object(extension, 'settings', mock_settings):
+                    with patch.object(extension, "settings", mock_settings):
                         extension.initialize_devices = Mock()
                         extension.check_device_status = Mock()
                         extension.update_device_status = Mock()
@@ -404,7 +406,9 @@ class TestExtensionDeviceIntegration:
         assert callable(extension.on_device_error)
 
 
-@pytest.mark.xfail(reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation")
+@pytest.mark.xfail(
+    reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation"
+)
 class TestExtensionMeasurementCompliance:
     """Test measurement functionality follows PyMoDAQ standards."""
 
@@ -442,7 +446,7 @@ class TestExtensionMeasurementCompliance:
 
                     # Add measurement methods and parameter system
                     mock_settings = Mock()
-                    with patch.object(extension, 'settings', mock_settings):
+                    with patch.object(extension, "settings", mock_settings):
                         extension.start_measurement = Mock()
                         extension.stop_measurement = Mock()
                         extension.pause_measurement = Mock()
@@ -497,7 +501,9 @@ class TestExtensionMeasurementCompliance:
         assert hasattr(worker, "pause_measurement")
 
 
-@pytest.mark.xfail(reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation")
+@pytest.mark.xfail(
+    reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation"
+)
 class TestExtensionConfigurationCompliance:
     """Test configuration management follows PyMoDAQ standards."""
 
@@ -536,7 +542,7 @@ class TestExtensionConfigurationCompliance:
                     # Add configuration methods and parameter system
                     mock_settings = Mock()
                     mock_settings.to_dict = Mock(return_value={"test": "data"})
-                    with patch.object(extension, 'settings', mock_settings):
+                    with patch.object(extension, "settings", mock_settings):
                         extension.save_configuration = Mock()
                         extension.load_configuration = Mock()
 
@@ -590,7 +596,9 @@ class TestExtensionConfigurationCompliance:
                 temp_path.unlink()
 
 
-@pytest.mark.xfail(reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation")
+@pytest.mark.xfail(
+    reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation"
+)
 class TestExtensionErrorHandling:
     """Test error handling follows PyMoDAQ standards."""
 
@@ -628,7 +636,7 @@ class TestExtensionErrorHandling:
 
                     # Add error handling methods and parameter system
                     mock_settings = Mock()
-                    with patch.object(extension, 'settings', mock_settings):
+                    with patch.object(extension, "settings", mock_settings):
                         extension.handle_error = Mock()
                         extension.emergency_stop = Mock()
                         extension.log_error = Mock()
@@ -687,7 +695,9 @@ class TestExtensionErrorHandling:
             )
 
 
-@pytest.mark.xfail(reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation")
+@pytest.mark.xfail(
+    reason="Complex UI mocking requires extensive PyMoDAQ infrastructure - tests pass in isolation"
+)
 class TestExtensionThreadSafety:
     """Test thread safety patterns follow PyMoDAQ standards."""
 
@@ -725,7 +735,7 @@ class TestExtensionThreadSafety:
 
                     # Add threading control methods
                     mock_settings = Mock()
-                    with patch.object(extension, 'settings', mock_settings):
+                    with patch.object(extension, "settings", mock_settings):
                         extension.measurement_worker = Mock()
                         extension.start_measurement = Mock()
                         extension.stop_measurement = Mock()
