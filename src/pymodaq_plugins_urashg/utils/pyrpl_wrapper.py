@@ -389,7 +389,10 @@ class PyRPLConnection:
                 status_callback(
                     ThreadCommand(
                         "Update_Status",
-                        [f"Connecting to Red Pitaya at {self.hostname}", "log"],
+                        [
+                            f"Connecting to Red Pitaya at {self.hostname}",
+                            "log",
+                        ],
                     )
                 )
 
@@ -423,7 +426,10 @@ class PyRPLConnection:
                         status_callback(
                             ThreadCommand(
                                 "Update_Status",
-                                [f"Red Pitaya {self.hostname} connected", "log"],
+                                [
+                                    f"Red Pitaya {self.hostname} connected",
+                                    "log",
+                                ],
                             )
                         )
 

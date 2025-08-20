@@ -144,7 +144,10 @@ class ESP300Axis:
     }
 
     def __init__(
-        self, axis_number: int, controller: "ESP300Controller", config: AxisConfig
+        self,
+        axis_number: int,
+        controller: "ESP300Controller",
+        config: AxisConfig,
     ):
         self.axis_number = axis_number
         self.controller = controller

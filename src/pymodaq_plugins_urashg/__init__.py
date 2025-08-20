@@ -55,4 +55,10 @@ except ImportError as e:
     def set_logger(name, level=logging.INFO, add_to_console=True, **kwargs):
         return logging.getLogger(name)
 
-    __all__ = ["__version__", "config", "urashg", "get_module_name", "set_logger"]
+    __all__ = [
+        "__version__",
+        "config",
+        "urashg",
+        "get_module_name",
+        "set_logger",
+    ]

@@ -915,7 +915,9 @@ class URASHGDeviceManager(QObject):
                     logger.info("Mock power meter data acquisition")
                     return [
                         type(
-                            "MockData", (), {"data": [controller.get_power() or 0.003]}
+                            "MockData",
+                            (),
+                            {"data": [controller.get_power() or 0.003]},
                         )()
                     ]
 

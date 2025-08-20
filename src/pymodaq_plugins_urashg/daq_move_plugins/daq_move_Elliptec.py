@@ -1,4 +1,3 @@
-import time
 from typing import List, Union
 
 import numpy as np
@@ -79,8 +78,16 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             "name": "actions_group",
             "type": "group",
             "children": [
-                {"title": "Home All Mounts:", "name": "home_all", "type": "action"},
-                {"title": "Get Positions:", "name": "get_positions", "type": "action"},
+                {
+                    "title": "Home All Mounts:",
+                    "name": "home_all",
+                    "type": "action",
+                },
+                {
+                    "title": "Get Positions:",
+                    "name": "get_positions",
+                    "type": "action",
+                },
                 {
                     "title": "Test Connection:",
                     "name": "test_connection",
@@ -221,7 +228,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Error initializing Elliptec: {str(e)}", "error"]
+                    "Update_Status",
+                    [f"Error initializing Elliptec: {str(e)}", "error"],
                 )
             )
             return f"Error initializing Elliptec: {str(e)}", False
@@ -283,7 +291,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         if not self.controller or not self.controller.connected:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", ["Hardware not connected. Cannot home.", "warning"]
+                    "Update_Status",
+                    ["Hardware not connected. Cannot home.", "warning"],
                 )
             )
             return
@@ -296,7 +305,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             if success:
                 self.emit_status(
                     ThreadCommand(
-                        "Update_Status", ["All mounts homed successfully", "good"]
+                        "Update_Status",
+                        ["All mounts homed successfully", "good"],
                     )
                 )
                 self.update_status()
@@ -314,7 +324,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         if not self.controller or not self.controller.connected:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", ["Hardware not connected. Cannot home.", "warning"]
+                    "Update_Status",
+                    ["Hardware not connected. Cannot home.", "warning"],
                 )
             )
             return
@@ -322,7 +333,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         try:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Homing mount {mount_address}...", "log"]
+                    "Update_Status",
+                    [f"Homing mount {mount_address}...", "log"],
                 )
             )
             success = self.controller.home(mount_address)
@@ -337,7 +349,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             else:
                 self.emit_status(
                     ThreadCommand(
-                        "Update_Status", [f"Homing mount {mount_address} failed", "bad"]
+                        "Update_Status",
+                        [f"Homing mount {mount_address} failed", "bad"],
                     )
                 )
         except Exception as e:
@@ -354,7 +367,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             port = self.settings.child("connection_group", "serial_port").value()
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Testing connection to {port}...", "log"]
+                    "Update_Status",
+                    [f"Testing connection to {port}...", "log"],
                 )
             )
 
@@ -369,7 +383,10 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                         self.emit_status(
                             ThreadCommand(
                                 "Update_Status",
-                                [f"Mount {addr}: {device_info[:50]}...", "log"],
+                                [
+                                    f"Mount {addr}: {device_info[:50]}...",
+                                    "log",
+                                ],
                             )
                         )
                     else:
@@ -388,7 +405,10 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     self.emit_status(
                         ThreadCommand(
                             "Update_Status",
-                            ["Connection established but no mounts responding", "bad"],
+                            [
+                                "Connection established but no mounts responding",
+                                "bad",
+                            ],
                         )
                     )
             else:
@@ -400,7 +420,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Connection test error: {str(e)}", "error"]
+                    "Update_Status",
+                    [f"Connection test error: {str(e)}", "error"],
                 )
             )
 
@@ -440,7 +461,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Error reading positions: {str(e)}", "error"]
+                    "Update_Status",
+                    [f"Error reading positions: {str(e)}", "error"],
                 )
             )
             fallback_len = (
@@ -460,7 +482,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         if not self.controller or not self.controller.connected:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", ["Hardware not connected. Cannot move.", "warning"]
+                    "Update_Status",
+                    ["Hardware not connected. Cannot move.", "warning"],
                 )
             )
             return
@@ -478,7 +501,10 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 self.emit_status(
                     ThreadCommand(
                         "Update_Status",
-                        [f"Single value {positions} applied to first axis only", "log"],
+                        [
+                            f"Single value {positions} applied to first axis only",
+                            "log",
+                        ],
                     )
                 )
 
@@ -499,13 +525,17 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     self.emit_status(
                         ThreadCommand(
                             "Update_Status",
-                            [f"Mount {addr} moving to {position:.2f} degrees", "log"],
+                            [
+                                f"Mount {addr} moving to {position:.2f} degrees",
+                                "log",
+                            ],
                         )
                     )
                 else:
                     self.emit_status(
                         ThreadCommand(
-                            "Update_Status", [f"Failed to move mount {addr}", "warning"]
+                            "Update_Status",
+                            [f"Failed to move mount {addr}", "warning"],
                         )
                     )
 
@@ -562,7 +592,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Error in relative move: {str(e)}", "error"]
+                    "Update_Status",
+                    [f"Error in relative move: {str(e)}", "error"],
                 )
             )
 
@@ -600,7 +631,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Status update error: {str(e)}", "error"]
+                    "Update_Status",
+                    [f"Status update error: {str(e)}", "error"],
                 )
             )
 

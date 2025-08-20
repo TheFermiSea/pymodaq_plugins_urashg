@@ -485,7 +485,11 @@ class URASHGMicroscopyExtension(CustomApp):
                     "name": "check_devices",
                     "type": "action",
                 },
-                {"title": "Emergency Stop", "name": "emergency_stop", "type": "action"},
+                {
+                    "title": "Emergency Stop",
+                    "name": "emergency_stop",
+                    "type": "action",
+                },
             ],
         },
         {
@@ -520,7 +524,11 @@ class URASHGMicroscopyExtension(CustomApp):
                     "name": "fit_rashg_curve",
                     "type": "action",
                 },
-                {"title": "Export Data", "name": "export_data", "type": "action"},
+                {
+                    "title": "Export Data",
+                    "name": "export_data",
+                    "type": "action",
+                },
                 {
                     "title": "Export Analysis Results",
                     "name": "export_analysis",
@@ -1164,7 +1172,11 @@ class URASHGMicroscopyExtension(CustomApp):
                             "title": "Scan Mode:",
                             "name": "scan_mode",
                             "type": "list",
-                            "limits": ["Sequential", "Synchronized", "Continuous"],
+                            "limits": [
+                                "Sequential",
+                                "Synchronized",
+                                "Continuous",
+                            ],
                             "value": "Sequential",
                         },
                     ],
@@ -1209,7 +1221,12 @@ class URASHGMicroscopyExtension(CustomApp):
                             "title": "Active Element:",
                             "name": "pol_active_element",
                             "type": "list",
-                            "limits": ["QWP", "HWP_Incident", "HWP_Analyzer", "All"],
+                            "limits": [
+                                "QWP",
+                                "HWP_Incident",
+                                "HWP_Analyzer",
+                                "All",
+                            ],
                             "value": "HWP_Incident",
                         },
                         {
@@ -1342,7 +1359,11 @@ class URASHGMicroscopyExtension(CustomApp):
                             "name": "start_scan",
                             "type": "action",
                         },
-                        {"title": "Stop Scan:", "name": "stop_scan", "type": "action"},
+                        {
+                            "title": "Stop Scan:",
+                            "name": "stop_scan",
+                            "type": "action",
+                        },
                         {
                             "title": "Pause Scan:",
                             "name": "pause_scan",
@@ -1612,7 +1633,10 @@ class URASHGMicroscopyExtension(CustomApp):
             icon="SP_ComputerIcon",
         )
         self.add_action(
-            "export_data", "Export Data", self.export_data, icon="SP_DialogSaveButton"
+            "export_data",
+            "Export Data",
+            self.export_data,
+            icon="SP_DialogSaveButton",
         )
         self.add_action(
             "export_analysis",
@@ -1691,7 +1715,10 @@ class URASHGMicroscopyExtension(CustomApp):
 
                 # Rotator control actions
                 self.settings.child(
-                    "device_control", "rotator_control", "qwp_control", "move_qwp"
+                    "device_control",
+                    "rotator_control",
+                    "qwp_control",
+                    "move_qwp",
                 ).sigActivated.connect(
                     lambda: self.move_rotator_from_parameter(
                         0,
@@ -1704,7 +1731,10 @@ class URASHGMicroscopyExtension(CustomApp):
                     )
                 )
                 self.settings.child(
-                    "device_control", "rotator_control", "qwp_control", "home_qwp"
+                    "device_control",
+                    "rotator_control",
+                    "qwp_control",
+                    "home_qwp",
                 ).sigActivated.connect(lambda: self.home_rotator(0))
 
                 self.settings.child(
@@ -1754,7 +1784,9 @@ class URASHGMicroscopyExtension(CustomApp):
                 ).sigActivated.connect(lambda: self.home_rotator(2))
 
                 self.settings.child(
-                    "device_control", "rotator_control", "emergency_stop_rotators"
+                    "device_control",
+                    "rotator_control",
+                    "emergency_stop_rotators",
                 ).sigActivated.connect(self.emergency_stop_rotators)
 
                 # Power meter control actions
@@ -1856,7 +1888,8 @@ class URASHGMicroscopyExtension(CustomApp):
 
                         if param_name.startswith("move_"):
                             position = self.device_control_settings.child(
-                                group_name, param_name.replace("move_", "") + "_set_pos"
+                                group_name,
+                                param_name.replace("move_", "") + "_set_pos",
                             ).value()
                             self.move_rotator_from_parameter(axis, position)
                         elif param_name.startswith("home_"):
@@ -1930,7 +1963,9 @@ class URASHGMicroscopyExtension(CustomApp):
                     laser_wavelength = self.get_current_laser_wavelength()
                     if laser_wavelength is not None:
                         self.settings.child(
-                            "device_control", "laser_control", "current_wavelength"
+                            "device_control",
+                            "laser_control",
+                            "current_wavelength",
                         ).setValue(laser_wavelength)
 
                     # Update laser status
@@ -1986,7 +2021,9 @@ class URASHGMicroscopyExtension(CustomApp):
                             try:
                                 power_value = float(power_text.replace(" mW", ""))
                                 self.settings.child(
-                                    "device_control", "power_control", "current_power"
+                                    "device_control",
+                                    "power_control",
+                                    "current_power",
                                 ).setValue(power_value)
                             except ValueError:
                                 pass
@@ -2074,7 +2111,9 @@ class URASHGMicroscopyExtension(CustomApp):
             self.device_control_parameter_tree = ParameterTree()
             # Create a proper Parameter object from the device control params
             device_control_param = Parameter.create(
-                name="device_control", type="group", children=device_control_params
+                name="device_control",
+                type="group",
+                children=device_control_params,
             )
             self.device_control_parameter_tree.setParameters(
                 device_control_param, showTop=False
@@ -2211,7 +2250,9 @@ class URASHGMicroscopyExtension(CustomApp):
             self.analysis_control_parameter_tree = ParameterTree()
             # Create a proper Parameter object from the analysis control params
             analysis_control_param = Parameter.create(
-                name="analysis_control", type="group", children=analysis_control_params
+                name="analysis_control",
+                type="group",
+                children=analysis_control_params,
             )
             self.analysis_control_parameter_tree.setParameters(
                 analysis_control_param, showTop=False
@@ -2756,7 +2797,9 @@ class URASHGMicroscopyExtension(CustomApp):
                 return 0
             elif scan_type == "Polarization Scan":
                 start = self.settings.child(
-                    "scanner_integration", "polarization_scan", "pol_start_angle"
+                    "scanner_integration",
+                    "polarization_scan",
+                    "pol_start_angle",
                 ).value()
                 end = self.settings.child(
                     "scanner_integration", "polarization_scan", "pol_end_angle"
@@ -2843,7 +2886,8 @@ class URASHGMicroscopyExtension(CustomApp):
                 self._start_multi_parameter_scan()
             else:
                 self.log_message(
-                    f"Scan type '{scan_type}' not yet implemented", level="WARNING"
+                    f"Scan type '{scan_type}' not yet implemented",
+                    level="WARNING",
                 )
                 self.stop_scanner_measurement()
 
@@ -2934,14 +2978,18 @@ class URASHGMicroscopyExtension(CustomApp):
             if scan_type == "Polarization Scan":
                 settle_time = (
                     self.settings.child(
-                        "scanner_integration", "polarization_scan", "pol_settle_time"
+                        "scanner_integration",
+                        "polarization_scan",
+                        "pol_settle_time",
                     ).value()
                     / 1000.0
                 )
                 total_time = total_points * (base_time_per_point + settle_time)
             elif scan_type == "Wavelength Scan":
                 stabilize_time = self.settings.child(
-                    "scanner_integration", "wavelength_scan", "wl_stabilize_time"
+                    "scanner_integration",
+                    "wavelength_scan",
+                    "wl_stabilize_time",
                 ).value()
                 total_time = total_points * (base_time_per_point + stabilize_time)
             else:
@@ -3006,7 +3054,8 @@ Averages: {averages}
             if scan_type in ["Polarization Scan", "Multi-Parameter Scan"]:
                 if "Elliptec" not in self.available_devices:
                     self.log_message(
-                        "Polarization scan requires Elliptec rotators", level="ERROR"
+                        "Polarization scan requires Elliptec rotators",
+                        level="ERROR",
                     )
                     return False
 
@@ -3101,7 +3150,8 @@ Averages: {averages}
             # - Compile spectroscopic dataset
 
             self.log_message(
-                "Wavelength scan framework ready (implementation pending)", level="INFO"
+                "Wavelength scan framework ready (implementation pending)",
+                level="INFO",
             )
 
         except Exception as e:
@@ -3213,7 +3263,8 @@ Averages: {averages}
 
             else:
                 self.log_message(
-                    "ERROR: Laser does not support absolute movement", level="error"
+                    "ERROR: Laser does not support absolute movement",
+                    level="error",
                 )
 
         except Exception as e:
@@ -3244,7 +3295,8 @@ Averages: {averages}
                     self.update_shutter_status("Open")
                 else:
                     self.log_message(
-                        "WARNING: Laser shutter control not available", level="warning"
+                        "WARNING: Laser shutter control not available",
+                        level="warning",
                     )
             else:
                 self.log_message("ERROR: Laser controller not available", level="error")
@@ -3277,7 +3329,8 @@ Averages: {averages}
                     self.update_shutter_status("Closed")
                 else:
                     self.log_message(
-                        "WARNING: Laser shutter control not available", level="warning"
+                        "WARNING: Laser shutter control not available",
+                        level="warning",
                     )
             else:
                 self.log_message("ERROR: Laser controller not available", level="error")
@@ -3392,11 +3445,13 @@ Averages: {averages}
                     self.log_message(f"{rotator_name} homing via controller")
                 else:
                     self.log_message(
-                        f"WARNING: {rotator_name} homing not available", level="warning"
+                        f"WARNING: {rotator_name} homing not available",
+                        level="warning",
                     )
             else:
                 self.log_message(
-                    f"ERROR: {rotator_name} controller not available", level="error"
+                    f"ERROR: {rotator_name} controller not available",
+                    level="error",
                 )
 
         except Exception as e:
@@ -3474,7 +3529,8 @@ Averages: {averages}
                 # Use spinbox value as fallback
                 current_wavelength = self.wavelength_spinbox.value()
                 self.log_message(
-                    f"Using set wavelength: {current_wavelength} nm", level="warning"
+                    f"Using set wavelength: {current_wavelength} nm",
+                    level="warning",
                 )
 
             # Sync power meter
@@ -3520,7 +3576,8 @@ Averages: {averages}
                         return True
 
             self.log_message(
-                "WARNING: Power meter wavelength sync not supported", level="warning"
+                "WARNING: Power meter wavelength sync not supported",
+                level="warning",
             )
             self.update_sync_status("Not Supported", "orange")
             return False
@@ -3696,7 +3753,8 @@ Averages: {averages}
 
         if not self.dashboard or not hasattr(self.dashboard, "modules_manager"):
             self.log_message(
-                "ERROR: Dashboard or modules_manager not available", level="error"
+                "ERROR: Dashboard or modules_manager not available",
+                level="error",
             )
             return
 
@@ -3730,7 +3788,8 @@ Averages: {averages}
 
             if self.missing_devices:
                 self.log_message(
-                    f"Missing required devices: {self.missing_devices}", level="error"
+                    f"Missing required devices: {self.missing_devices}",
+                    level="error",
                 )
                 return False
 
@@ -3751,7 +3810,8 @@ Averages: {averages}
 
         if not self.dashboard or not hasattr(self.dashboard, "modules_manager"):
             self.log_message(
-                "ERROR: Dashboard or modules_manager not available", level="error"
+                "ERROR: Dashboard or modules_manager not available",
+                level="error",
             )
             return
 
@@ -3831,7 +3891,8 @@ Averages: {averages}
         max_power = self.settings.child("hardware", "safety", "max_power").value()
         if max_power > 80.0:
             self.log_message(
-                f"WARNING: High power limit set ({max_power}%)", level="warning"
+                f"WARNING: High power limit set ({max_power}%)",
+                level="warning",
             )
             reply = messagebox(
                 severity="question",
@@ -3916,7 +3977,8 @@ Averages: {averages}
                 self.log_message("Measurement paused")
             else:
                 self.log_message(
-                    "Cannot pause: No active measurement worker", level="warning"
+                    "Cannot pause: No active measurement worker",
+                    level="warning",
                 )
 
         except Exception as e:
@@ -5090,7 +5152,10 @@ Averages: {averages}
             except Exception as e:
                 logger.warning(f"Constrained fit failed, trying unconstrained: {e}")
                 popt, pcov = curve_fit(
-                    rashg_func, angles_np, intensities_np, p0=[A_init, B_init, phi_init]
+                    rashg_func,
+                    angles_np,
+                    intensities_np,
+                    p0=[A_init, B_init, phi_init],
                 )
 
             # Extract fit parameters
@@ -6220,7 +6285,11 @@ class MeasurementWorker(QObject):
             # This can be configured based on measurement type
             if measurement_type == "Basic RASHG":
                 # Rotate HWP analyzer (axis 2) while keeping others fixed
-                target_positions = [None, None, angle]  # [QWP, HWP_inc, HWP_ana]
+                target_positions = [
+                    None,
+                    None,
+                    angle,
+                ]  # [QWP, HWP_inc, HWP_ana]
                 axis_to_move = 2
             else:
                 # For other measurement types, could have different configurations
@@ -6398,7 +6467,10 @@ class MeasurementWorker(QObject):
             images_dir.mkdir(exist_ok=True)
 
             for i, (angle, image) in enumerate(
-                zip(self.measurement_data["angles"], self.measurement_data["images"])
+                zip(
+                    self.measurement_data["angles"],
+                    self.measurement_data["images"],
+                )
             ):
                 if image is not None:
                     image_filename = images_dir / f"angle_{angle:06.2f}_deg_{i:03d}.npy"

@@ -8,9 +8,7 @@ cannot be installed due to dependency conflicts.
 """
 
 import logging
-from typing import Any, Dict, Optional
-
-import numpy as np
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +17,9 @@ class MockPyrpl:
     """Mock PyRPL main class for development."""
 
     def __init__(
-        self, hostname: str = "192.168.1.100", config_file: Optional[str] = None
+        self,
+        hostname: str = "192.168.1.100",
+        config_file: Optional[str] = None,
     ):
         self.hostname = hostname
         self.config_file = config_file

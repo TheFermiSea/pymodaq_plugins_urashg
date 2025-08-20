@@ -8,7 +8,6 @@ general XYZ stage movements. Supports up to 3 axes with individual configuration
 Compatible with PyMoDAQ 5.0+ multi-axis architecture.
 """
 
-import time
 from typing import List, Union
 
 import numpy as np
@@ -22,9 +21,7 @@ from pymodaq.utils.parameter import Parameter
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
     AxisConfig,
-    ESP300AxisError,
     ESP300Controller,
-    ESP300GeneralError,
 )
 
 
@@ -281,11 +278,31 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             "name": "actions_group",
             "type": "group",
             "children": [
-                {"title": "Home All Axes:", "name": "home_all", "type": "action"},
-                {"title": "Stop All Motion:", "name": "stop_all", "type": "action"},
-                {"title": "Enable All Axes:", "name": "enable_all", "type": "action"},
-                {"title": "Disable All Axes:", "name": "disable_all", "type": "action"},
-                {"title": "Clear Errors:", "name": "clear_errors", "type": "action"},
+                {
+                    "title": "Home All Axes:",
+                    "name": "home_all",
+                    "type": "action",
+                },
+                {
+                    "title": "Stop All Motion:",
+                    "name": "stop_all",
+                    "type": "action",
+                },
+                {
+                    "title": "Enable All Axes:",
+                    "name": "enable_all",
+                    "type": "action",
+                },
+                {
+                    "title": "Disable All Axes:",
+                    "name": "disable_all",
+                    "type": "action",
+                },
+                {
+                    "title": "Clear Errors:",
+                    "name": "clear_errors",
+                    "type": "action",
+                },
             ],
         },
         # Status display
@@ -377,7 +394,10 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
             # Create controller
             self.controller = ESP300Controller(
-                port=port, baudrate=baudrate, timeout=timeout, axes_config=axes_config
+                port=port,
+                baudrate=baudrate,
+                timeout=timeout,
+                axes_config=axes_config,
             )
 
             # Connect to device
@@ -398,7 +418,8 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             if not self.controller.enable_all_axes():
                 self.emit_status(
                     ThreadCommand(
-                        "Update_Status", ["Warning: Some axes failed to enable"]
+                        "Update_Status",
+                        ["Warning: Some axes failed to enable"],
                     )
                 )
 
@@ -529,22 +550,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     param_name = f"axis{i}_position"
                     self.settings.child("status_group", param_name).setValue(position)
 
-            # Create position array and notify main PyMoDAQ UI
-            current_positions = self.get_actuator_value()
-            plugin_name = getattr(self, "title", self.__class__.__name__)
-            if self.is_multiaxes:
-                data_actuator = DataActuator(
-                    name=plugin_name,
-                    data=[np.array(current_positions)],
-                    units=self._controller_units,
-                )
-            else:
-                data_actuator = DataActuator(
-                    name=plugin_name,
-                    data=[np.array([current_positions])],
-                    units=self._controller_units,
-                )
-            # Status update - no specific signal needed for GET_ACTUATOR_VALUE in PyMoDAQ 5.x
+            # Status update - positions already updated above
 
         except Exception as e:
             self.emit_status(
@@ -636,21 +642,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 )
 
                 # Emit move done signal for mock mode
-                current_positions = self.get_actuator_value()
-                plugin_name = getattr(self, "title", self.__class__.__name__)
-                if self.is_multiaxes:
-                    data_actuator = DataActuator(
-                        name=plugin_name,
-                        data=[np.array(current_positions)],
-                        units=self._controller_units,
-                    )
-                else:
-                    data_actuator = DataActuator(
-                        name=plugin_name,
-                        data=[np.array([current_positions])],
-                        units=self._controller_units,
-                    )
-                self.move_done()  # Emit move_done signal
+                self.move_done()
                 return
 
             if not self.controller.is_connected():
@@ -717,22 +709,8 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
             self._update_status_display()
 
-            # Emit move done signal with proper DataActuator
-            current_positions = self.get_actuator_value()
-            plugin_name = getattr(self, "title", self.__class__.__name__)
-            if self.is_multiaxes:
-                data_actuator = DataActuator(
-                    name=plugin_name,
-                    data=[np.array(current_positions)],
-                    units=self._controller_units,
-                )
-            else:
-                data_actuator = DataActuator(
-                    name=plugin_name,
-                    data=[np.array([current_positions])],
-                    units=self._controller_units,
-                )
-            self.move_done()  # Emit move_done signal
+            # Emit move done signal
+            self.move_done()
 
         except Exception as e:
             self.emit_status(ThreadCommand("Update_Status", [f"Move error: {e}"]))
@@ -889,7 +867,8 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     if errors:
                         self.emit_status(
                             ThreadCommand(
-                                "Update_Status", [f"Cleared {len(errors)} errors"]
+                                "Update_Status",
+                                [f"Cleared {len(errors)} errors"],
                             )
                         )
                         self.settings.child("status_group", "last_error").setValue(

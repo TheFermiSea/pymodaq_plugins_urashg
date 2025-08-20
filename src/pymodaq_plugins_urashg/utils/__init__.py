@@ -31,7 +31,7 @@ try:
     )
 
     PYRPL_WRAPPER_AVAILABLE = True
-except ImportError as e:
+except ImportError:
     # PyRPL not available - provide mock classes for development
     PYRPL_WRAPPER_AVAILABLE = False
     PyRPLManager = None

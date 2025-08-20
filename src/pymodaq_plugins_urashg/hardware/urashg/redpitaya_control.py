@@ -607,7 +607,9 @@ class PowerStabilizationController:
         self.power_history.clear()
 
         self._monitoring_thread = threading.Thread(
-            target=self._power_monitoring_loop, name="PowerMonitoring", daemon=True
+            target=self._power_monitoring_loop,
+            name="PowerMonitoring",
+            daemon=True,
         )
         self._monitoring_thread.start()
 

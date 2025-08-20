@@ -6,9 +6,6 @@ Updated for PyMoDAQ 5.0+ with DataWithAxes format.
 Provides power measurement capability for URASHG calibration.
 """
 
-import time
-from typing import List
-
 import numpy as np
 from pymodaq.control_modules.viewer_utility_classes import (
     DAQ_Viewer_base,
@@ -17,12 +14,6 @@ from pymodaq.control_modules.viewer_utility_classes import (
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataToExport, DataWithAxes
 from pymodaq_data.data import DataSource
-
-try:
-    from pymodaq.control_modules.thread_commands import ThreadStatusViewer
-except ImportError:
-    # PyMoDAQ 5.x compatibility
-    from pymodaq.utils.daq_utils import ThreadCommand as ThreadStatusViewer
 
 from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
     Newport1830CController,
@@ -133,7 +124,11 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             "name": "calibration_group",
             "type": "group",
             "children": [
-                {"title": "Zero Adjust:", "name": "zero_adjust", "type": "action"},
+                {
+                    "title": "Zero Adjust:",
+                    "name": "zero_adjust",
+                    "type": "action",
+                },
             ],
         },
         # Status display
@@ -186,7 +181,10 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
 
             # Create controller
             self.controller = Newport1830CController(
-                port=port, baudrate=baudrate, timeout=timeout, mock_mode=mock_mode
+                port=port,
+                baudrate=baudrate,
+                timeout=timeout,
+                mock_mode=mock_mode,
             )
 
             # Connect to device
@@ -342,7 +340,12 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
         try:
             param_name = param.name()
 
-            if param_name in ["wavelength", "units", "power_range", "filter_speed"]:
+            if param_name in [
+                "wavelength",
+                "units",
+                "power_range",
+                "filter_speed",
+            ]:
                 self._apply_measurement_settings()
                 self.emit_status(
                     ThreadCommand("Update_Status", [f"Updated {param_name}"])
@@ -372,7 +375,8 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             if self.controller.zero_adjust():
                 self.emit_status(
                     ThreadCommand(
-                        "Update_Status", ["Zero adjustment completed successfully"]
+                        "Update_Status",
+                        ["Zero adjustment completed successfully"],
                     )
                 )
             else:

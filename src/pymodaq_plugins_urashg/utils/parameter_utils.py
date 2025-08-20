@@ -18,7 +18,7 @@ def child_exists(param, *path):
     try:
         param.child(*path)
         return True
-    except:
+    except (AttributeError, KeyError, ValueError):
         return False
 
 
@@ -36,7 +36,7 @@ def get_child_value(param, *path, default=None):
     """
     try:
         return param.child(*path).value()
-    except:
+    except (AttributeError, KeyError, ValueError):
         return default
 
 
@@ -55,5 +55,5 @@ def set_child_value(param, *path_and_value):
         *path, value = path_and_value
         param.child(*path).setValue(value)
         return True
-    except:
+    except (AttributeError, KeyError, ValueError):
         return False

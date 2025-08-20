@@ -3,21 +3,13 @@ from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
 
-try:
-    from pymodaq.control_modules.thread_commands import ThreadStatusViewer
-except ImportError:
-    # PyMoDAQ 5.x compatibility
-    from pymodaq.utils.daq_utils import ThreadCommand as ThreadStatusViewer
-
 # Removed unused imports: get_param_path, iter_children
 from pymodaq_data.data import Axis, DataSource, DataToExport, DataWithAxes
 
 # Try to import PyVCAM and handle the case where it's not installed
 try:
-    import pyvcam
     from pyvcam import pvc
     from pyvcam.camera import Camera
-    from pyvcam.constants import CLEAR_NEVER, CLEAR_PRE_SEQUENCE, EXT_TRIG_INTERNAL
 
     PYVCAM_AVAILABLE = True
 except ImportError as e:

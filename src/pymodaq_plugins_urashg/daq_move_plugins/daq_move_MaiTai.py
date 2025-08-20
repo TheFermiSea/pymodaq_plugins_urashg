@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
@@ -210,7 +210,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
             # Create controller
             self.controller = MaiTaiController(
-                port=port, baudrate=baudrate, timeout=timeout, mock_mode=mock_mode
+                port=port,
+                baudrate=baudrate,
+                timeout=timeout,
+                mock_mode=mock_mode,
             )
 
             # Connect to hardware
@@ -313,7 +316,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Error reading wavelength: {str(e)}", "log"]
+                    "Update_Status",
+                    [f"Error reading wavelength: {str(e)}", "log"],
                 )
             )
             fallback_position = (
@@ -376,26 +380,26 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 self.emit_status(
                     ThreadCommand(
                         "Update_Status",
-                        [f"Moving to {int(round(target_wavelength))} nm", "log"],
+                        [
+                            f"Moving to {int(round(target_wavelength))} nm",
+                            "log",
+                        ],
                     )
                 )
 
                 # Update current position
                 self.current_position = int(round(target_wavelength))
 
-                # Emit move done signal with proper DataActuator
-                plugin_name = getattr(self, "title", self.__class__.__name__)
-                data_actuator = DataActuator(
-                    name=plugin_name,
-                    data=[np.array([int(round(target_wavelength))])],
-                    units=self._controller_units,
-                )
-                self.move_done()  # Emit move_done signal
+                # Emit move done signal
+                self.move_done()
             else:
                 self.emit_status(
                     ThreadCommand(
                         "Update_Status",
-                        [f"Failed to set wavelength to {target_wavelength} nm", "log"],
+                        [
+                            f"Failed to set wavelength to {target_wavelength} nm",
+                            "log",
+                        ],
                     )
                 )
 
@@ -431,7 +435,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             self.emit_status(
                 ThreadCommand(
                     "Update_Status",
-                    [f"DEBUG: Relative move of {relative_move} nm requested", "log"],
+                    [
+                        f"DEBUG: Relative move of {relative_move} nm requested",
+                        "log",
+                    ],
                 )
             )
 
@@ -456,7 +463,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Error in relative move: {str(e)}", "log"]
+                    "Update_Status",
+                    [f"Error in relative move: {str(e)}", "log"],
                 )
             )
 
@@ -480,14 +488,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     wavelength
                 )
 
-                # Create DataActuator and emit to main PyMoDAQ UI
-                plugin_name = getattr(self, "title", self.__class__.__name__)
-                current_data = DataActuator(
-                    name=plugin_name,
-                    data=[np.array([wavelength])],
-                    units=self._controller_units,
-                )
-                # Status update - no specific signal needed for GET_ACTUATOR_VALUE in PyMoDAQ 5.x
+                # Status update - wavelength updated above
 
             # Update power
             power = self.controller.get_power()
@@ -531,7 +532,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                             self.emit_status(
                                 ThreadCommand(
                                     "Update_Status",
-                                    [f"Enhanced status error: {str(e)}", "log"],
+                                    [
+                                        f"Enhanced status error: {str(e)}",
+                                        "log",
+                                    ],
                                 )
                             )
 
@@ -606,7 +610,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                             self.emit_status(
                                 ThreadCommand(
                                     "Update_Status",
-                                    ["Failed to send open shutter command", "log"],
+                                    [
+                                        "Failed to send open shutter command",
+                                        "log",
+                                    ],
                                 )
                             )
 
@@ -649,7 +656,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                             self.emit_status(
                                 ThreadCommand(
                                     "Update_Status",
-                                    ["Failed to send close shutter command", "log"],
+                                    [
+                                        "Failed to send close shutter command",
+                                        "log",
+                                    ],
                                 )
                             )
 
@@ -657,7 +667,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     # Move to home wavelength
                     self.emit_status(
                         ThreadCommand(
-                            "Update_Status", ["Moving to home wavelength...", "log"]
+                            "Update_Status",
+                            ["Moving to home wavelength...", "log"],
                         )
                     )
                     self.move_home()
@@ -665,7 +676,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
-                    "Update_Status", [f"Settings commit error: {str(e)}", "log"]
+                    "Update_Status",
+                    [f"Settings commit error: {str(e)}", "log"],
                 )
             )
 
@@ -689,7 +701,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             self.emit_status(
                 ThreadCommand(
                     "Update_Status",
-                    [f"Moving to home wavelength: {home_wavelength} nm", "log"],
+                    [
+                        f"Moving to home wavelength: {home_wavelength} nm",
+                        "log",
+                    ],
                 )
             )
 
@@ -714,7 +729,10 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 self.emit_status(
                     ThreadCommand(
                         "Update_Status",
-                        ["Motion stop requested (MaiTai has no explicit stop)", "log"],
+                        [
+                            "Motion stop requested (MaiTai has no explicit stop)",
+                            "log",
+                        ],
                     )
                 )
         except Exception as e:
