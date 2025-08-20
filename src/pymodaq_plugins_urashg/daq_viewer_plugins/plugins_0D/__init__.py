@@ -13,8 +13,7 @@ for path_file in Path(__file__).parent.iterdir():
             importlib.import_module("." + path_file.stem, __package__)
     except Exception as e:
         logger.warning(
-            "{:} plugin couldn't be loaded due to some missing packages or errors: {:}".format(
-                path_file.stem, str(e)
-            )
+            "{:} plugin couldn't be loaded due to some missing packages "
+            "or errors: {:}".format(path_file.stem, str(e))
         )
         pass
