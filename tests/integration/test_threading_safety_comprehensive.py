@@ -15,7 +15,7 @@ Status: Both controllers now use explicit cleanup via plugin close() methods
 
 import sys
 
-from PyQt6.QtWidgets import QApplication
+from qtpy.QtWidgets import QApplication
 
 app = QApplication.instance()
 if app is None:
