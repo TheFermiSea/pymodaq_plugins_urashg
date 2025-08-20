@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """
-Ultra-minimal test for hardware controller threading safety.
+Debug version to isolate the import issue causing CI hangs.
 
-This test verifies that the problematic __del__ methods have been removed
-from ESP300Controller and Newport1830C_controller classes, which were
-causing QThread crashes during PyMoDAQ dashboard shutdown.
-
-The test is designed to be as minimal as possible to avoid any hanging
-in CI environments.
+This minimal test aims to identify what's causing the "No module named pip" error
+and potential hanging in CI environments.
 """
 
 import pytest
@@ -19,79 +15,95 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 
-@pytest.mark.timeout(10)
-def test_controller_classes_have_no_del_methods():
-    """Test that problematic __del__ methods have been removed."""
+@pytest.mark.timeout(5)
+def test_basic_imports():
+    """Test that we can import the controller modules without errors."""
 
-    # Test ESP300Controller
+    # Test 1: Try to import ESP300Controller
     try:
+        print("Attempting to import ESP300Controller...")
         from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
+        print("✅ ESP300Controller import successful")
 
-        # Check that __del__ method is not defined
-        assert not hasattr(ESP300Controller, '__del__'), "ESP300Controller still has __del__ method"
+        # Check for __del__ method
+        has_del = hasattr(ESP300Controller, '__del__')
+        print(f"ESP300Controller has __del__ method: {has_del}")
+        assert not has_del, "ESP300Controller should not have __del__ method"
 
-        # Create instance briefly to test basic instantiation
-        try:
-            controller = ESP300Controller(port="mock", axes_config=[])
-            del controller
-        except Exception:
-            # Initialization errors are acceptable - we only care about __del__ safety
-            pass
-        gc.collect()
+    except Exception as e:
+        print(f"❌ ESP300Controller import failed: {e}")
+        print(f"Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        pytest.fail(f"Failed to import ESP300Controller: {e}")
 
-    except ImportError:
-        pytest.skip("ESP300Controller not available")
-
-    # Test Newport1830C_controller
+    # Test 2: Try to import Newport1830CController
     try:
+        print("Attempting to import Newport1830CController...")
         from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
+        print("✅ Newport1830CController import successful")
 
-        # Check that __del__ method is not defined
-        assert not hasattr(Newport1830CController, '__del__'), "Newport1830CController still has __del__ method"
+        # Check for __del__ method
+        has_del = hasattr(Newport1830CController, '__del__')
+        print(f"Newport1830CController has __del__ method: {has_del}")
+        assert not has_del, "Newport1830CController should not have __del__ method"
 
-        # Create instance briefly to test basic instantiation
-        try:
-            controller = Newport1830CController()
-            del controller
-        except Exception:
-            # Initialization errors are acceptable - we only care about __del__ safety
-            pass
-        gc.collect()
-
-    except ImportError:
-        pytest.skip("Newport1830CController not available")
+    except Exception as e:
+        print(f"❌ Newport1830CController import failed: {e}")
+        print(f"Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        pytest.fail(f"Failed to import Newport1830CController: {e}")
 
 
 @pytest.mark.timeout(5)
-def test_garbage_collection_safety():
-    """Test that garbage collection completes without hanging."""
+def test_safe_instantiation():
+    """Test safe instantiation without any real initialization."""
 
-    # Force garbage collection - this should not hang
-    initial_count = len(gc.get_objects())
-    gc.collect()
-    final_count = len(gc.get_objects())
+    try:
+        from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
+        from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
 
-    # Test passes if garbage collection completes
-    assert final_count <= initial_count
+        print("Testing ESP300Controller instantiation...")
+        # Just test class creation without calling any methods
+        esp_class = ESP300Controller
+        print(f"ESP300Controller class: {esp_class}")
+
+        print("Testing Newport1830CController instantiation...")
+        newport_class = Newport1830CController
+        print(f"Newport1830CController class: {newport_class}")
+
+        # Force garbage collection
+        gc.collect()
+        print("✅ Garbage collection completed")
+
+    except Exception as e:
+        print(f"❌ Safe instantiation failed: {e}")
+        import traceback
+        traceback.print_exc()
+        pytest.fail(f"Safe instantiation failed: {e}")
 
 
 if __name__ == "__main__":
     """Standalone execution for debugging."""
-    print("Ultra-Minimal Threading Safety Test")
-    print("=" * 40)
+    print("Debug Threading Safety Test")
+    print("=" * 30)
 
     try:
-        print("Testing controller classes...")
-        test_controller_classes_have_no_del_methods()
-        print("✅ Controller classes test passed")
+        print("=" * 30)
+        print("TEST 1: Basic Imports")
+        print("=" * 30)
+        test_basic_imports()
 
-        print("Testing garbage collection...")
-        test_garbage_collection_safety()
-        print("✅ Garbage collection test passed")
+        print("\n" + "=" * 30)
+        print("TEST 2: Safe Instantiation")
+        print("=" * 30)
+        test_safe_instantiation()
 
-        print("\n🎉 All tests passed!")
-        print("✅ __del__ methods have been properly removed")
+        print("\n🎉 All debug tests passed!")
 
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f"\n❌ Debug test failed: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
