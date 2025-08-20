@@ -18,33 +18,34 @@ Test Categories:
 - PyMoDAQ Standards Compliance
 """
 
-import pytest
 import importlib.metadata
-import logging
-from unittest.mock import Mock, patch, MagicMock, PropertyMock
-from pathlib import Path
-import numpy as np
-from typing import Dict, Any, List, Optional
 import json
+import logging
 import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
-# Qt imports
-from qtpy import QtWidgets, QtCore, QtTest
-from qtpy.QtCore import QObject, Signal, QTimer
+import numpy as np
+import pytest
+from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
+from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
+from pymodaq.utils.config import Config
+from pymodaq.utils.data import Axis, DataSource, DataWithAxes
+from pymodaq.utils.logger import get_module_name, set_logger
 
 # PyMoDAQ imports
 from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataWithAxes, Axis, DataSource
-from pymodaq.utils.logger import set_logger, get_module_name
-from pymodaq.utils.config import Config
-from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
-from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
+
+# Qt imports
+from qtpy import QtCore, QtTest, QtWidgets
+from qtpy.QtCore import QObject, QTimer, Signal
 
 # Test utilities
 from tests.mock_modules.mock_devices import (
+    MockDeviceManager,
     MockMovePlugin,
     MockViewerPlugin,
-    MockDeviceManager,
 )
 
 logger = set_logger(get_module_name(__file__))
@@ -546,7 +547,7 @@ class TestExtensionPluginCommunication:
                 if not QtWidgets.QApplication.instance():
                     app = QtWidgets.QApplication([])
 
-                extension = URASHGMicroscopyExtension()
+                extension = URASHGMicroscopyExtension(mock_dm)
                 extension.device_manager = mock_dm
 
                 return extension, mock_plugins

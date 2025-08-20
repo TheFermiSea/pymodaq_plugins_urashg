@@ -190,7 +190,7 @@ class TestDeviceStatusManagement:
                 URASHGDeviceManager,
             )
 
-            dm = URASHGDeviceManager()
+            dm = URASHGDeviceManager(mock_dashboard)
             dm.device_status = {
                 "MaiTai": DeviceStatus.DISCONNECTED,
                 "Elliptec": DeviceStatus.CONNECTED,
@@ -484,7 +484,7 @@ class TestDeviceManagerThreadSafety:
                 URASHGDeviceManager,
             )
 
-            return URASHGDeviceManager()
+            return URASHGDeviceManager(mock_dashboard)
 
     def test_thread_safe_device_access(self, threaded_device_manager):
         """Test device access is thread-safe."""
@@ -540,7 +540,7 @@ class TestDeviceManagerPluginIntegration:
                 URASHGDeviceManager,
             )
 
-            return URASHGDeviceManager()
+            return URASHGDeviceManager(mock_dashboard)
 
     def test_plugin_lifecycle_management(self, plugin_integrated_manager):
         """Test plugin initialization and cleanup."""
@@ -601,7 +601,7 @@ class TestDeviceManagerConfiguration:
                 URASHGDeviceManager,
             )
 
-            return URASHGDeviceManager()
+            return URASHGDeviceManager(mock_dashboard)
 
     def test_configuration_save_load(self, configurable_device_manager):
         """Test configuration persistence."""
@@ -674,7 +674,7 @@ class TestDeviceManagerPyMoDAQStandards:
         """Test signals follow PyMoDAQ naming conventions."""
         from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
 
-        dm = URASHGDeviceManager()
+        dm = URASHGDeviceManager(mock_dashboard)
 
         # Signal names should be descriptive and snake_case
         signal_names = [
@@ -695,7 +695,7 @@ class TestDeviceManagerPyMoDAQStandards:
         from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
 
         # Should have standardized error handling
-        dm = URASHGDeviceManager()
+        dm = URASHGDeviceManager(mock_dashboard)
 
         # Should have error signals
         if hasattr(dm, "device_error_occurred"):

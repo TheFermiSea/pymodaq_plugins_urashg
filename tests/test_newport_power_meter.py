@@ -6,12 +6,13 @@ Tests both real hardware functionality and mock modes for CI/CD integration.
 """
 
 import sys
-import pytest
 import time
-import numpy as np
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, PropertyMock
 from typing import List, Optional
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
+
+import numpy as np
+import pytest
 
 # Add source path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -205,12 +206,12 @@ def mock_newport_controller():
 def mock_pymodaq_environment():
     """Fixture to setup mock PyMoDAQ environment."""
     from tests.mock_modules.mock_pymodaq import (
-        MockDAQViewerBase,
-        MockThreadCommand,
         MockAxis,
-        MockDataWithAxes,
+        MockDAQViewerBase,
         MockDataToExport,
+        MockDataWithAxes,
         MockParameter,
+        MockThreadCommand,
     )
 
     # Mock PyMoDAQ modules
@@ -254,6 +255,7 @@ def newport_plugin(mock_serial_environment, mock_pymodaq_environment):
         """Mock initialization that always succeeds."""
         try:
             from tests.mock_modules.mock_pymodaq import MockThreadCommand
+
             plugin.emit_status(
                 MockThreadCommand("show_splash", "Initializing Newport 1830-C...")
             )
@@ -282,14 +284,10 @@ def newport_plugin(mock_serial_environment, mock_pymodaq_environment):
             # Update status
             plugin.settings.child("status_group", "device_status").setValue("Connected")
 
-            plugin.emit_status(
-                MockThreadCommand("close_splash")
-            )
+            plugin.emit_status(MockThreadCommand("close_splash"))
 
             info_string = "Newport 1830-C initialized on /dev/ttyS0"
-            plugin.emit_status(
-                MockThreadCommand("Update_Status", [info_string])
-            )
+            plugin.emit_status(MockThreadCommand("Update_Status", [info_string]))
 
             return info_string, True
 
@@ -327,7 +325,7 @@ class TestNewportPowerMeterMockMode:
             p.get("name") for p in newport_plugin.params if isinstance(p, dict)
         ]
         required_groups = [
-            "connect_settings",
+            "connection_group",
             "measurement_group",
             "calibration_group",
             "status_group",
@@ -352,9 +350,11 @@ class TestNewportPowerMeterMockMode:
     def test_connection_parameters(self, newport_plugin):
         """Test connection parameter handling."""
         # Check default connection parameters (these are initialized by the base class)
-        port = newport_plugin.settings.child("connect_settings", "com_port").value()
-        baudrate = newport_plugin.settings.child("connect_settings", "baud_rate").value()
-        timeout = newport_plugin.settings.child("connect_settings", "timeout").value()
+        port = newport_plugin.settings.child("connection_group", "com_port").value()
+        baudrate = newport_plugin.settings.child(
+            "connection_group", "baud_rate"
+        ).value()
+        timeout = newport_plugin.settings.child("connection_group", "timeout").value()
 
         # Test that parameters exist and have reasonable values
         assert port is not None
@@ -486,6 +486,7 @@ class TestNewportPowerMeterHardware:
         """Test real hardware can be detected."""
         try:
             import serial
+
             from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
                 Newport1830CController,
             )

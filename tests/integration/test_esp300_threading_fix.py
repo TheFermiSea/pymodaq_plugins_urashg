@@ -6,9 +6,9 @@ This test simulates PyMoDAQ's plugin initialization process to verify that the
 ESP300Controller __del__ method fix prevents QThread crashes.
 """
 
+import logging
 import sys
 import time
-import logging
 from pathlib import Path
 
 # Add project to path
@@ -32,7 +32,7 @@ def test_esp300_initialization():
         plugin = DAQ_Move_ESP300()
 
         # Mock connection parameters for safe testing
-        plugin.settings.child("connect_settings", "mock_mode").setValue(True)
+        plugin.settings.child("connection_group", "mock_mode").setValue(True)
         plugin.settings.child("axes_config", "num_axes").setValue(3)
 
         logger.info("Initializing ESP300 plugin in mock mode...")
@@ -85,7 +85,7 @@ def test_multiple_initializations():
         logging.getLogger(__name__).info(f"Initialization test {i+1}/5...")
 
         plugin = DAQ_Move_ESP300()
-        plugin.settings.child("connect_settings", "mock_mode").setValue(True)
+        plugin.settings.child("connection_group", "mock_mode").setValue(True)
 
         try:
             plugin.ini_stage_init()

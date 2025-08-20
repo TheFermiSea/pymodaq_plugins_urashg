@@ -2,9 +2,10 @@
 Unit tests for PyMoDAQ plugins
 """
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
@@ -120,7 +121,7 @@ def test_esp300_mock_mode_initialization():
     plugin = DAQ_Move_ESP300()
 
     # Enable mock mode
-    plugin.settings.child("connect_settings", "mock_mode").setValue(True)
+    plugin.settings.child("connection_group", "mock_mode").setValue(True)
 
     # Test initialization
     result, success = plugin.ini_stage()
@@ -139,12 +140,13 @@ def test_esp300_mock_mode_initialization():
 @pytest.mark.unit
 def test_esp300_mock_mode_move():
     """Test ESP300 plugin move operations in mock mode"""
-    from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import DAQ_Move_ESP300
-    from pymodaq.utils.data import DataActuator
     import numpy as np
+    from pymodaq.utils.data import DataActuator
+
+    from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import DAQ_Move_ESP300
 
     plugin = DAQ_Move_ESP300()
-    plugin.settings.child("connect_settings", "mock_mode").setValue(True)
+    plugin.settings.child("connection_group", "mock_mode").setValue(True)
     plugin.ini_stage()
 
     # Test move_abs with DataActuator
