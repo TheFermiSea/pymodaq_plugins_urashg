@@ -491,6 +491,7 @@ class TestNewportPowerMeterHardware:
             )
 
             # Try common serial ports
+            # Try common serial ports (for testing purposes)
             test_ports = ["/dev/ttyS0", "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2"]
 
             controller = None

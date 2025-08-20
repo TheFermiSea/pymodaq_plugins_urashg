@@ -1,11 +1,15 @@
 """
-MaiTai Laser Controller - Stub Implementation for Testing
+Enhanced MaiTai Laser Controller with Realistic Mock Implementation
 
-This is a placeholder implementation for testing purposes.
-The full implementation would provide MaiTai laser control.
+This module provides comprehensive hardware abstraction for Spectra-Physics MaiTai
+Titanium Sapphire laser with realistic mock behavior that matches actual hardware responses.
 """
 
+import logging
+import random
 import time
+from threading import Lock
+from typing import List, Optional, Tuple
 
 
 class MaiTaiError(Exception):
@@ -18,13 +22,13 @@ class MaiTaiController:
     """
     Hardware controller for Spectra-Physics MaiTai Titanium Sapphire Laser.
 
-    Provides hardware abstraction layer between PyMoDAQ plugins and MaiTai laser.
-    Based on working implementation from previous repository.
+    Provides hardware abstraction layer between PyMoDAQ plugins and MaiTai laser
+    with realistic mock behavior that closely mimics actual hardware responses.
     """
 
     def __init__(
         self,
-        port: str = "/dev/ttyUSB0",
+        port: str = "",
         baudrate: int = 115200,
         timeout: float = 2.0,
         mock_mode: bool = False,
@@ -43,12 +47,6 @@ class MaiTaiController:
         mock_mode : bool
             Enable mock mode for testing without hardware
         """
-        import logging
-        import time
-        from threading import Lock
-
-        import serial
-
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
@@ -65,8 +63,6 @@ class MaiTaiController:
         self._mock_shutter = False
 
         self.logger = logging.getLogger(__name__)
-        # Enable debug logging for troubleshooting
-        self.logger.setLevel(logging.DEBUG)
         self.logger.info(
             f"MaiTaiController initialized: port={port}, mock_mode={mock_mode}"
         )
@@ -80,10 +76,6 @@ class MaiTaiController:
         bool
             True if connection successful, False otherwise
         """
-        import time
-
-        import serial
-
         with self._lock:
             if self._connected:
                 return True
@@ -94,6 +86,8 @@ class MaiTaiController:
                 return True
 
             try:
+                import serial
+
                 self._serial_connection = serial.Serial(
                     port=self.port,
                     baudrate=self.baudrate,
@@ -140,12 +134,11 @@ class MaiTaiController:
         """Test communication with laser."""
         try:
             # Try multiple commands for better communication test
-            # Some MaiTai units respond better to different commands
             test_commands = ["WAVELENGTH?", "*IDN?", "READ:POW?"]
 
             for cmd in test_commands:
                 try:
-                    time.sleep(0.2)  # Longer delay between tests
+                    time.sleep(0.2)
                     response = self._send_command(cmd)
                     if response is not None and response.strip() != "":
                         self.logger.debug(f"MaiTai responded to {cmd}: {response}")
@@ -175,8 +168,6 @@ class MaiTaiController:
         str or None
             Response from laser, None if error
         """
-        import time
-
         if self.mock_mode:
             return self._mock_send_command(command, expect_response)
 
@@ -197,7 +188,7 @@ class MaiTaiController:
             self.logger.debug(f"Wrote {bytes_written} bytes")
 
             if expect_response:
-                time.sleep(0.3)  # Longer delay for MaiTai response
+                time.sleep(0.3)
                 response = (
                     self._serial_connection.readline()
                     .decode("ascii", errors="ignore")
@@ -206,7 +197,7 @@ class MaiTaiController:
                 self.logger.debug(f"Received response: '{response}'")
                 return response
             else:
-                time.sleep(0.05)  # Brief delay for command processing
+                time.sleep(0.05)
                 return ""
 
         except Exception as e:
@@ -214,31 +205,142 @@ class MaiTaiController:
             return None
 
     def _mock_send_command(self, command: str, expect_response: bool = True):
-        """Mock command handling for testing."""
-        import time
+        """Enhanced mock command handling with realistic SCPI protocol simulation."""
+        # Simulate realistic communication delay
+        time.sleep(random.uniform(0.1, 0.3))
+
+        command = command.strip().upper()
+        self.logger.debug(
+            f"Mock MaiTai command: '{command}' (expect_response: {expect_response})"
+        )
 
         if not expect_response:
-            # Handle set commands
+            # Handle set commands (no response expected)
             if command.startswith("WAVELENGTH"):
                 try:
-                    wl = float(command.split()[1])
-                    self._mock_wavelength = wl
-                except:
-                    pass
+                    parts = command.split()
+                    if len(parts) >= 2:
+                        wl = float(parts[1])
+                        # Validate wavelength range (typical Ti:Sapphire range)
+                        if 690 <= wl <= 1040:
+                            old_wl = self._mock_wavelength
+                            self._mock_wavelength = wl
+                            # Simulate tuning time based on wavelength change
+                            tune_time = abs(wl - old_wl) * 0.01  # ~10ms per nm
+                            if tune_time > 0.1:
+                                time.sleep(min(tune_time, 2.0))  # Max 2 seconds
+                            self.logger.debug(
+                                f"Mock MaiTai wavelength set to {wl}nm (tune time: {tune_time:.2f}s)"
+                            )
+                        else:
+                            self.logger.warning(
+                                f"Mock MaiTai: Wavelength {wl}nm out of range (690-1040nm)"
+                            )
+                except (ValueError, IndexError):
+                    self.logger.error(
+                        f"Mock MaiTai: Invalid wavelength command format: {command}"
+                    )
+                return ""
+
             elif command.startswith("SHUTTER"):
-                state = command.split()[1].upper()
-                self._mock_shutter = state == "OPEN" or state == "1"
-            return ""
+                try:
+                    parts = command.split()
+                    if len(parts) >= 2:
+                        state = parts[1].upper()
+                        if state in ["OPEN", "1", "ON"]:
+                            self._mock_shutter = True
+                            self.logger.debug("Mock MaiTai shutter opened")
+                        elif state in ["CLOSE", "0", "OFF"]:
+                            self._mock_shutter = False
+                            self.logger.debug("Mock MaiTai shutter closed")
+                        else:
+                            self.logger.warning(
+                                f"Mock MaiTai: Invalid shutter state: {state}"
+                            )
+                except IndexError:
+                    self.logger.error(
+                        f"Mock MaiTai: Invalid shutter command format: {command}"
+                    )
+                return ""
 
-        # Handle query commands
-        if command == "WAVELENGTH?":
-            return f"{self._mock_wavelength}nm"
-        elif command == "POWER?":
-            return f"{self._mock_power}W"
-        elif command == "SHUTTER?":
-            return "1" if self._mock_shutter else "0"
+            elif command.startswith("*RST"):
+                # Reset command - restore defaults
+                self._mock_wavelength = 780.0
+                self._mock_power = 2.5
+                self._mock_shutter = False
+                self.logger.debug("Mock MaiTai system reset")
+                return ""
 
-        return "OK"
+            else:
+                self.logger.debug(f"Mock MaiTai: Unhandled set command: {command}")
+                return ""
+
+        # Handle query commands (response expected)
+        if command == "WAVELENGTH?" or command == "WAVEL?":
+            # Return wavelength with realistic format variations
+            formats = [
+                f"{self._mock_wavelength:.1f}nm",
+                f"{self._mock_wavelength:.2f}",
+                f"{self._mock_wavelength:g}",
+            ]
+            response = random.choice(formats)
+            self.logger.debug(f"Mock MaiTai wavelength query: {response}")
+            return response
+
+        elif command == "POWER?" or command == "POW?":
+            # Simulate power fluctuations (±5% realistic for Ti:Sapphire)
+            fluctuation = random.uniform(-0.05, 0.05)
+            actual_power = self._mock_power * (1 + fluctuation)
+            # Power depends on shutter state
+            if not self._mock_shutter:
+                actual_power = 0.0
+            response = f"{actual_power:.3f}W"
+            self.logger.debug(f"Mock MaiTai power query: {response}")
+            return response
+
+        elif command == "SHUTTER?" or command == "SHUT?":
+            response = "1" if self._mock_shutter else "0"
+            self.logger.debug(f"Mock MaiTai shutter query: {response}")
+            return response
+
+        elif command == "*IDN?":
+            # Standard SCPI identification
+            response = "Coherent,MaiTai-DeepSee,SN123456,v2.1.0"
+            self.logger.debug(f"Mock MaiTai identification: {response}")
+            return response
+
+        elif command == "*STB?":
+            # Status byte - simulate realistic laser status
+            status_byte = 0
+            if self._mock_shutter and self._mock_power > 0.1:
+                status_byte |= 1  # Emission possible
+            if self._mock_power > 0.5:
+                status_byte |= 2  # Modelocked
+            if 750 <= self._mock_wavelength <= 850:
+                status_byte |= 4  # Optimal wavelength range
+
+            response = str(status_byte)
+            self.logger.debug(f"Mock MaiTai status byte: {response}")
+            return response
+
+        elif command == "SYSTEM:ERR?" or command == "SYST:ERR?":
+            # System error queue - usually empty in mock mode
+            if random.random() < 0.05:  # 5% chance of minor warning
+                warnings = [
+                    "100,Temperature warning - cavity",
+                    "101,Humidity sensor drift",
+                    "102,Pump power fluctuation",
+                ]
+                response = random.choice(warnings)
+            else:
+                response = "0,No error"
+            self.logger.debug(f"Mock MaiTai system error: {response}")
+            return response
+
+        else:
+            # Unknown command - return error or empty response
+            self.logger.warning(f"Mock MaiTai: Unknown command '{command}'")
+            return "ERROR: Unknown command"
 
     def get_wavelength(self):
         """
@@ -294,8 +396,6 @@ class MaiTaiController:
 
                 if response is not None:
                     self.logger.info(f"Wavelength set command sent successfully")
-                    # Note: MaiTai laser may take several seconds to tune to new wavelength
-                    # Return success immediately since command was sent successfully
                     return True
                 else:
                     self.logger.error("Failed to send wavelength command")
@@ -330,29 +430,27 @@ class MaiTaiController:
 
             return None
 
-    def get_shutter_state(self):
+    def open_shutter(self) -> bool:
         """
-        Get current shutter state.
+        Open shutter.
 
         Returns
         -------
-        bool or None
-            True if shutter open, False if closed, None if error
+        bool
+            True if command sent successfully, False otherwise
         """
-        with self._lock:
-            if not self._connected:
-                return None
+        return self.set_shutter(True)
 
-            try:
-                response = self._send_command("SHUTTER?")
-                if response:
-                    # Parse response like "1" -> True, "0" -> False
-                    state = response.strip() == "1"
-                    return state
-            except Exception as e:
-                self.logger.error(f"Error getting shutter state: {e}")
+    def close_shutter(self) -> bool:
+        """
+        Close shutter.
 
-            return None
+        Returns
+        -------
+        bool
+            True if command sent successfully, False otherwise
+        """
+        return self.set_shutter(False)
 
     def set_shutter(self, open_shutter: bool) -> bool:
         """
@@ -382,8 +480,6 @@ class MaiTaiController:
 
                 if response is not None:
                     self.logger.info(f"Shutter {action} command sent successfully")
-                    # Return success immediately since command was sent successfully
-                    # The UI will update the actual state through periodic status updates
                     return True
                 else:
                     self.logger.error(f"Failed to send shutter {action} command")
@@ -393,141 +489,43 @@ class MaiTaiController:
                 self.logger.error(f"Error setting shutter: {e}")
                 return False
 
-    def open_shutter(self) -> bool:
+    def get_enhanced_shutter_state(self) -> Tuple[bool, bool]:
         """
-        Open shutter (convenience method).
+        Get enhanced shutter state using both SHUTTER? and status byte.
 
         Returns
         -------
-        bool
-            True if command sent successfully, False otherwise
-        """
-        return self.set_shutter(True)
-
-    def close_shutter(self) -> bool:
-        """
-        Close shutter (convenience method).
-
-        Returns
-        -------
-        bool
-            True if command sent successfully, False otherwise
-        """
-        return self.set_shutter(False)
-
-    def check_system_errors(self, quick_check: bool = False) -> tuple[bool, list[str]]:
-        """
-        Check for system errors using SYSTem:ERR command.
-
-        Parameters
-        ----------
-        quick_check : bool
-            If True, only check once instead of emptying full buffer
-
-        Returns
-        -------
-        tuple[bool, list[str]]
-            (has_errors, error_messages) - True if errors found, list of error descriptions
+        Tuple[bool, bool]
+            (shutter_open, emission_possible) - Shutter state and laser emission status
         """
         with self._lock:
             if not self._connected:
-                return False, ["Not connected"]
-
-            errors = []
-            has_errors = False
+                return False, False
 
             try:
-                # Query system errors - limit iterations for quick check
-                max_iterations = (
-                    1 if quick_check else 5
-                )  # Reduced from 10 to prevent blocking
+                # Get shutter state
+                shutter_response = self._send_command("SHUTTER?")
+                shutter_open = False
+                if shutter_response:
+                    shutter_open = shutter_response.strip() == "1"
 
-                for _ in range(max_iterations):
-                    response = self._send_command("SYSTem:ERR?")
-                    if response and response.strip():
-                        # Parse error code and message
-                        parts = (
-                            response.split(",", 1) if "," in response else [response]
-                        )
-                        error_code = parts[0].strip()
-                        error_msg = (
-                            parts[1].strip() if len(parts) > 1 else "Unknown error"
-                        )
+                # Get emission status from status byte
+                _, status_info = self.get_status_byte()
+                emission_possible = status_info.get("emission_possible", False)
 
-                        # Check if this is a real error (non-zero error code)
-                        try:
-                            code_num = int(error_code)
-                            if code_num != 0:
-                                has_errors = True
-                                # Decode error based on Table 6-1
-                                error_desc = self._decode_error_code(code_num)
-                                errors.append(
-                                    f"Error {code_num}: {error_desc} - {error_msg}"
-                                )
-                                if (
-                                    quick_check
-                                ):  # For quick check, stop after first error
-                                    break
-                            else:
-                                # Error code 0 means no more errors
-                                break
-                        except ValueError:
-                            # Non-numeric error code
-                            if error_code != "0":
-                                has_errors = True
-                                errors.append(f"Error: {response}")
-                                if quick_check:
-                                    break
-                    else:
-                        break
+                return shutter_open, emission_possible
 
             except Exception as e:
-                self.logger.error(f"Error checking system errors: {e}")
-                return True, [f"Error checking failed: {e}"]
+                self.logger.error(f"Error getting enhanced shutter state: {e}")
+                return False, False
 
-            return has_errors, errors
-
-    def _decode_error_code(self, error_code: int) -> str:
-        """
-        Decode MaiTai error codes based on Table 6-1.
-
-        Parameters
-        ----------
-        error_code : int
-            Binary error code from MaiTai
-
-        Returns
-        -------
-        str
-            Human-readable error description
-        """
-        error_descriptions = []
-
-        # Check individual error bits
-        if error_code & 1:  # Bit 0
-            error_descriptions.append("CMD_ERR: Command format error")
-        if error_code & 2:  # Bit 1
-            error_descriptions.append("EXE_ERR: Command execution error")
-        if error_code & 32:  # Bit 5
-            error_descriptions.append("SYS_ERR: System error (interlock/diagnostic)")
-        if error_code & 64:  # Bit 6
-            error_descriptions.append("LASER_ON: Laser emission possible")
-        if error_code & 128:  # Bit 7
-            error_descriptions.append("ANY_ERR: Error condition present")
-
-        return (
-            "; ".join(error_descriptions)
-            if error_descriptions
-            else f"Unknown error code: {error_code}"
-        )
-
-    def get_status_byte(self) -> tuple[int, dict]:
+    def get_status_byte(self) -> Tuple[int, dict]:
         """
         Get product status byte using *STB? command.
 
         Returns
         -------
-        tuple[int, dict]
+        Tuple[int, dict]
             (status_byte, status_info) - Raw status byte and decoded information
         """
         with self._lock:
@@ -555,35 +553,71 @@ class MaiTaiController:
                 self.logger.error(f"Error getting status byte: {e}")
                 return 0, {"connected": False, "error": str(e)}
 
-    def get_enhanced_shutter_state(self) -> tuple[bool, bool]:
+    def check_system_errors(self, quick_check: bool = False) -> Tuple[bool, List[str]]:
         """
-        Get enhanced shutter state using both SHUTTER? and status byte.
+        Check for system errors using SYSTem:ERR command.
+
+        Parameters
+        ----------
+        quick_check : bool
+            If True, only check once instead of emptying full buffer
 
         Returns
         -------
-        tuple[bool, bool]
-            (shutter_open, emission_possible) - Shutter state and laser emission status
+        Tuple[bool, List[str]]
+            (has_errors, error_messages) - True if errors found, list of error descriptions
         """
         with self._lock:
             if not self._connected:
-                return False, False
+                return False, ["Not connected"]
+
+            errors = []
+            has_errors = False
 
             try:
-                # Get shutter state
-                shutter_response = self._send_command("SHUTTER?")
-                shutter_open = False
-                if shutter_response:
-                    shutter_open = shutter_response.strip() == "1"
+                # Query system errors - limit iterations for quick check
+                max_iterations = 1 if quick_check else 5
 
-                # Get emission status from status byte
-                _, status_info = self.get_status_byte()
-                emission_possible = status_info.get("emission_possible", False)
+                for _ in range(max_iterations):
+                    response = self._send_command("SYSTem:ERR?")
+                    if response and response.strip():
+                        # Parse error code and message
+                        parts = (
+                            response.split(",", 1) if "," in response else [response]
+                        )
+                        error_code = parts[0].strip()
+                        error_msg = (
+                            parts[1].strip() if len(parts) > 1 else "Unknown error"
+                        )
 
-                return shutter_open, emission_possible
+                        # Check if this is a real error (non-zero error code)
+                        try:
+                            code_num = int(error_code)
+                            if code_num != 0:
+                                has_errors = True
+                                errors.append(f"Error {code_num}: {error_msg}")
+                                if (
+                                    quick_check
+                                ):  # For quick check, stop after first error
+                                    break
+                            else:
+                                # Error code 0 means no more errors
+                                break
+                        except ValueError:
+                            # Non-numeric error code
+                            if error_code != "0":
+                                has_errors = True
+                                errors.append(f"Error: {response}")
+                                if quick_check:
+                                    break
+                    else:
+                        break
 
             except Exception as e:
-                self.logger.error(f"Error getting enhanced shutter state: {e}")
-                return False, False
+                self.logger.error(f"Error checking system errors: {e}")
+                return True, [f"Error checking failed: {e}"]
+
+            return has_errors, errors
 
     @property
     def connected(self) -> bool:

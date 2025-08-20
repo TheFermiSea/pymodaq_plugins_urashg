@@ -27,8 +27,6 @@ topic = [
     "Scientific/Engineering :: Visualization",
 ]
 
-[plugin-info.entry-points]
-
 [plugin-info.entry-points."pymodaq.move_plugins"]
 DAQ_Move_Elliptec = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
 DAQ_Move_MaiTai = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"

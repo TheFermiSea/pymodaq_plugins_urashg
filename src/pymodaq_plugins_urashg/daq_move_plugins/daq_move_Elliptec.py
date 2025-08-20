@@ -1,12 +1,15 @@
+import time
 from typing import List, Union
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
-    DataActuator,
+    comon_parameters_fun,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
-from qtpy.QtCore import QTimer
+from pymodaq.utils.data import DataActuator
+
+# QTimer replaced with PyMoDAQ threading patterns
 
 
 class DAQ_Move_Elliptec(DAQ_Move_base):
@@ -25,23 +28,26 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
     _axis_names = ["HWP_Incident", "QWP", "HWP_Analyzer"]  # Physical names
     _epsilon = 0.1  # Position precision in degrees
 
-    # Plugin parameters - PyMoDAQ compliant structure
-    params = [
-        # Connection Settings (Required)
+    # Plugin parameters
+    params = comon_parameters_fun(
+        is_multiaxes=True, axis_names=_axis_names, epsilon=_epsilon
+    ) + [
+        # Hardware connection
         {
-            "title": "Connection Settings:",
-            "name": "connect_settings",
+            "title": "Connection:",
+            "name": "connection_group",
             "type": "group",
             "children": [
                 {
                     "title": "Serial Port:",
-                    "name": "com_port",
+                    "name": "serial_port",
                     "type": "str",
-                    "value": "/dev/ttyUSB1",
+                    "value": "",
+                    "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1",
                 },
                 {
                     "title": "Baudrate:",
-                    "name": "baud_rate",
+                    "name": "baudrate",
                     "type": "int",
                     "value": 9600,
                 },
@@ -67,58 +73,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 },
             ],
         },
-        # Multiaxes (CRITICAL - Required by PyMoDAQ at top level)
-        {
-            "title": "Multiaxes:",
-            "name": "multiaxes",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Multi-axes:",
-                    "name": "multi_axes",
-                    "type": "list",
-                    "values": ["HWP_Incident", "QWP", "HWP_Analyzer"],
-                    "value": "HWP_Incident",
-                },
-                {
-                    "title": "Axis:",
-                    "name": "axis",
-                    "type": "list",
-                    "values": ["HWP_Incident", "QWP", "HWP_Analyzer"],
-                    "value": "HWP_Incident",
-                },
-                {
-                    "title": "Master/Slave:",
-                    "name": "multi_status",
-                    "type": "list",
-                    "values": ["Master", "Slave"],
-                    "value": "Master",
-                },
-            ],
-        },
-        # Move Settings (Required for DAQ_Move)
-        {
-            "title": "Move Settings:",
-            "name": "move_settings",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Current Position:",
-                    "name": "current_pos",
-                    "type": "float",
-                    "value": 0.0,
-                    "readonly": True,
-                },
-                {
-                    "title": "Epsilon (deg):",
-                    "name": "epsilon",
-                    "type": "float",
-                    "value": _epsilon,
-                    "readonly": True,
-                },
-            ],
-        },
-        # Device Actions
+        # Device actions
         {
             "title": "Actions:",
             "name": "actions_group",
@@ -133,7 +88,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 },
             ],
         },
-        # Status Monitoring
+        # Status monitoring
         {
             "title": "Status:",
             "name": "status_group",
@@ -157,21 +112,13 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         # Hardware controller
         self.controller = None
 
-        # Status update timer
-        self.status_timer = QTimer()
-        self.status_timer.timeout.connect(self.update_status)
-        self.status_timer.setInterval(2000)  # Update every 2 seconds
-
-    @property
-    def axis_names(self) -> List[str]:
-        """Return list of available axis names for PyMoDAQ."""
-        return self._axis_names
+        # PyMoDAQ will handle periodic polling via built-in poll_time parameter
 
     def _update_ui_from_settings(self):
         """Dynamically create UI elements based on mount addresses."""
         try:
             mount_addresses_str = self.settings.child(
-                "connect_settings", "mount_addresses"
+                "connection_group", "mount_addresses"
             ).value()
             mount_addresses = [addr.strip() for addr in mount_addresses_str.split(",")]
 
@@ -220,7 +167,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 ThreadCommand("Update_Status", [f"UI Update Error: {str(e)}", "error"])
             )
 
-    def init_hardware(self, controller=None):
+    def ini_stage(self, controller=None):
         """Initialize the hardware stage."""
         try:
             # Import here to avoid issues if module not available
@@ -232,13 +179,13 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             self._update_ui_from_settings()
 
             # Get connection parameters
-            port = self.settings.child("connect_settings", "com_port").value()
-            baudrate = self.settings.child("connect_settings", "baud_rate").value()
-            timeout = self.settings.child("connect_settings", "timeout").value()
+            port = self.settings.child("connection_group", "serial_port").value()
+            baudrate = self.settings.child("connection_group", "baudrate").value()
+            timeout = self.settings.child("connection_group", "timeout").value()
             mount_addresses = self.settings.child(
-                "connect_settings", "mount_addresses"
+                "connection_group", "mount_addresses"
             ).value()
-            mock_mode = self.settings.child("connect_settings", "mock_mode").value()
+            mock_mode = self.settings.child("connection_group", "mock_mode").value()
 
             # Create controller
             self.controller = ElliptecController(
@@ -260,7 +207,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     )
                 )
                 self.update_status()
-                self.status_timer.start()
+                # Status monitoring handled by PyMoDAQ polling (set poll_time in UI)
                 return "Elliptec mounts initialized successfully", True
             else:
                 self.emit_status(
@@ -279,15 +226,10 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             )
             return f"Error initializing Elliptec: {str(e)}", False
 
-    def ini_stage(self, controller=None):
-        """Alias for init_hardware to maintain PyMoDAQ compatibility."""
-        return self.init_hardware(controller)
-
     def close(self):
         """Close the hardware connection."""
         try:
-            if self.status_timer.isActive():
-                self.status_timer.stop()
+            # Status monitoring cleanup handled by PyMoDAQ
             if self.controller and self.controller.connected:
                 self.controller.disconnect()
             self.settings.child("status_group", "connection_status").setValue(
@@ -303,7 +245,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         if param.name() == "mount_addresses":
             self._update_ui_from_settings()
             # Re-initialize to apply changes
-            self.init_hardware()
+            self.ini_stage()
 
         elif param.name() == "home_all":
             self.home_all_mounts()
@@ -409,7 +351,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
     def test_hardware_connection(self):
         """Test hardware connection and report status."""
         try:
-            port = self.settings.child("connect_settings", "com_port").value()
+            port = self.settings.child("connection_group", "serial_port").value()
             self.emit_status(
                 ThreadCommand(
                     "Update_Status", [f"Testing connection to {port}...", "log"]
@@ -463,21 +405,38 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             )
 
     def get_actuator_value(self):
-        """Get current positions of all mounts as a list of numpy arrays."""
+        """
+        Get current positions of all mounts as DataActuator object and update status parameters.
+
+        This method is called periodically by PyMoDAQ's polling mechanism (when poll_time > 0),
+        replacing the need for custom threading for status updates.
+        """
         if not self.controller or not self.controller.connected:
             default_len = len(
-                self.settings.child("connect_settings", "mount_addresses")
+                self.settings.child("connection_group", "mount_addresses")
                 .value()
                 .split(",")
             )
-            return [np.array([0.0] * default_len)]
+            return DataActuator(data=[np.array([0.0] * default_len)])
 
         try:
+            # Get positions and update status parameters (PyMoDAQ polling pattern)
             positions = self.controller.get_all_positions()
             position_list = [
                 positions.get(addr, 0.0) for addr in self.controller.mount_addresses
             ]
-            return [np.array(position_list)]
+
+            # Update UI status parameters during polling
+            try:
+                for i, addr in enumerate(self.controller.mount_addresses):
+                    param_name = f"mount_{addr}_pos"
+                    status_param = self.settings.child("status_group", param_name)
+                    if status_param:
+                        status_param.setValue(position_list[i])
+            except Exception:
+                pass  # Don't fail main operation for UI updates
+
+            return DataActuator(data=[np.array(position_list)])
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
@@ -485,18 +444,18 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 )
             )
             fallback_len = (
-                len(self.controller.mount_addresses) if self.controller else 0
+                len(self.controller.mount_addresses) if self.controller else 3
             )
-            return [np.array([0.0] * fallback_len)]
+            return DataActuator(data=[np.array([0.0] * fallback_len)])
 
-    def move_abs(self, value: Union[float, DataActuator]):
+    def move_abs(self, positions: Union[List[float], DataActuator]):
         """
         Move to absolute positions.
 
         Parameters
         ----------
-        value : Union[float, List[float], DataActuator]
-            Target positions for all axes. Single float applies to first axis only.
+        positions : Union[List[float], DataActuator]
+            Target positions for all axes.
         """
         if not self.controller or not self.controller.connected:
             self.emit_status(
@@ -507,19 +466,19 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             return
 
         try:
-            if isinstance(value, DataActuator):
-                target_positions_list = value.data[0].tolist()
-            elif isinstance(value, (list, tuple, np.ndarray)):
-                target_positions_list = list(value)
+            if isinstance(positions, DataActuator):
+                target_positions_list = positions.data[0].tolist()
+            elif isinstance(positions, (list, tuple, np.ndarray)):
+                target_positions_list = list(positions)
             else:
                 # Handle single float value for multi-axis controller
-                # Apply only to first axis, keep others at current position
+                # Distribute to all axes or use current position for others
                 current_positions = self.get_actuator_value()[0].tolist()
-                target_positions_list = [float(value)] + current_positions[1:]
+                target_positions_list = [float(positions)] + current_positions[1:]
                 self.emit_status(
                     ThreadCommand(
                         "Update_Status",
-                        [f"Single value {value} applied to first axis only", "log"],
+                        [f"Single value {positions} applied to first axis only", "log"],
                     )
                 )
 
@@ -557,33 +516,31 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 ThreadCommand("Update_Status", [f"Error moving: {str(e)}", "error"])
             )
 
-    def move_rel(self, value: Union[float, DataActuator]):
+    def move_rel(self, positions: Union[List[float], DataActuator]):
         """
-        Move relative positions.
+        Move to relative positions.
 
         Parameters
         ----------
-        value : Union[float, List[float], DataActuator]
-            Relative position changes for all axes. Single float applies to first axis only.
+        positions : Union[List[float], DataActuator]
+            Relative position changes for all axes.
         """
         try:
-            if isinstance(value, DataActuator):
-                relative_moves_list = value.data[0].tolist()
-            elif isinstance(value, (list, tuple, np.ndarray)):
-                relative_moves_list = list(value)
+            if isinstance(positions, DataActuator):
+                relative_moves_list = positions.data[0].tolist()
+            elif isinstance(positions, (list, tuple, np.ndarray)):
+                relative_moves_list = list(positions)
             else:
-                # Handle single float value for relative move
-                num_mounts = (
-                    len(self.controller.mount_addresses)
-                    if self.controller and self.controller.mount_addresses
-                    else 3
-                )
-                relative_moves_list = [float(value)] + [0.0] * (num_mounts - 1)
+                # Handle single float value for multi-axis controller
+                # Apply to first axis only, others get 0 movement
+                relative_moves_list = [float(positions), 0.0, 0.0][
+                    : len(self.controller.mount_addresses)
+                ]
                 self.emit_status(
                     ThreadCommand(
                         "Update_Status",
                         [
-                            f"Single relative value {value} applied to first axis only",
+                            f"Relative move {positions} applied to first axis only",
                             "log",
                         ],
                     )
@@ -593,11 +550,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             current_list = current_array.tolist()
 
             # Ensure we have the right number of relative moves
-            num_mounts = (
-                len(self.controller.mount_addresses)
-                if self.controller and self.controller.mount_addresses
-                else 3
-            )
+            num_mounts = len(self.controller.mount_addresses)
             if len(relative_moves_list) < num_mounts:
                 relative_moves_list.extend(
                     [0.0] * (num_mounts - len(relative_moves_list))
@@ -605,22 +558,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
             target = [c + p for c, p in zip(current_list, relative_moves_list)]
 
-            # For relative move, call move_abs with proper DataActuator for multi-axis
-            if target:
-                plugin_name = getattr(self, "title", self.__class__.__name__)
-                target_data = DataActuator(
-                    name=plugin_name,
-                    data=[np.array(target)],
-                    units=self._controller_units,
-                )
-                self.move_abs(target_data)
-            else:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        ["No target calculated for relative move", "warning"],
-                    )
-                )
+            self.move_abs(target)
         except Exception as e:
             self.emit_status(
                 ThreadCommand(
@@ -665,3 +603,5 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     "Update_Status", [f"Status update error: {str(e)}", "error"]
                 )
             )
+
+    # Custom threading methods removed - PyMoDAQ polling handles status updates via get_actuator_value

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Newport 1830-C optical power meter controller.
 
@@ -7,10 +6,10 @@ Provides clean interface for PyMoDAQ plugin.
 """
 
 import logging
+import math
+import random
 import time
 from typing import Any, Dict, List, Optional
-
-import serial
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +19,22 @@ class Newport1830CController:
     Hardware controller for Newport 1830-C optical power meter.
 
     Handles serial communication and basic device control.
-    Based on original working implementation from ~/.qudi_urashg.
     """
 
     def __init__(
-        self, port: str = "/dev/ttyUSB2", baudrate: int = 9600, timeout: float = 2.0
+        self,
+        port: str = "",
+        baudrate: int = 9600,
+        timeout: float = 2.0,
+        mock_mode: bool = False,
     ):
         """Initialize controller with connection parameters."""
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
+        self.mock_mode = mock_mode
 
-        self._serial: Optional[serial.Serial] = None
+        self._serial = None
         self._connected = False
 
         # Current device settings
@@ -39,7 +42,14 @@ class Newport1830CController:
         self._current_units = "W"
         self._current_range = "Auto"
 
-        logger.info(f"Newport1830C controller initialized for {port}")
+        # Mock state for realistic simulation
+        self._mock_power_base = 0.0035  # 3.5 mW baseline
+        self._mock_zero_offset = 0.0
+        self._mock_filter_speed = "Medium"
+
+        logger.info(
+            f"Newport1830C controller initialized for {port} (mock_mode: {mock_mode})"
+        )
 
     def connect(self) -> bool:
         """
@@ -54,7 +64,15 @@ class Newport1830CController:
 
             logger.info(f"Connecting to Newport 1830-C on {self.port}...")
 
-            # Open serial connection
+            if self.mock_mode:
+                logger.info("Mock mode: Simulating connection to Newport 1830-C")
+                self._connected = True
+                self._initialize_settings()
+                return True
+
+            # Real hardware connection would go here
+            import serial
+
             self._serial = serial.Serial(
                 port=self.port,
                 baudrate=self.baudrate,
@@ -75,18 +93,13 @@ class Newport1830CController:
                     logger.debug(f"Command {cmd} -> {response}")
 
             if not working_commands:
-                raise ConnectionError(
-                    "No response from Newport 1830-C - check device and calibration module"
-                )
+                raise ConnectionError("No response from Newport 1830-C")
 
             self._connected = True
             logger.info(
                 f"Newport 1830-C connected successfully ({len(working_commands)}/{len(test_commands)} commands working)"
             )
-
-            # Apply default settings
             self._initialize_settings()
-
             return True
 
         except Exception as e:
@@ -116,37 +129,113 @@ class Newport1830CController:
         self, command: str, expect_response: bool = True
     ) -> Optional[str]:
         """
-        Send command to power meter and get response.
-
-        Args:
-            command: Command string to send
-            expect_response: Whether to wait for and return response
-
-        Returns:
-            str or None: Response from device, or None on error
+        Send command to power meter and get response with realistic mock simulation.
         """
+        if self.mock_mode:
+            # Enhanced mock responses based on Newport 1830-C protocol
+            time.sleep(random.uniform(0.1, 0.3))  # Simulate communication delay
+
+            command = command.strip().upper()
+            logger.debug(
+                f"Mock Newport 1830-C command: '{command}' (expect_response: {expect_response})"
+            )
+
+            # Handle query commands (response expected)
+            if command == "W?":
+                # Get wavelength
+                response = str(int(self._current_wavelength))
+                logger.debug(f"Mock Newport wavelength query: {response}")
+                return response
+
+            elif command == "U?":
+                # Get units
+                response = "1" if self._current_units == "W" else "3"
+                logger.debug(
+                    f"Mock Newport units query: {response} ({self._current_units})"
+                )
+                return response
+
+            elif command == "D?":
+                # Get power reading - realistic simulation with noise
+                base_power = self._mock_power_base
+
+                # Add realistic power fluctuations and noise
+                time_factor = time.time() % 100  # Slow variations
+                noise_1f = 0.02 * math.sin(time_factor * 0.1) * base_power
+
+                # Add white noise
+                white_noise = random.gauss(0, 0.001 * base_power)
+
+                # Add wavelength dependence (realistic detector response)
+                wl_factor = 1.0
+                if 700 <= self._current_wavelength <= 900:
+                    wl_factor = 1.1  # Better response in NIR
+                elif self._current_wavelength < 500:
+                    wl_factor = 0.7  # Reduced response in blue
+
+                # Calculate final power
+                measured_power = (
+                    base_power + noise_1f + white_noise + self._mock_zero_offset
+                ) * wl_factor
+
+                # Ensure positive power
+                measured_power = max(measured_power, 0.0)
+
+                # Format based on current units
+                if self._current_units == "W":
+                    if measured_power >= 0.001:
+                        response = (
+                            f"{measured_power:.6f}"  # 6 decimal places for mW range
+                        )
+                    else:
+                        response = (
+                            f"{measured_power:.9f}"  # More precision for μW range
+                        )
+                else:
+                    # Convert to dBm
+                    if measured_power > 0:
+                        dbm_value = 10 * math.log10(
+                            measured_power / 0.001
+                        )  # Convert W to dBm
+                        response = f"{dbm_value:.3f}"
+                    else:
+                        response = "-50.000"  # Very low power in dBm
+
+                logger.debug(
+                    f"Mock Newport power reading: {response} {self._current_units}"
+                )
+                return response
+
+            else:
+                # Handle set commands or unknown queries
+                if not expect_response:
+                    # Set commands
+                    logger.debug(f"Mock Newport: Set command '{command}' acknowledged")
+                    return ""
+                else:
+                    # Unknown query
+                    logger.warning(f"Mock Newport: Unknown query command: {command}")
+                    return "ERROR"
+
+        # Real hardware communication would go here
         try:
             if not self._serial or not self._serial.is_open:
                 logger.error("Serial connection not available")
                 return None
 
-            # Clear buffers
-            self._serial.reset_input_buffer()
-            self._serial.reset_output_buffer()
-
-            # Send command (Newport 1830-C uses LF termination)
+            # Newport 1830-C communication protocol
             cmd_bytes = (command + "\n").encode("ascii")
             self._serial.write(cmd_bytes)
             self._serial.flush()
 
             if expect_response:
-                time.sleep(0.5)  # Give device time to respond
+                time.sleep(0.5)
                 response = (
                     self._serial.read(1000).decode("ascii", errors="ignore").strip()
                 )
                 return response if response else None
             else:
-                time.sleep(0.1)  # Brief delay for command processing
+                time.sleep(0.1)
                 return ""
 
         except Exception as e:
@@ -158,23 +247,9 @@ class Newport1830CController:
         try:
             # Set default wavelength (800 nm)
             self.set_wavelength(800.0)
-
             # Set units to watts
             self.set_units("W")
-
-            # Set auto range
-            self.set_power_range("Auto")
-
-            # Set medium filter speed
-            self.set_filter_speed("Medium")
-
-            # Enable measurements
-            self._send_command("G1", expect_response=False)  # Go (start measurements)
-
-            time.sleep(0.5)  # Allow settings to stabilize
-
             logger.info("Newport 1830-C initial settings applied")
-
         except Exception as e:
             logger.error(f"Error applying initial settings: {e}")
 
@@ -209,24 +284,6 @@ class Newport1830CController:
         except Exception as e:
             logger.error(f"Error reading power: {e}")
             return None
-
-    def get_multiple_readings(self, count: int = 5) -> List[float]:
-        """
-        Get multiple power readings for averaging.
-
-        Args:
-            count: Number of readings to take
-
-        Returns:
-            List of power values
-        """
-        readings = []
-        for i in range(count):
-            power = self.get_power()
-            if power is not None:
-                readings.append(power)
-            time.sleep(0.01)  # Brief delay between readings
-        return readings
 
     def set_wavelength(self, wavelength: float) -> bool:
         """
@@ -342,104 +399,6 @@ class Newport1830CController:
             logger.error(f"Error reading units: {e}")
             return self._current_units
 
-    def set_power_range(self, power_range: str) -> bool:
-        """
-        Set power measurement range.
-
-        Args:
-            power_range: 'Auto' or 'Range 1' through 'Range 7'
-
-        Returns:
-            bool: True if successful
-        """
-        try:
-            if not self._connected:
-                return False
-
-            if power_range == "Auto":
-                cmd = "R0"  # Auto range
-            elif power_range.startswith("Range "):
-                range_num = power_range.split()[-1]
-                cmd = f"R{range_num}"
-            else:
-                logger.error(f"Invalid power range: {power_range}")
-                return False
-
-            response = self._send_command(cmd, expect_response=False)
-            if response is not None:
-                self._current_range = power_range
-                logger.debug(f"Power range set to {power_range}")
-                return True
-            return False
-
-        except Exception as e:
-            logger.error(f"Error setting power range: {e}")
-            return False
-
-    def set_filter_speed(self, speed: str) -> bool:
-        """
-        Set measurement filter speed.
-
-        Args:
-            speed: 'Slow', 'Medium', or 'Fast'
-
-        Returns:
-            bool: True if successful
-        """
-        try:
-            if not self._connected:
-                return False
-
-            speed_map = {"Slow": "F1", "Medium": "F2", "Fast": "F3"}
-            cmd = speed_map.get(speed)
-            if not cmd:
-                logger.error(f"Invalid filter speed: {speed}")
-                return False
-
-            response = self._send_command(cmd, expect_response=False)
-            if response is not None:
-                logger.debug(f"Filter speed set to {speed}")
-                return True
-            return False
-
-        except Exception as e:
-            logger.error(f"Error setting filter speed: {e}")
-            return False
-
-    def zero_adjust(self) -> bool:
-        """
-        Perform zero adjustment.
-
-        Returns:
-            bool: True if successful
-        """
-        try:
-            if not self._connected:
-                return False
-
-            logger.info("Performing zero adjustment...")
-
-            # Turn zero function on
-            response1 = self._send_command("Z1", expect_response=False)
-
-            # Wait for adjustment to complete
-            time.sleep(2.0)
-
-            # Turn zero function off
-            response2 = self._send_command("Z0", expect_response=False)
-
-            success = (response1 is not None) and (response2 is not None)
-            if success:
-                logger.info("Zero adjustment completed")
-            else:
-                logger.error("Zero adjustment failed")
-
-            return success
-
-        except Exception as e:
-            logger.error(f"Error during zero adjustment: {e}")
-            return False
-
     def get_device_info(self) -> Dict[str, Any]:
         """
         Get device information and status.
@@ -464,50 +423,12 @@ class Newport1830CController:
 
         return info
 
-    # Note: __del__ method removed to prevent QThread destruction conflicts
-    # Cleanup is handled explicitly via disconnect() in the plugin's close() method
+    @property
+    def connected(self) -> bool:
+        """Check if connected to device."""
+        return self._connected
 
-
-if __name__ == "__main__":
-    # Test the controller
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG)
-
-    print("Testing Testing Newport 1830-C Controller")
-    print("=" * 40)
-
-    controller = Newport1830CController()
-
-    if controller.connect():
-        print("[OK] Connected to Newport 1830-C")
-
-        # Test basic operations
-        print(f"INFO: Device Info: {controller.get_device_info()}")
-
-        # Test wavelength
-        if controller.set_wavelength(795.0):
-            wavelength = controller.get_wavelength()
-            print(f"INFO: Wavelength: {wavelength} nm")
-
-        # Test power reading
-        power = controller.get_power()
-        if power is not None:
-            print(f"POWER: Power: {power} {controller.get_units()}")
-
-        # Test multiple readings
-        readings = controller.get_multiple_readings(3)
-        if readings:
-            avg_power = sum(readings) / len(readings)
-            print(
-                f"DATA: Average power ({len(readings)} readings): {avg_power:.6f} {controller.get_units()}"
-            )
-
-        controller.disconnect()
-        print("[OK] Disconnected")
-
-    else:
-        print("[ERROR] Failed to connect to Newport 1830-C")
-        print("   - Check device is connected to /dev/ttyUSB2")
-        print("   - Check calibration module is attached")
-        print("   - Check device power")
+    @property
+    def is_mock(self) -> bool:
+        """Check if running in mock mode."""
+        return self.mock_mode

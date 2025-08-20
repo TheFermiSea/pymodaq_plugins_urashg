@@ -6,7 +6,8 @@ Updated for PyMoDAQ 5.0+ with DataWithAxes format.
 Provides power measurement capability for URASHG calibration.
 """
 
-from typing import Optional
+import time
+from typing import List
 
 import numpy as np
 from pymodaq.control_modules.viewer_utility_classes import (
@@ -14,7 +15,14 @@ from pymodaq.control_modules.viewer_utility_classes import (
     comon_parameters,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataFromPlugins, DataToExport
+from pymodaq.utils.data import DataToExport, DataWithAxes
+from pymodaq_data.data import DataSource
+
+try:
+    from pymodaq.control_modules.thread_commands import ThreadStatusViewer
+except ImportError:
+    # PyMoDAQ 5.x compatibility
+    from pymodaq.utils.daq_utils import ThreadCommand as ThreadStatusViewer
 
 from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
     Newport1830CController,
@@ -31,51 +39,22 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
 
     # Plugin metadata
     params = comon_parameters + [
-        # Settings group with multiaxes (required by PyMoDAQ)
-        {
-            "title": "Settings",
-            "name": "Settings",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Multi-axes",
-                    "name": "multiaxes",
-                    "type": "group",
-                    "children": [
-                        {
-                            "title": "Is Multi-axes:",
-                            "name": "is_multiaxes",
-                            "type": "bool",
-                            "value": False,
-                            "readonly": True,
-                        },
-                        {
-                            "title": "Status:",
-                            "name": "multi_status",
-                            "type": "list",
-                            "value": "Single",
-                            "values": ["Single"],
-                            "readonly": True,
-                        },
-                    ],
-                },
-            ],
-        },
         # Connection settings
         {
             "title": "Connection:",
-            "name": "connect_settings",
+            "name": "connection_group",
             "type": "group",
             "children": [
                 {
                     "title": "Serial Port:",
-                    "name": "com_port",
+                    "name": "serial_port",
                     "type": "str",
-                    "value": "/dev/ttyS0",
+                    "value": "",
+                    "placeholder": "Enter serial port e.g. /dev/ttyS0 or COM1",
                 },
                 {
                     "title": "Baudrate:",
-                    "name": "baud_rate",
+                    "name": "baudrate",
                     "type": "int",
                     "value": 9600,
                 },
@@ -89,7 +68,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "title": "Mock Mode:",
                     "name": "mock_mode",
                     "type": "bool",
-                    "value": True,
+                    "value": False,
                 },
             ],
         },
@@ -186,7 +165,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
         super().__init__(parent, params_state)
 
         # Hardware controller
-        self.controller: Optional[Newport1830CController] = None
+        self.controller: Newport1830CController = None
 
         # Data configuration
         self.x_axis = None
@@ -199,23 +178,15 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                 ThreadCommand("show_splash", "Initializing Newport 1830-C...")
             )
 
-            # Check if mock mode is enabled
-            mock_mode = self.settings.child("connect_settings", "mock_mode").value()
-
-            if mock_mode:
-                # Initialize mock controller
-                self.controller = self._create_mock_controller()
-                self.emit_status(ThreadCommand("close_splash"))
-                return self.get_status(etat="Mock Newport 1830-C initialized")
-
             # Get connection parameters
-            port = self.settings.child("connect_settings", "com_port").value()
-            baud_rate = self.settings.child("connect_settings", "baud_rate").value()
-            timeout = self.settings.child("connect_settings", "timeout").value()
+            port = self.settings.child("connection_group", "serial_port").value()
+            baudrate = self.settings.child("connection_group", "baudrate").value()
+            timeout = self.settings.child("connection_group", "timeout").value()
+            mock_mode = self.settings.child("connection_group", "mock_mode").value()
 
             # Create controller
             self.controller = Newport1830CController(
-                port=port, baud_rate=baud_rate, timeout=timeout
+                port=port, baudrate=baudrate, timeout=timeout, mock_mode=mock_mode
             )
 
             # Connect to device
@@ -225,8 +196,15 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             # Apply measurement settings
             self._apply_measurement_settings()
 
-            # Set up data structure - removed DataWithAxes as it's handled in grab_data
+            # Set up data structure
             current_units = self.settings.child("measurement_group", "units").value()
+            self.x_axis = DataWithAxes(
+                name="Power",
+                source=DataSource.raw,
+                data=[np.array([0])],
+                labels=["Power"],
+                units=current_units,
+            )
 
             # Update status
             self.settings.child("status_group", "device_status").setValue("Connected")
@@ -246,41 +224,6 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                 self.controller.disconnect()
                 self.controller = None
             return error_msg, False
-
-    def _create_mock_controller(self):
-        """Create a mock controller for testing purposes."""
-
-        class MockNewport1830C:
-            def __init__(self):
-                self.connected = True
-                self.power = 0.0001  # 0.1 mW default
-
-            def connect(self, port, baud_rate, timeout):
-                self.connected = True
-                return True
-
-            def disconnect(self):
-                self.connected = False
-
-            def read_power(self):
-                import random
-
-                # Return mock power reading with some noise
-                return self.power * (1 + 0.1 * (random.random() - 0.5))
-
-            def set_wavelength(self, wavelength):
-                pass
-
-            def set_units(self, units):
-                pass
-
-            def set_range(self, range_setting):
-                pass
-
-            def get_status(self):
-                return "Ready"
-
-        return MockNewport1830C()
 
     def _apply_measurement_settings(self):
         """Apply current measurement settings to the power meter."""
@@ -368,29 +311,29 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             # Get current units for labeling
             units = self.settings.child("measurement_group", "units").value()
 
-            # Create DataFromPlugins object for 0D data
-            data_from_plugins = DataFromPlugins(
+            # Create DataWithAxes object
+            data_export = DataWithAxes(
                 name="Newport1830C_Power",
+                source=DataSource.raw,
                 data=[power_data],
-                dim="Data0D",
                 labels=["Power"],
+                units=units,
             )
 
-            # Emit data using correct PyMoDAQ format
-            self.dte_signal.emit(
-                DataToExport("Newport1830C_data", data=[data_from_plugins])
-            )
+            # Emit data using PyMoDAQ 5.x format
+            self.dte_signal.emit(DataToExport("Newport1830C_data", data=[data_export]))
 
         except Exception as e:
             self.emit_status(
                 ThreadCommand("Update_Status", [f"Error during measurement: {e}"])
             )
             # Emit zero data on error
-            zero_data = DataFromPlugins(
+            zero_data = DataWithAxes(
                 name="Newport1830C_Power",
+                source=DataSource.raw,
                 data=[np.array([0.0])],
-                dim="Data0D",
                 labels=["Power"],
+                units="W",
             )
             self.dte_signal.emit(DataToExport("Newport1830C_data", data=[zero_data]))
 

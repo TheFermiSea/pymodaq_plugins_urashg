@@ -204,6 +204,9 @@ scripts/logs/
 # Claude Code specific
 .claude/
 
+# Crush working dir
+.crush/
+
 # Development environment
 .dev/
 dev_logs/

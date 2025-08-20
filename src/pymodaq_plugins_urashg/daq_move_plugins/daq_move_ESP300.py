@@ -9,14 +9,15 @@ Compatible with PyMoDAQ 5.0+ multi-axis architecture.
 """
 
 import time
-from typing import List, Optional, Union
+from typing import List, Union
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
-    DataActuator,
+    comon_parameters_fun,
 )
 from pymodaq.utils.daq_utils import ThreadCommand
+from pymodaq.utils.data import DataActuator
 from pymodaq.utils.parameter import Parameter
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
@@ -43,26 +44,29 @@ class DAQ_Move_ESP300(DAQ_Move_base):
     # Plugin metadata
     _controller_units = "millimeter"  # Default units
     _axis_names = ["X Stage", "Y Stage", "Z Focus"]  # Default axis names
-    _epsilon = 0.001  # Position tolerance (mm)
+    _epsilon = [0.001, 0.001, 0.0001]  # Position tolerances (mm, mm, μm)
 
     is_multiaxes = True  # Enable multi-axis support
 
-    params = [
-        # Connection Settings (Required)
+    params = comon_parameters_fun(
+        is_multiaxes=True, axis_names=_axis_names, epsilon=_epsilon
+    ) + [
+        # Connection settings
         {
-            "title": "Connection Settings:",
-            "name": "connect_settings",
+            "title": "Connection:",
+            "name": "connection_group",
             "type": "group",
             "children": [
                 {
                     "title": "Serial Port:",
-                    "name": "com_port",
+                    "name": "serial_port",
                     "type": "str",
-                    "value": "/dev/ttyUSB2",
+                    "value": "",
+                    "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1",
                 },
                 {
                     "title": "Baudrate:",
-                    "name": "baud_rate",
+                    "name": "baudrate",
                     "type": "list",
                     "values": [9600, 19200, 38400, 57600, 115200],
                     "value": 19200,
@@ -78,57 +82,6 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     "name": "mock_mode",
                     "type": "bool",
                     "value": False,
-                },
-            ],
-        },
-        # Multiaxes (CRITICAL - Required by PyMoDAQ at top level)
-        {
-            "title": "Multiaxes:",
-            "name": "multiaxes",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Multi-axes:",
-                    "name": "multi_axes",
-                    "type": "list",
-                    "values": ["X Stage", "Y Stage", "Z Focus"],
-                    "value": "X Stage",
-                },
-                {
-                    "title": "Axis:",
-                    "name": "axis",
-                    "type": "list",
-                    "values": ["X Stage", "Y Stage", "Z Focus"],
-                    "value": "X Stage",
-                },
-                {
-                    "title": "Master/Slave:",
-                    "name": "multi_status",
-                    "type": "list",
-                    "values": ["Master", "Slave"],
-                    "value": "Master",
-                },
-            ],
-        },
-        # Move Settings (Required for DAQ_Move)
-        {
-            "title": "Move Settings:",
-            "name": "move_settings",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Current Position:",
-                    "name": "current_pos",
-                    "type": "float",
-                    "value": 0.0,
-                    "readonly": True,
-                },
-                {
-                    "title": "Epsilon (mm):",
-                    "name": "epsilon",
-                    "type": "float",
-                    "value": _epsilon,
-                    "readonly": True,
                 },
             ],
         },
@@ -387,26 +340,19 @@ class DAQ_Move_ESP300(DAQ_Move_base):
         super().__init__(parent, params_state)
 
         # Hardware controller
-        self.controller: Optional[ESP300Controller] = None
+        self.controller: ESP300Controller = None
 
         # Current configuration
         self._current_axes = []
         self._position_poll_timer = None
 
-    @property
-    def axis_names(self) -> List[str]:
-        """Return list of available axis names for PyMoDAQ."""
-        if hasattr(self, "_current_axes") and self._current_axes:
-            return self._current_axes
-        return self._axis_names
-
-    def init_hardware(self, controller=None):
+    def ini_stage(self, controller=None):
         """Initialize the ESP300 motion controller."""
         try:
             self.emit_status(ThreadCommand("show_splash", "Initializing ESP300..."))
 
             # Check for mock mode
-            if self.settings.child("connect_settings", "mock_mode").value():
+            if self.settings.child("connection_group", "mock_mode").value():
                 self.emit_status(ThreadCommand("close_splash"))
                 self.emit_status(
                     ThreadCommand("Update_Status", ["ESP300 in mock mode"])
@@ -421,9 +367,9 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 return "ESP300 mock mode", True
 
             # Get connection parameters
-            port = self.settings.child("connect_settings", "com_port").value()
-            baud_rate = self.settings.child("connect_settings", "baud_rate").value()
-            timeout = self.settings.child("connect_settings", "timeout").value()
+            port = self.settings.child("connection_group", "serial_port").value()
+            baudrate = self.settings.child("connection_group", "baudrate").value()
+            timeout = self.settings.child("connection_group", "timeout").value()
 
             # Get axes configuration
             num_axes = self.settings.child("axes_config", "num_axes").value()
@@ -431,7 +377,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
 
             # Create controller
             self.controller = ESP300Controller(
-                port=port, baud_rate=baud_rate, timeout=timeout, axes_config=axes_config
+                port=port, baudrate=baudrate, timeout=timeout, axes_config=axes_config
             )
 
             # Connect to device
@@ -491,10 +437,6 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 self.controller.disconnect()
                 self.controller = None
             return error_msg, False
-
-    def ini_stage(self, controller=None):
-        """Alias for init_hardware to maintain PyMoDAQ compatibility."""
-        return self.init_hardware(controller)
 
     def _build_axes_config(self, num_axes: int) -> List[AxisConfig]:
         """Build axes configuration from settings."""
@@ -612,9 +554,9 @@ class DAQ_Move_ESP300(DAQ_Move_base):
     def close(self):
         """Close connection to ESP300."""
         try:
-            if self.controller:
+            if self.controller is not None:
                 self.controller.disconnect()
-                self.controller = None
+            self.controller = None
             self.settings.child("status_group", "connection_status").setValue(
                 "Disconnected"
             )
@@ -662,32 +604,32 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             else:
                 return 0.0
 
-    def move_abs(self, value: Union[float, List[float], DataActuator]):
+    def move_abs(self, position: Union[float, List[float], DataActuator]):
         """
         Move to absolute position(s).
 
         Parameters
         ----------
-        value : Union[float, List[float], DataActuator]
-            Target position(s). For DataActuator objects in multi-axis mode, use value.data[0]
+        position : Union[float, List[float], DataActuator]
+            Target position(s). For DataActuator objects in multi-axis mode, use position.data[0]
             to extract the numpy array (PyMoDAQ 5.x multi-axis pattern).
         """
         try:
             # Handle mock mode - simulate successful move
             if not self.controller:
                 # Extract target positions for mock mode response
-                if isinstance(value, DataActuator):
+                if isinstance(position, DataActuator):
                     if self.is_multiaxes:
-                        target_positions_array = value.data[0]
+                        target_positions_array = position.data[0]
                         target_positions_list = (
                             target_positions_array.tolist()
                             if hasattr(target_positions_array, "tolist")
                             else list(target_positions_array)
                         )
                     else:
-                        target_positions_list = float(value.value())
+                        target_positions_list = float(position.value())
                 else:
-                    target_positions_list = value
+                    target_positions_list = position
 
                 self.emit_status(
                     ThreadCommand("Update_Status", ["ESP300 mock move completed"])
@@ -720,10 +662,10 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 return
 
             # Extract numerical value(s) from DataActuator
-            if isinstance(value, DataActuator):
+            if isinstance(position, DataActuator):
                 if self.is_multiaxes:
-                    # Multi-axis: value.data[0] is numpy array with multiple values
-                    target_positions_array = value.data[0]
+                    # Multi-axis: position.data[0] is numpy array with multiple values
+                    target_positions_array = position.data[0]
                     target_positions_list = (
                         target_positions_array.tolist()
                         if hasattr(target_positions_array, "tolist")
@@ -731,10 +673,10 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     )
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
-                    target_positions_list = float(value.value())
+                    target_positions_list = float(position.value())
             else:
                 # Fallback for direct numerical input (backward compatibility)
-                target_positions_list = value
+                target_positions_list = position
 
             if self.is_multiaxes:
                 if not isinstance(target_positions_list, (list, tuple, np.ndarray)):
@@ -762,13 +704,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 if not axis:
                     raise RuntimeError("Axis 1 not available")
 
-                # target_positions_list should be a single float for single axis
-                position = (
-                    target_positions_list
-                    if isinstance(target_positions_list, (int, float))
-                    else target_positions_list[0]
-                )
-                if not axis.move_absolute(float(position)):
+                if not axis.move_absolute(float(target_positions_list)):
                     raise RuntimeError("Move command failed")
 
                 # Wait for motion if enabled
@@ -802,22 +738,22 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             self.emit_status(ThreadCommand("Update_Status", [f"Move error: {e}"]))
             self.settings.child("status_group", "last_error").setValue(str(e))
 
-    def move_rel(self, value: Union[float, List[float], DataActuator]):
+    def move_rel(self, position: Union[float, List[float], DataActuator]):
         """
         Move by relative distance(s).
 
         Parameters
         ----------
-        value : Union[float, List[float], DataActuator]
-            Relative move distance(s). For DataActuator objects in multi-axis mode, use value.data[0]
+        position : Union[float, List[float], DataActuator]
+            Relative move distance(s). For DataActuator objects in multi-axis mode, use position.data[0]
             to extract the numpy array (PyMoDAQ 5.x multi-axis pattern).
         """
         try:
             # Extract numerical value(s) from DataActuator
-            if isinstance(value, DataActuator):
+            if isinstance(position, DataActuator):
                 if self.is_multiaxes:
-                    # Multi-axis: value.data[0] is numpy array with multiple values
-                    relative_moves_array = value.data[0]
+                    # Multi-axis: position.data[0] is numpy array with multiple values
+                    relative_moves_array = position.data[0]
                     relative_moves_list = (
                         relative_moves_array.tolist()
                         if hasattr(relative_moves_array, "tolist")
@@ -825,10 +761,10 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                     )
                 else:
                     # Single axis: extract single value using proper PyMoDAQ 5.x pattern
-                    relative_moves_list = float(value.value())
+                    relative_moves_list = float(position.value())
             else:
                 # Fallback for direct numerical input (backward compatibility)
-                relative_moves_list = value
+                relative_moves_list = position
 
             # Get current positions and add relative moves
             current_positions = self.get_actuator_value()
@@ -852,18 +788,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
                 )
                 self.move_abs(target_data)
             else:
-                # Handle single axis case - ensure we're working with scalar values
-                current_pos = (
-                    current_positions
-                    if isinstance(current_positions, (int, float))
-                    else current_positions[0]
-                )
-                relative_move = (
-                    relative_moves_list
-                    if isinstance(relative_moves_list, (int, float))
-                    else relative_moves_list[0]
-                )
-                target_position = current_pos + relative_move
+                target_position = current_positions + relative_moves_list
 
                 # Create DataActuator for target position
                 plugin_name = getattr(self, "title", self.__class__.__name__)

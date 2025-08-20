@@ -70,6 +70,12 @@ DAQ_0DViewer_Newport1830C = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0
 URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
 
 [project.optional-dependencies]
+hardware = [
+    # Hardware-specific dependencies (optional for basic functionality)
+    "opencv-python>=4.5.0", # Image processing
+    "scikit-image>=0.18.0", # Advanced image analysis
+    "pyvcam>=2.0.0",        # Photometrics camera support
+]
 dev = [
     "pytest>=6.0",
     "pytest-cov>=2.0",
@@ -91,12 +97,6 @@ test = [
     "pytest-mock>=3.0",
     "pytest-xvfb>=3.0",
     "pytest-benchmark>=4.0",
-]
-hardware = [
-    # Hardware-specific dependencies (optional for basic functionality)
-    "opencv-python>=4.5.0", # Image processing
-    "scikit-image>=0.18.0", # Advanced image analysis
-    "pyvcam>=2.0.0",        # Photometrics camera support
 ]
 pyrpl = [
     # PyRPL Red Pitaya control integration (optional - under development)
@@ -147,6 +147,31 @@ line_length = 88
 known_first_party = ["pymodaq_plugins_urashg"]
 known_third_party = ["pymodaq", "numpy", "PyQt6", "pyqtgraph"]
 
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --cov=pymodaq_plugins_urashg --cov-report=term-missing"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "hardware: marks tests that require hardware (deselect with '-m \"not hardware\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "camera: marks tests for camera functionality",
+    "device_manager: marks tests for device manager functionality",
+    "plugin: marks tests for plugin functionality",
+    "extension: marks tests for extension functionality",
+    "measurement_worker: marks tests for measurement worker functionality",
+    "threading: marks tests for threading functionality",
+    "performance: marks tests for performance",
+    "pymodaq_standards: marks tests for PyMoDAQ standards compliance",
+    "plugin_integration: marks tests for plugin integration",
+    "suite_overview: marks test suite overview tests",
+    "compliance_critical: marks critical compliance tests",
+    "integration_full: marks full integration tests",
+]
 
 [tool.coverage.run]
 source = ["src/pymodaq_plugins_urashg"]
