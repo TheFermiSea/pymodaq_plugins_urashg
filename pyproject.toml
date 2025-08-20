@@ -170,6 +170,7 @@ markers = [
     "suite_overview: marks test suite overview tests",
     "compliance_critical: marks critical compliance tests",
     "integration_full: marks full integration tests",
+    "timeout: mark a test as subject to timeout",
 ]
 
 [tool.coverage.run]
