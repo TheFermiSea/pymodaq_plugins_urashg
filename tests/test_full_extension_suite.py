@@ -31,16 +31,17 @@ Usage:
     pytest tests/test_full_extension_suite.py -v --tb=long --maxfail=5
 """
 
-import pytest
-import sys
-import logging
-from pathlib import Path
-from typing import Dict, List, Any
 import importlib.metadata
-from unittest.mock import patch, Mock
+import logging
+import sys
+from pathlib import Path
+from typing import Any, Dict, List
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Qt imports
-from qtpy import QtWidgets, QtCore
+from qtpy import QtCore, QtWidgets
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -82,10 +83,10 @@ class TestExtensionSuiteOverview:
         """Test PyMoDAQ framework is available for testing."""
         try:
             import pymodaq
-            import pymodaq.utils.parameter
-            import pymodaq.utils.data
             import pymodaq.control_modules.move_utility_classes
             import pymodaq.control_modules.viewer_utility_classes
+            import pymodaq.utils.data
+            import pymodaq.utils.parameter
 
             logger.info(
                 f"✓ PyMoDAQ framework available (version: {getattr(pymodaq, '__version__', 'unknown')})"
@@ -107,8 +108,8 @@ class TestExtensionSuiteOverview:
     def test_qt_framework_available(self):
         """Test Qt framework is available for GUI tests."""
         try:
-            from qtpy import QtWidgets, QtCore
-            from qtpy.QtCore import Signal, QObject
+            from qtpy import QtCore, QtWidgets
+            from qtpy.QtCore import QObject, Signal
 
             logger.info("✓ Qt framework available")
         except ImportError as e:
@@ -267,8 +268,9 @@ class TestDeviceManagerCompliance:
 
     def test_device_manager_architecture(self):
         """Test device manager follows PyMoDAQ architecture patterns."""
-        from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
         from qtpy.QtCore import QObject
+
+        from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
 
         assert issubclass(
             URASHGDeviceManager, QObject
@@ -277,8 +279,9 @@ class TestDeviceManagerCompliance:
 
     def test_device_manager_signal_patterns(self):
         """Test device manager signal patterns are PyMoDAQ compliant."""
-        from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
         from qtpy.QtCore import Signal
+
+        from pymodaq_plugins_urashg.extensions.device_manager import URASHGDeviceManager
 
         # Mock device manager instance
         with patch(
@@ -328,10 +331,11 @@ class TestMeasurementWorkerCompliance:
 
     def test_measurement_worker_threading_compliance(self):
         """Test measurement worker follows PyMoDAQ threading patterns."""
+        from qtpy.QtCore import QObject
+
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             MeasurementWorker,
         )
-        from qtpy.QtCore import QObject
 
         assert issubclass(
             MeasurementWorker, QObject
@@ -367,13 +371,17 @@ class TestMeasurementWorkerCompliance:
 
     def test_measurement_worker_signals(self):
         """Test measurement worker signals follow PyMoDAQ patterns."""
+        from qtpy.QtCore import Signal
+
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             MeasurementWorker,
         )
-        from qtpy.QtCore import Signal
 
         mock_dm = Mock()
-        worker = MeasurementWorker(mock_dm, {})
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = {}
+        worker = MeasurementWorker(mock_ext)
 
         # Check for measurement-related signals
         signal_names = [
@@ -502,15 +510,17 @@ class TestErrorHandlingCompliance:
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
         ):
+            from qtpy import QtWidgets
+
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
-            from qtpy import QtWidgets
 
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            parent = QtWidgets.QWidget()
+            extension = URASHGMicroscopyExtension(parent)
 
             # Should have error handling methods
             assert hasattr(
@@ -548,15 +558,17 @@ class TestConfigurationManagement:
         with patch(
             "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension.URASHGDeviceManager"
         ):
+            from qtpy import QtWidgets
+
             from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
                 URASHGMicroscopyExtension,
             )
-            from qtpy import QtWidgets
 
             if not QtWidgets.QApplication.instance():
                 app = QtWidgets.QApplication([])
 
-            extension = URASHGMicroscopyExtension()
+            parent = QtWidgets.QWidget()
+            extension = URASHGMicroscopyExtension(parent)
 
             # Should have configuration methods
             config_methods = ["save_configuration", "load_configuration"]
@@ -656,8 +668,9 @@ class TestPerformanceCompliance:
 
     def test_memory_usage_reasonable(self):
         """Test memory usage is reasonable."""
-        import psutil
         import os
+
+        import psutil
 
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss

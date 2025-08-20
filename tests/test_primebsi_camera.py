@@ -6,11 +6,12 @@ Tests both real hardware functionality and mock modes for CI/CD integration.
 """
 
 import sys
-import pytest
-import numpy as np
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
 from typing import List, Optional
+from unittest.mock import MagicMock, Mock, patch
+
+import numpy as np
+import pytest
 
 # Add source path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -176,12 +177,12 @@ def setup_mock_pyvcam():
 def setup_mock_pymodaq():
     """Setup mock PyMoDAQ environment."""
     from tests.mock_modules.mock_pymodaq import (
-        MockDAQViewerBase,
-        MockThreadCommand,
         MockAxis,
-        MockDataWithAxes,
+        MockDAQViewerBase,
         MockDataToExport,
+        MockDataWithAxes,
         MockParameter,
+        MockThreadCommand,
         comon_parameters,
     )
 
@@ -229,7 +230,10 @@ def camera_plugin(mock_environment):
         DAQ_2DViewer_PrimeBSI,
     )
 
-    return DAQ_2DViewer_PrimeBSI()
+    plugin = DAQ_2DViewer_PrimeBSI()
+    # Enable mock mode for testing
+    plugin.settings.child("camera_settings", "mock_mode").setValue(True)
+    return plugin
 
 
 class TestPrimeBSIMockMode:

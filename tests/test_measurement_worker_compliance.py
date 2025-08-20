@@ -15,30 +15,31 @@ Test Categories:
 - Performance & Resource Management
 """
 
-import pytest
+import json
 import logging
 import threading
 import time
-from unittest.mock import Mock, patch, MagicMock, PropertyMock
 from pathlib import Path
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
+
 import numpy as np
-from typing import Dict, Any, List
-import json
+import pytest
+from pymodaq.utils.data import Axis, DataSource, DataWithAxes
+
+# PyMoDAQ imports
+from pymodaq.utils.logger import get_module_name, set_logger
+from pymodaq.utils.parameter import Parameter
 
 # Qt imports
 from qtpy import QtCore, QtTest
-from qtpy.QtCore import QObject, Signal, QThread, QTimer, QEventLoop
-
-# PyMoDAQ imports
-from pymodaq.utils.logger import set_logger, get_module_name
-from pymodaq.utils.data import DataWithAxes, Axis, DataSource
-from pymodaq.utils.parameter import Parameter
+from qtpy.QtCore import QEventLoop, QObject, QThread, QTimer, Signal
 
 # Test utilities
 from tests.mock_modules.mock_devices import (
+    MockDeviceManager,
     MockMovePlugin,
     MockViewerPlugin,
-    MockDeviceManager,
 )
 
 logger = set_logger(get_module_name(__file__))
@@ -65,13 +66,24 @@ class TestMeasurementWorkerInitialization:
         }
 
     @pytest.fixture
-    def measurement_worker(self, mock_device_manager, measurement_settings):
+    def mock_extension(self, mock_device_manager, measurement_settings):
+        """Create mock extension for testing."""
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_device_manager
+        mock_ext.measurement_settings = measurement_settings
+        mock_ext.settings = Mock()
+        mock_ext.settings.child = Mock(return_value=Mock())
+        mock_ext.settings.child().value = Mock(return_value="Basic RASHG")
+        return mock_ext
+
+    @pytest.fixture
+    def measurement_worker(self, mock_extension):
         """Create measurement worker for testing."""
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             MeasurementWorker,
         )
 
-        return MeasurementWorker(mock_device_manager, measurement_settings)
+        return MeasurementWorker(mock_extension)
 
     def test_worker_inherits_qobject(self):
         """Test measurement worker inherits from QObject for signal support."""
@@ -168,7 +180,10 @@ class TestMeasurementLifecycle:
                 MeasurementWorker,
             )
 
-            worker = MeasurementWorker(mock_dm, settings)
+            mock_ext = Mock()
+            mock_ext.device_manager = mock_dm
+            mock_ext.measurement_settings = settings
+            worker = MeasurementWorker(mock_ext)
 
             # Mock the actual measurement methods
             worker._initialize_measurement = Mock()
@@ -287,7 +302,10 @@ class TestDataAcquisitionCompliance:
             MeasurementWorker,
         )
 
-        return MeasurementWorker(mock_dm, settings)
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = settings
+        return MeasurementWorker(mock_ext)
 
     def test_camera_data_acquisition(self, data_acquisition_worker):
         """Test camera data acquisition follows PyMoDAQ standards."""
@@ -382,7 +400,10 @@ class TestMultiWavelengthMeasurements:
             MeasurementWorker,
         )
 
-        return MeasurementWorker(mock_dm, settings)
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = settings
+        return MeasurementWorker(mock_ext)
 
     def test_wavelength_sequence_generation(self, multiwavelength_worker):
         """Test wavelength sequence generation."""
@@ -459,7 +480,10 @@ class TestErrorHandlingCompliance:
             MeasurementWorker,
         )
 
-        worker = MeasurementWorker(mock_dm, settings)
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = settings
+        worker = MeasurementWorker(mock_ext)
         worker.measurement_error = Mock()
         return worker
 
@@ -538,7 +562,10 @@ class TestThreadSafetyCompliance:
             MeasurementWorker,
         )
 
-        return MeasurementWorker(mock_dm, settings)
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = settings
+        return MeasurementWorker(mock_ext)
 
     def test_worker_thread_isolation(self, threaded_worker):
         """Test worker operates safely in separate thread."""
@@ -619,7 +646,10 @@ class TestPerformanceCompliance:
             MeasurementWorker,
         )
 
-        return MeasurementWorker(mock_dm, settings)
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = settings
+        return MeasurementWorker(mock_ext)
 
     def test_memory_management(self, performance_worker):
         """Test memory usage is managed properly."""
@@ -687,7 +717,10 @@ class TestPyMoDAQStandardsCompliance:
         )
 
         mock_dm = MockDeviceManager()
-        worker = MeasurementWorker(mock_dm, {})
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = {}
+        worker = MeasurementWorker(mock_ext)
 
         # Get all signals
         signal_names = [
@@ -710,7 +743,10 @@ class TestPyMoDAQStandardsCompliance:
         )
 
         mock_dm = MockDeviceManager()
-        worker = MeasurementWorker(mock_dm, {})
+        mock_ext = Mock()
+        mock_ext.device_manager = mock_dm
+        mock_ext.measurement_settings = {}
+        worker = MeasurementWorker(mock_ext)
 
         # Should handle PyMoDAQ data structures
         if hasattr(worker, "_format_data_for_pymodaq"):

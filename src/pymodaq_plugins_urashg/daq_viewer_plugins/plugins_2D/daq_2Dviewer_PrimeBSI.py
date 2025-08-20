@@ -55,6 +55,13 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             "type": "group",
             "children": [
                 {
+                    "title": "Mock Mode",
+                    "name": "mock_mode",
+                    "type": "bool",
+                    "value": False,
+                    "tip": "Enable mock mode for testing without hardware",
+                },
+                {
                     "title": "Camera Name:",
                     "name": "camera_name",
                     "type": "str",
@@ -161,8 +168,50 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         """
         self.status.update(msg="Initializing Camera...", busy=True)
         try:
+            # Check for mock mode
+            mock_mode = self.settings.child("camera_settings", "mock_mode").value()
+
+            if mock_mode or not PYVCAM_AVAILABLE:
+                # Mock mode - create a mock camera
+                from unittest.mock import Mock
+
+                import numpy as np
+
+                self.camera = Mock()
+                self.camera.name = "pvcamUSB_0"
+                self.camera.is_open = True
+                self.camera.sensor_size = (2048, 2048)
+                self.camera.temp = -19.89
+                self.camera.readout_ports = {"CMOS": 0}
+                self.camera.exp_modes = {"Internal Trigger": 1792}
+                self.camera.clear_modes = {"Auto": 0}
+
+                # Mock methods
+                self.camera.get_frame = Mock(
+                    return_value=np.random.randint(
+                        0, 4096, (2048, 2048), dtype=np.uint16
+                    )
+                )
+                self.camera.close = Mock()
+
+                # Set camera parameters in GUI
+                self.settings.child("camera_settings", "camera_name").setValue(
+                    "pvcamUSB_0 (Mock)"
+                )
+                self.settings.child("camera_settings", "sensor_size").setValue(
+                    "2048 x 2048"
+                )
+
+                # Generate mock axes
+                self.x_axis = Axis(label="x", units="pixels", data=np.arange(2048))
+                self.y_axis = Axis(label="y", units="pixels", data=np.arange(2048))
+
+                self.status.update(msg="Mock camera initialized", busy=False)
+                self.initialized = True
+                return self.status
+
+            # Real hardware mode
             # Ensure clean PVCAM state
-            # Ensure clean PVCAM state - safely uninitialize if needed
             try:
                 if pvc.get_cam_total() >= 0:  # Check if already initialized
                     pvc.uninit_pvcam()
@@ -186,9 +235,9 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             self.camera = cameras[0]  # Use first camera
             self.camera.open()
 
-            self.update_camera_params()
-            self.populate_advanced_params()
-            self.populate_post_processing_params()
+            # self.update_camera_params()
+            # self.populate_advanced_params()
+            # self.populate_post_processing_params()
 
             self.status.update(
                 msg=f"Camera {self.camera.name} Initialized.", busy=False
