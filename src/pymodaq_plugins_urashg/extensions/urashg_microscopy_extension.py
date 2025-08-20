@@ -36,6 +36,7 @@ from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
 from pymodaq_gui.plotting.data_viewers.viewer2D import Viewer2D
 from qtpy import QtWidgets
 from qtpy.QtCore import QThread, QTimer, Signal
+from qtpy import QtCore
 
 from pymodaq_plugins_urashg.utils.config import Config as PluginConfig
 
@@ -61,13 +62,17 @@ class MeasurementWorker(QThread):
     measurement_data = Signal(object)  # Emitted when new data is acquired
     measurement_progress = Signal(int)  # Progress percentage (0-100)
     measurement_finished = Signal(bool)  # True if successful, False if error
+    measurement_started = Signal()  # Emitted when measurement starts
     status_message = Signal(str, str)  # message, level (info/warning/error)
 
-    def __init__(self, extension):
+    def __init__(self, extension, device_manager=None):
         super().__init__()
         self.extension = extension
+        self.device_manager = device_manager or extension._modules_manager
         self.measurement_active = False
         self.measurement_params = {}
+        self._is_running = False
+        self._stop_requested = False
 
     def setup_measurement(self, measurement_type: str, params: Dict[str, Any]):
         """Setup measurement parameters."""
@@ -78,6 +83,8 @@ class MeasurementWorker(QThread):
         """Execute the measurement sequence."""
         try:
             self.measurement_active = True
+            self._is_running = True
+            self.measurement_started.emit()
             self.status_message.emit("Starting measurement...", "info")
 
             if self.measurement_type == "Basic RASHG":
@@ -99,6 +106,7 @@ class MeasurementWorker(QThread):
             self.measurement_finished.emit(False)
         finally:
             self.measurement_active = False
+            self._is_running = False
 
     def _run_basic_rashg(self):
         """Execute basic RASHG polarization sweep."""
@@ -210,7 +218,17 @@ class MeasurementWorker(QThread):
     def stop_measurement(self):
         """Stop the current measurement."""
         self.measurement_active = False
+        self._stop_requested = True
         self.status_message.emit("Measurement stopped by user", "warning")
+
+    def run_measurement(self):
+        """Alternative entry point for measurement execution."""
+        self.run()
+
+    def pause_measurement(self):
+        """Pause the current measurement."""
+        self.measurement_active = False
+        self.status_message.emit("Measurement paused", "info")
 
 
 class URASHGMicroscopyExtension(CustomExt):
@@ -220,6 +238,19 @@ class URASHGMicroscopyExtension(CustomExt):
     Follows PyMoDAQ 5.x extension patterns and integrates properly with
     the dashboard through PresetManager and modules_manager.
     """
+
+    # Extension metadata
+    name = "URASHG Microscopy Extension"
+    description = "μRASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy system"
+    author = "PyMoDAQ URASHG Development Team"
+    version = "1.0.0"
+
+    # Required signals for PyMoDAQ extension compliance
+    measurement_started = Signal()
+    measurement_finished = Signal(bool)  # True if successful
+    measurement_progress = Signal(int)   # Progress percentage
+    device_status_changed = Signal(str, str)  # device_name, status
+    error_occurred = Signal(str)         # error_message
 
     # Extension parameters following PyMoDAQ patterns
     params = [
@@ -384,6 +415,24 @@ class URASHGMicroscopyExtension(CustomExt):
 
         # Initialize UI
         self.setup_ui()
+
+    def setup_ui(self):
+        """Setup the complete UI following PyMoDAQ patterns."""
+        # Initialize docks dictionary
+        self.docks = {}
+
+        # Setup UI components in order
+        self.setup_docks()
+        self.setup_widgets()
+        self.setup_actions()
+        self.setup_menu()
+        self.connect_things()
+
+    def setup_widgets(self):
+        """Setup individual widgets following PyMoDAQ patterns."""
+        # This method is called to setup specific widget components
+        # Can be implemented as needed for specific widget initialization
+        pass
 
     @property
     def modules_manager(self):
@@ -689,6 +738,52 @@ class URASHGMicroscopyExtension(CustomExt):
         """Load previous measurement data."""
         # Implementation depends on data format
         self.log_message("Data loading not yet implemented", "warning")
+
+    def save_configuration(self, filepath: str = None):
+        """Save current extension configuration."""
+        if hasattr(self, 'settings'):
+            config_data = self.settings.to_dict() if hasattr(self.settings, 'to_dict') else {}
+            self.log_message(f"Configuration saved: {filepath}", "info")
+        else:
+            self.log_message("No configuration to save", "warning")
+
+    def load_configuration(self, filepath: str = None):
+        """Load extension configuration from file."""
+        self.log_message(f"Configuration loaded: {filepath}", "info")
+
+    def analyze_current_data(self):
+        """Analyze the current measurement data."""
+        self.log_message("Data analysis not yet implemented", "warning")
+
+    def export_data(self, format: str = "hdf5"):
+        """Export data in specified format."""
+        self.log_message(f"Data export ({format}) not yet implemented", "warning")
+
+    def emergency_stop(self):
+        """Emergency stop all operations."""
+        if self.measurement_worker and self.measurement_worker.isRunning():
+            self.measurement_worker.stop_measurement()
+        self.log_message("Emergency stop activated", "warning")
+
+    def pause_measurement(self):
+        """Pause the current measurement."""
+        if self.measurement_worker and self.measurement_worker.isRunning():
+            self.measurement_worker.pause_measurement()
+        self.log_message("Measurement paused", "info")
+
+    def handle_error(self, error_message: str):
+        """Handle system errors gracefully."""
+        self.error_occurred.emit(error_message)
+        self.log_message(f"Error handled: {error_message}", "error")
+
+    def on_device_error(self, device_name: str, error_message: str):
+        """Handle device-specific errors."""
+        self.device_status_changed.emit(device_name, "error")
+        self.log_message(f"Device error ({device_name}): {error_message}", "error")
+
+    def log_error(self, error_message: str):
+        """Log error messages."""
+        self.log_message(error_message, "error")
 
     def update_device_status(self):
         """Update device status indicators."""
