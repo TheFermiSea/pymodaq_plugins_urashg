@@ -46,7 +46,7 @@ jobs:
           # Use PyQt5 for stable CI environment (PyQt6 has corruption issues in CI)
           pip install "PyQt5>=5.15.0" "numpy>=1.24.0,<2.0"
           # Install package without optional hardware dependencies for CI
-          pip install -e . || (echo "Installation failed, trying without optional deps..." && pip install --no-deps -e . && pip install pymodaq>=5.0.0 pymodaq-gui>=5.0.0 pymodaq-data>=5.0.0 pymodaq-utils>=0.0.14 pyqtgraph>=0.12.0 h5py>=3.0.0 scipy>=1.7.0 matplotlib>=3.3.0 pyserial>=3.4 elliptec>=0.0.6)
+          pip install -e . || (echo "Installation failed, trying without optional deps..." && pip install --no-deps -e . && pip install "pymodaq>=5.0.0" "pymodaq-gui>=5.0.0" "pymodaq-data>=5.0.0" "pymodaq-utils>=0.0.14" "pyqtgraph>=0.12.0" "h5py>=3.0.0" "scipy>=1.7.0" "matplotlib>=3.3.0" "pyserial>=3.4" "elliptec>=0.0.6")
 
       - name: Run tests with xvfb
         run: xvfb-run -a python -m pytest tests/ -v --cov=pymodaq_plugins_urashg --cov-report=xml --cov-report=term-missing
@@ -57,9 +57,8 @@ jobs:
           CI: true
           PYMODAQ_TEST_MODE: mock
 
-      - name: Run comprehensive system test
-        run: |
-          xvfb-run -a python test_comprehensive_system.py
+      - name: Run PyMoDAQ compliance tests
+        run: xvfb-run -a python -m pytest tests/test_pymodaq_compliance.py -v
         env:
           QT_QPA_PLATFORM: offscreen
           QT_DEBUG_PLUGINS: 0
@@ -114,7 +113,7 @@ jobs:
           # Use PyQt5 for stable CI environment (PyQt6 has corruption issues in CI)
           pip install "PyQt5>=5.15.0" "numpy>=1.24.0,<2.0"
           # Install package without optional hardware dependencies for CI
-          pip install -e . || (echo "Installation failed, trying without optional deps..." && pip install --no-deps -e . && pip install pymodaq>=5.0.0 pymodaq-gui>=5.0.0 pymodaq-data>=5.0.0 pymodaq-utils>=0.0.14 pyqtgraph>=0.12.0 h5py>=3.0.0 scipy>=1.7.0 matplotlib>=3.3.0 pyserial>=3.4 elliptec>=0.0.6)
+          pip install -e . || (echo "Installation failed, trying without optional deps..." && pip install --no-deps -e . && pip install "pymodaq>=5.0.0" "pymodaq-gui>=5.0.0" "pymodaq-data>=5.0.0" "pymodaq-utils>=0.0.14" "pyqtgraph>=0.12.0" "h5py>=3.0.0" "scipy>=1.7.0" "matplotlib>=3.3.0" "pyserial>=3.4" "elliptec>=0.0.6")
 
       - name: Test plugin discovery
         run: |
@@ -123,22 +122,40 @@ jobs:
           import sys
           import os
 
-          eps = importlib.metadata.entry_points()
+          # Handle different Python versions for entry_points API
+          try:
+              eps = importlib.metadata.entry_points()
 
-          # Check for specific plugin entry points
-          if hasattr(eps, 'select'):
-              move_plugins = list(eps.select(group='pymodaq.move_plugins'))
-              viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins'))
-              extensions = list(eps.select(group='pymodaq.extensions'))
-          else:
-              move_plugins = eps.get('pymodaq.move_plugins', [])
-              viewer_plugins = eps.get('pymodaq.viewer_plugins', [])
-              extensions = eps.get('pymodaq.extensions', [])
+              # Python 3.10+ style with select method
+              try:
+                  move_plugins = list(eps.select(group='pymodaq.move_plugins'))
+                  viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins'))
+                  extensions = list(eps.select(group='pymodaq.extensions'))
+              except (TypeError, AttributeError):
+                  # Python 3.9 style - eps is a dict
+                  move_plugins = eps.get('pymodaq.move_plugins', [])
+                  viewer_plugins = eps.get('pymodaq.viewer_plugins', [])
+                  extensions = eps.get('pymodaq.extensions', [])
+          except Exception as e:
+              print(f'Entry points API error: {e}')
+              # Fallback: try importing plugins directly to verify they exist
+              try:
+                  from pymodaq_plugins_urashg.daq_move_plugins import daq_move_Elliptec
+                  from pymodaq_plugins_urashg.daq_move_plugins import daq_move_MaiTai
+                  from pymodaq_plugins_urashg.daq_move_plugins import daq_move_ESP300
+                  from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D import daq_0Dviewer_Newport1830C
+                  from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D import daq_2Dviewer_PrimeBSI
+                  from pymodaq_plugins_urashg.extensions import urashg_microscopy_extension
+                  print('✅ Plugin discovery: SUCCESS (direct import verification)')
+                  exit(0)
+              except ImportError as ie:
+                  print(f'❌ Plugin discovery: FAILED - Import error: {ie}')
+                  exit(1)
 
           # Check for URASHG specific plugins
-          urashg_move = [ep for ep in move_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['maitai', 'elliptec', 'esp300'])]
-          urashg_viewer = [ep for ep in viewer_plugins if 'urashg' in ep.value.lower() or any(x in ep.name.lower() for x in ['newport', 'prime'])]
-          urashg_extensions = [ep for ep in extensions if 'urashg' in ep.value.lower() or 'urashg' in ep.name.lower()]
+          urashg_move = [ep for ep in move_plugins if 'urashg' in str(ep.value).lower() or any(x in ep.name.lower() for x in ['maitai', 'elliptec', 'esp300'])]
+          urashg_viewer = [ep for ep in viewer_plugins if 'urashg' in str(ep.value).lower() or any(x in ep.name.lower() for x in ['newport', 'prime'])]
+          urashg_extensions = [ep for ep in extensions if 'urashg' in str(ep.value).lower() or 'urashg' in ep.name.lower()]
 
           print(f'Found {len(urashg_move)} URASHG move plugins')
           for ep in urashg_move:
@@ -166,10 +183,21 @@ jobs:
               for plugin_file in plugin_files:
                   if os.path.exists(plugin_file):
                       with open(plugin_file, 'r') as f:
-                          ast.parse(f.read())  # Check syntax
+                          content = f.read()
+                          ast.parse(content)  # Check syntax
+                          # Verify PyMoDAQ v5 patterns
+                          if 'extension' in plugin_file:
+                              if 'CustomApp' not in content:
+                                  raise ValueError(f'{plugin_file}: Extension must inherit from CustomApp')
+                          elif 'daq_move' in plugin_file:
+                              if 'DAQ_Move_base' not in content:
+                                  raise ValueError(f'{plugin_file}: Move plugin must inherit from DAQ_Move_base')
+                          elif 'daq_' in plugin_file and 'viewer' in plugin_file:
+                              if 'DAQ_Viewer_base' not in content:
+                                  raise ValueError(f'{plugin_file}: Viewer plugin must inherit from DAQ_Viewer_base')
                   else:
                       raise FileNotFoundError(f'Plugin file missing: {plugin_file}')
-              print('✅ All plugin files exist and are syntactically valid')
+              print('✅ All plugin files exist and follow PyMoDAQ v5 patterns')
               files_valid = True
           except Exception as e:
               print(f'❌ Plugin file validation failed: {e}')

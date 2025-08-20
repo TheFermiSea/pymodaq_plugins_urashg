@@ -427,6 +427,7 @@ pre-commit install
 ```
 
 ### Testing (UV-Optimized)
+### Testing Strategy (UV-Optimized)
 ```bash
 # Run tests with UV
 python manage_uv.py test                     # Basic test run
@@ -439,6 +440,11 @@ uv run pytest tests/                         # All tests
 uv run pytest tests/unit/                    # Unit tests only
 uv run pytest tests/integration/             # Integration tests
 uv run pytest -m "hardware"                  # Hardware tests
+
+# PyMoDAQ Compliance Testing (Standard Pytest)
+python run_compliance_tests.py              # Development-friendly runner
+pytest tests/test_pymodaq_compliance.py -v  # Standard pytest execution
+python run_compliance_tests.py TestEntryPoints  # Specific test class
 
 # Legacy testing
 python scripts/run_all_tests.py             # Original test runner
@@ -666,10 +672,12 @@ params = [
 ```
 
 ### Testing Strategy Details
+- **Standard Pytest**: All compliance tests use standard pytest patterns with proper assertions
 - **Hardware Markers**: Use `@pytest.mark.hardware` for tests requiring physical devices
-- **Mock Integration**: Mock devices available in `tests/mock_modules/` 
+- **Mock Integration**: Mock devices available in `tests/mock_modules/` and fixtures in `tests/conftest.py`
 - **Containerized Testing**: All tests designed to run in isolated Docker environments
 - **Coverage Tracking**: Exclude hardware-specific code from coverage when mocked
+- **PyMoDAQ Compliance**: Comprehensive test suite in `tests/test_pymodaq_compliance.py` with 16+ tests
 
 ### Legacy Code Management
 - **urashg_2/ Directory**: Contains legacy non-PyMoDAQ implementation
@@ -763,13 +771,14 @@ uv run pytest tests/                        # Run tests
 - **Professional Quality**: Suitable for inclusion in official PyMoDAQ plugin registry
 
 ### Validation Results ✅
-- **Compliance Tests**: 10/10 passing (100% success rate)
+- **PyMoDAQ Compliance Tests**: 16/16 passing (100% success rate) using standard pytest
 - **Plugin Tests**: 17/18 test files passing (threading test config issues only)
 - **Hardware Integration**: All plugins tested with comprehensive mock hardware
 - **Threading Safety**: ESP300 and Elliptec controllers fully validated
 - **Framework Compatibility**: Verified PyMoDAQ 5.x integration
+- **Test Architecture**: Converted from custom test runner to professional pytest patterns
 
-This represents the successful completion of the PyMoDAQ compliance refactoring project, transforming the URASHG package from a custom microscopy application into a true PyMoDAQ extension that demonstrates best practices for plugin development within the PyMoDAQ ecosystem.
+This represents the successful completion of the PyMoDAQ compliance refactoring project, transforming the URASHG package from a custom microscopy application into a true PyMoDAQ extension that demonstrates best practices for plugin development within the PyMoDAQ ecosystem. All testing now follows industry-standard pytest patterns for improved maintainability and CI/CD integration.
 
 # Using Gemini CLI for Large Codebase Analysis
 

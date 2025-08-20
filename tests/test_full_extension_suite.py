@@ -277,7 +277,7 @@ class TestDeviceManagerCompliance:
         ), "DeviceManager should inherit from QObject"
         logger.info("✓ Device manager architecture is compliant")
 
-    def test_device_manager_signal_patterns(self):
+    def test_device_manager_signal_patterns(self, mock_dashboard):
         """Test device manager signal patterns are PyMoDAQ compliant."""
         from qtpy.QtCore import Signal
 
@@ -287,7 +287,6 @@ class TestDeviceManagerCompliance:
         with patch(
             "pymodaq_plugins_urashg.extensions.device_manager.URASHGDeviceManager"
         ):
-            mock_dashboard = Mock()
             dm = URASHGDeviceManager(mock_dashboard)
 
             # Check for expected signals
