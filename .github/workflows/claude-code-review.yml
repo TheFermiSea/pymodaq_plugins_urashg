@@ -1,78 +1,109 @@
-name: Claude Code Review
+name: Claude Code Review - PyMoDAQ v5 Compliance
 
 on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+    # Focus on Python files relevant to PyMoDAQ plugins
+    paths:
+      - "src/**/*.py"
+      - "pyproject.toml"
+      - "plugin_info.toml"
+      - "tests/**/*.py"
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths:
+      - "src/**/*.py"
+      - "pyproject.toml"
+      - "plugin_info.toml"
+      - "tests/**/*.py"
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Run Claude Code Review
+      - name: Run Claude Code Review - PyMoDAQ v5 Compliance
         id: claude-review
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
-          
-          # Direct prompt for automated review (no @claude mention needed)
+          # Use Claude Sonnet 4 for detailed PyMoDAQ compliance analysis
+          model: "claude-sonnet-4-20241022"
+
+          # Specialized prompt for PyMoDAQ v5 compliance review
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
-            
-            Be constructive and helpful in your feedback.
+            You are a PyMoDAQ v5 expert. Please review this code for strict compliance with PyMoDAQ v5 standards and patterns.
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
-          
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
-          
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' && 
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-          
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
-          
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+            **CRITICAL PyMoDAQ v5 Compliance Checks:**
 
+            **Plugin Architecture:**
+            - Extensions MUST inherit from `CustomApp` (from `pymodaq_gui.utils.custom_app`)
+            - Move plugins MUST inherit from `DAQ_Move_base`
+            - Viewer plugins MUST inherit from `DAQ_Viewer_base`
+            - Check for correct import paths: `from pymodaq.control_modules.move_utility_classes import DAQ_Move_base`
+
+            **Data Structures:**
+            - MUST use `DataWithAxes` for data emission with proper `source=DataSource.raw`
+            - MUST use `DataActuator` for position handling in move plugins
+            - Check for correct signal emission: `self.dte_signal.emit(DataToExport(...))`
+            - Verify units handling: `units="units_string"` not `units=[units]`
+
+            **Entry Points & Configuration:**
+            - Verify `pyproject.toml` has correct entry point declarations
+            - Check `plugin_info.toml` follows PyMoDAQ v5 format
+            - Ensure plugin discovery patterns are v5 compliant
+
+            **Method Signatures:**
+            - `move_home()` MUST have `value=None` parameter for v5 compatibility
+            - `move_abs()` and `move_rel()` MUST handle `DataActuator` objects properly
+            - Check parameter tree definitions use PyMoDAQ v5 Parameter structure
+
+            **Threading & Lifecycle:**
+            - NO `__del__` methods in controllers (causes QThread conflicts)
+            - Proper cleanup in plugin `close()` methods
+            - Thread-safe hardware communication patterns
+
+            **Testing Patterns:**
+            - Tests should use proper PyMoDAQ v5 mock patterns
+            - Hardware tests marked with `@pytest.mark.hardware`
+            - Parameter access should use v5 patterns
+
+            **Documentation & Standards:**
+            - Code should follow PyMoDAQ v5 documentation examples
+            - Check against: https://pymodaq.cnrs.fr/en/latest/developer_folder/plugins.html
+
+            **Review Focus Areas:**
+            1. **Inheritance patterns** - Are all base classes correct for v5?
+            2. **Data structures** - Are DataWithAxes and DataActuator used properly?
+            3. **Entry points** - Are plugin discovery mechanisms v5 compliant?
+            4. **Threading safety** - Any potential QThread conflicts?
+            5. **Parameter handling** - Do parameter trees follow v5 patterns?
+            6. **Hardware integration** - Is device communication v5 compliant?
+
+            **Provide specific feedback on:**
+            - Any v5 compliance violations with exact file/line references
+            - Suggested fixes with code examples
+            - Missing v5 patterns that should be implemented
+            - Best practices for PyMoDAQ v5 plugin development
+
+            Be thorough and specific - this is for a production PyMoDAQ plugin package.
+
+          # Use sticky comments to track compliance issues across commits
+          use_sticky_comment: true
+
+          # Allow Claude to run tests and check compliance
+          allowed_tools: "Bash(python -m pytest tests/unit/test_plugin_discovery.py -v),Bash(python -c \"from pymodaq_plugins_urashg import *; print('Plugin discovery OK')\"),Bash(grep -r \"CustomApp\\|CustomExt\" src/),Bash(grep -r \"DataWithAxes\\|DataActuator\" src/)"
