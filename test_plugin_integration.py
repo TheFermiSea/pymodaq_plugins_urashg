@@ -17,6 +17,7 @@ import sys
 import traceback
 from pathlib import Path
 
+
 def test_package_import():
     """Test basic package import and version detection."""
     print("=" * 60)
@@ -25,6 +26,7 @@ def test_package_import():
 
     try:
         import pymodaq_plugins_urashg
+
         print(f"✓ Package imported successfully")
         print(f"✓ Version: {pymodaq_plugins_urashg.__version__}")
 
@@ -38,6 +40,7 @@ def test_package_import():
         traceback.print_exc()
         return False
 
+
 def test_plugin_discovery():
     """Test PyMoDAQ's plugin discovery system."""
     print("\n" + "=" * 60)
@@ -47,6 +50,7 @@ def test_plugin_discovery():
     try:
         # Import PyMoDAQ's plugin utilities - use v5.x API
         from pymodaq import get_instrument_plugins
+
         all_plugins = get_instrument_plugins()
 
         # Extract our URASHG plugins
@@ -54,11 +58,15 @@ def test_plugin_discovery():
         viewer_plugins = []
 
         for plugin_info in all_plugins:
-            if 'urashg' in plugin_info['parent_module'].__name__:
-                if plugin_info['type'] == 'daq_move':
-                    move_plugins.append(plugin_info['name'])
-                elif plugin_info['type'] in ['daq_0Dviewer', 'daq_1Dviewer', 'daq_2Dviewer']:
-                    viewer_plugins.append(plugin_info['name'])
+            if "urashg" in plugin_info["parent_module"].__name__:
+                if plugin_info["type"] == "daq_move":
+                    move_plugins.append(plugin_info["name"])
+                elif plugin_info["type"] in [
+                    "daq_0Dviewer",
+                    "daq_1Dviewer",
+                    "daq_2Dviewer",
+                ]:
+                    viewer_plugins.append(plugin_info["name"])
 
         print(f"✓ Found {len(move_plugins)} URASHG move plugins:")
         for plugin in move_plugins:
@@ -69,8 +77,8 @@ def test_plugin_discovery():
             print(f"  - {plugin}")
 
         # Expected plugins
-        expected_move = ['ESP300', 'Elliptec', 'MaiTai']
-        expected_viewer = ['Newport1830C', 'PrimeBSI']
+        expected_move = ["ESP300", "Elliptec", "MaiTai"]
+        expected_viewer = ["Newport1830C", "PrimeBSI"]
 
         missing_move = set(expected_move) - set(move_plugins)
         missing_viewer = set(expected_viewer) - set(viewer_plugins)
@@ -90,6 +98,7 @@ def test_plugin_discovery():
         traceback.print_exc()
         return False
 
+
 def test_plugin_imports():
     """Test individual plugin class imports."""
     print("\n" + "=" * 60)
@@ -97,11 +106,20 @@ def test_plugin_imports():
     print("=" * 60)
 
     plugins_to_test = [
-        ('DAQ_Move_Elliptec', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec'),
-        ('DAQ_Move_MaiTai', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai'),
-        ('DAQ_Move_ESP300', 'pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300'),
-        ('DAQ_2DViewer_PrimeBSI', 'pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI'),
-        ('DAQ_0DViewer_Newport1830C', 'pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C'),
+        (
+            "DAQ_Move_Elliptec",
+            "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec",
+        ),
+        ("DAQ_Move_MaiTai", "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai"),
+        ("DAQ_Move_ESP300", "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300"),
+        (
+            "DAQ_2DViewer_PrimeBSI",
+            "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI",
+        ),
+        (
+            "DAQ_0DViewer_Newport1830C",
+            "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C",
+        ),
     ]
 
     success_count = 0
@@ -112,9 +130,9 @@ def test_plugin_imports():
             print(f"✓ {class_name} imported successfully")
 
             # Test if it has required PyMoDAQ plugin attributes
-            if hasattr(plugin_class, 'params'):
+            if hasattr(plugin_class, "params"):
                 print(f"  - Has params definition")
-            if hasattr(plugin_class, '_controller_units'):
+            if hasattr(plugin_class, "_controller_units"):
                 print(f"  - Has controller units: {plugin_class._controller_units}")
 
             success_count += 1
@@ -123,6 +141,7 @@ def test_plugin_imports():
 
     print(f"\n✓ Successfully imported {success_count}/{len(plugins_to_test)} plugins")
     return success_count == len(plugins_to_test)
+
 
 def test_extension_discovery():
     """Test extension discovery."""
@@ -134,8 +153,8 @@ def test_extension_discovery():
         import pkg_resources
 
         # Check for extensions
-        extensions = list(pkg_resources.iter_entry_points('pymodaq.extensions'))
-        urashg_extensions = [ep for ep in extensions if 'urashg' in ep.name.lower()]
+        extensions = list(pkg_resources.iter_entry_points("pymodaq.extensions"))
+        urashg_extensions = [ep for ep in extensions if "urashg" in ep.name.lower()]
 
         print(f"✓ Found {len(urashg_extensions)} URASHG extensions:")
         for ext in urashg_extensions:
@@ -159,6 +178,7 @@ def test_extension_discovery():
         print(f"✗ Extension discovery failed: {e}")
         traceback.print_exc()
         return False
+
 
 def test_configuration():
     """Test configuration system."""
@@ -188,6 +208,7 @@ def test_configuration():
         traceback.print_exc()
         return False
 
+
 def test_hardware_abstraction():
     """Test hardware abstraction layer."""
     print("\n" + "=" * 60)
@@ -196,10 +217,16 @@ def test_hardware_abstraction():
 
     try:
         from pymodaq_plugins_urashg.hardware import urashg
+
         print("✓ Hardware abstraction layer imported")
 
         # Check if main hardware modules are available
-        hardware_modules = ['camera_utils', 'elliptec_wrapper', 'maitai_control', 'newport1830c_controller']
+        hardware_modules = [
+            "camera_utils",
+            "elliptec_wrapper",
+            "maitai_control",
+            "newport1830c_controller",
+        ]
 
         for module_name in hardware_modules:
             try:
@@ -217,6 +244,7 @@ def test_hardware_abstraction():
         print(f"✗ Hardware abstraction test failed: {e}")
         traceback.print_exc()
         return False
+
 
 def main():
     """Run all tests and provide summary."""
@@ -266,6 +294,7 @@ def main():
     else:
         print(f"\n⚠ {total - passed} tests failed. Check the output above for details.")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -16,6 +16,7 @@ from unittest.mock import Mock, MagicMock
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def test_extension_imports():
     """Test that the extension can be imported without errors."""
     try:
@@ -23,18 +24,22 @@ def test_extension_imports():
             URASHGMicroscopyExtension,
             EXTENSION_NAME,
             CLASS_NAME,
-            MeasurementWorker
+            MeasurementWorker,
         )
+
         logger.info("✅ Extension imports successful")
         return True
     except ImportError as e:
         logger.error(f"❌ Extension import failed: {e}")
         return False
 
+
 def test_extension_inheritance():
     """Test that the extension inherits from the correct PyMoDAQ base class."""
     try:
-        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+            URASHGMicroscopyExtension,
+        )
         from pymodaq.extensions.utils import CustomExt
 
         if issubclass(URASHGMicroscopyExtension, CustomExt):
@@ -47,13 +52,14 @@ def test_extension_inheritance():
         logger.error(f"❌ Error checking inheritance: {e}")
         return False
 
+
 def test_extension_metadata():
     """Test that the extension has required metadata."""
     try:
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             URASHGMicroscopyExtension,
             EXTENSION_NAME,
-            CLASS_NAME
+            CLASS_NAME,
         )
 
         # Check class-level metadata
@@ -78,16 +84,19 @@ def test_extension_metadata():
         logger.error(f"❌ Error checking metadata: {e}")
         return False
 
+
 def test_extension_methods():
     """Test that the extension has required PyMoDAQ methods."""
     try:
-        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+            URASHGMicroscopyExtension,
+        )
 
         required_methods = [
-            'setup_docks',
-            'setup_actions',
-            'connect_things',
-            'value_changed'
+            "setup_docks",
+            "setup_actions",
+            "connect_things",
+            "value_changed",
         ]
 
         for method in required_methods:
@@ -101,13 +110,16 @@ def test_extension_methods():
         logger.error(f"❌ Error checking methods: {e}")
         return False
 
+
 def test_extension_parameters():
     """Test that the extension has proper parameter structure."""
     try:
-        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+            URASHGMicroscopyExtension,
+        )
 
         # Check if params attribute exists and is a list
-        if not hasattr(URASHGMicroscopyExtension, 'params'):
+        if not hasattr(URASHGMicroscopyExtension, "params"):
             logger.error("❌ Extension missing 'params' attribute")
             return False
 
@@ -126,7 +138,7 @@ def test_extension_parameters():
                 logger.error(f"❌ Parameter {i} is not a dictionary")
                 return False
 
-            required_keys = ['title', 'name', 'type']
+            required_keys = ["title", "name", "type"]
             for key in required_keys:
                 if key not in param:
                     logger.error(f"❌ Parameter {i} missing required key: {key}")
@@ -138,10 +150,13 @@ def test_extension_parameters():
         logger.error(f"❌ Error checking parameters: {e}")
         return False
 
+
 def test_extension_instantiation():
     """Test that the extension can be instantiated with mock objects."""
     try:
-        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+            URASHGMicroscopyExtension,
+        )
         from qtpy.QtWidgets import QApplication, QWidget
         from pyqtgraph.dockarea import DockArea
 
@@ -163,11 +178,11 @@ def test_extension_instantiation():
         extension = URASHGMicroscopyExtension(mock_parent, mock_dashboard)
 
         # Basic checks
-        if not hasattr(extension, 'modules_manager'):
+        if not hasattr(extension, "modules_manager"):
             logger.error("❌ Extension missing modules_manager attribute")
             return False
 
-        if not hasattr(extension, 'settings'):
+        if not hasattr(extension, "settings"):
             logger.error("❌ Extension missing settings attribute")
             return False
 
@@ -177,10 +192,11 @@ def test_extension_instantiation():
         logger.error(f"❌ Error instantiating extension: {e}")
         return False
 
+
 def test_preset_file_exists():
     """Test that the preset file exists."""
     try:
-        preset_path = Path(__file__).parent / 'presets' / 'urashg_microscopy_system.xml'
+        preset_path = Path(__file__).parent / "presets" / "urashg_microscopy_system.xml"
 
         if preset_path.exists():
             logger.info("✅ Preset file exists")
@@ -192,6 +208,7 @@ def test_preset_file_exists():
         logger.error(f"❌ Error checking preset file: {e}")
         return False
 
+
 def test_entry_points():
     """Test that PyMoDAQ entry points are properly configured."""
     try:
@@ -200,7 +217,7 @@ def test_entry_points():
         eps = importlib.metadata.entry_points()
 
         # Check extension entry point
-        if hasattr(eps, 'select'):
+        if hasattr(eps, "select"):
             extension_eps = list(eps.select(group="pymodaq.extensions"))
         else:
             extension_eps = eps.get("pymodaq.extensions", [])
@@ -221,6 +238,7 @@ def test_entry_points():
         logger.error(f"❌ Error checking entry points: {e}")
         return False
 
+
 def test_plugin_entry_points():
     """Test that individual plugin entry points are configured."""
     try:
@@ -232,16 +250,13 @@ def test_plugin_entry_points():
         expected_move_plugins = [
             "DAQ_Move_Elliptec",
             "DAQ_Move_MaiTai",
-            "DAQ_Move_ESP300"
+            "DAQ_Move_ESP300",
         ]
 
-        expected_viewer_plugins = [
-            "DAQ_2DViewer_PrimeBSI",
-            "DAQ_0DViewer_Newport1830C"
-        ]
+        expected_viewer_plugins = ["DAQ_2DViewer_PrimeBSI", "DAQ_0DViewer_Newport1830C"]
 
         # Check move plugins
-        if hasattr(eps, 'select'):
+        if hasattr(eps, "select"):
             move_eps = list(eps.select(group="pymodaq.move_plugins"))
         else:
             move_eps = eps.get("pymodaq.move_plugins", [])
@@ -249,22 +264,29 @@ def test_plugin_entry_points():
         found_move = [ep.name for ep in move_eps if ep.name in expected_move_plugins]
 
         # Check viewer plugins
-        if hasattr(eps, 'select'):
+        if hasattr(eps, "select"):
             viewer_eps = list(eps.select(group="pymodaq.viewer_plugins"))
         else:
             viewer_eps = eps.get("pymodaq.viewer_plugins", [])
 
-        found_viewer = [ep.name for ep in viewer_eps if ep.name in expected_viewer_plugins]
+        found_viewer = [
+            ep.name for ep in viewer_eps if ep.name in expected_viewer_plugins
+        ]
 
-        if len(found_move) == len(expected_move_plugins) and len(found_viewer) == len(expected_viewer_plugins):
+        if len(found_move) == len(expected_move_plugins) and len(found_viewer) == len(
+            expected_viewer_plugins
+        ):
             logger.info("✅ All plugin entry points are properly configured")
             return True
         else:
-            logger.error(f"❌ Missing plugin entry points. Found move: {found_move}, Found viewer: {found_viewer}")
+            logger.error(
+                f"❌ Missing plugin entry points. Found move: {found_move}, Found viewer: {found_viewer}"
+            )
             return False
     except Exception as e:
         logger.error(f"❌ Error checking plugin entry points: {e}")
         return False
+
 
 def test_config_module():
     """Test that the configuration module works properly."""
@@ -276,13 +298,14 @@ def test_config_module():
 
         # Test basic functionality
         preset_config = config.get_preset_config()
-        hardware_config = config.get_hardware_config('elliptec')
+        hardware_config = config.get_hardware_config("elliptec")
 
         logger.info("✅ Configuration module works properly")
         return True
     except Exception as e:
         logger.error(f"❌ Error testing config module: {e}")
         return False
+
 
 def run_all_tests():
     """Run all compliance tests."""
@@ -299,7 +322,7 @@ def run_all_tests():
         ("Preset File", test_preset_file_exists),
         ("Extension Entry Points", test_entry_points),
         ("Plugin Entry Points", test_plugin_entry_points),
-        ("Configuration Module", test_config_module)
+        ("Configuration Module", test_config_module),
     ]
 
     passed = 0
@@ -322,6 +345,7 @@ def run_all_tests():
         logger.error(f"❌ {total - passed} tests failed. Extension needs fixes.")
         return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     success = run_all_tests()
     sys.exit(0 if success else 1)

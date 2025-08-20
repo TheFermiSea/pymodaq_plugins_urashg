@@ -81,9 +81,9 @@ def check_plugin_threading_safety(
                 setting.child(path_parts[-1]).setValue(value)
 
         # Test initialization - use correct method for plugin type
-        if hasattr(plugin, 'ini_stage'):
+        if hasattr(plugin, "ini_stage"):
             result, success = plugin.ini_stage()
-        elif hasattr(plugin, 'ini_detector'):
+        elif hasattr(plugin, "ini_detector"):
             result, success = plugin.ini_detector()
         else:
             logger.error(f"❌ {plugin_name} has no initialization method")
@@ -177,9 +177,9 @@ def check_stress_initialization(
                     pass
 
             # Use correct initialization method for plugin type
-            if hasattr(plugin, 'ini_stage'):
+            if hasattr(plugin, "ini_stage"):
                 result, success = plugin.ini_stage()
-            elif hasattr(plugin, 'ini_detector'):
+            elif hasattr(plugin, "ini_detector"):
                 result, success = plugin.ini_detector()
             else:
                 logger.error(f"Plugin {plugin_name} has no initialization method")

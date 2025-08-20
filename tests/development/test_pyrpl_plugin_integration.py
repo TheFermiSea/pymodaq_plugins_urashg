@@ -68,7 +68,9 @@ def test_plugin_discovery():
         else:
             logger.info("ℹ️  No PyRPL viewer plugins found (this is expected)")
 
-        assert len(pyrpl_move_plugins) > 0, "No PyRPL move plugins found in entry points"
+        assert (
+            len(pyrpl_move_plugins) > 0
+        ), "No PyRPL move plugins found in entry points"
 
     except Exception as e:
         logger.error(f"❌ Plugin discovery failed: {e}")
@@ -105,7 +107,9 @@ def test_urashg_experiment_integration():
         experiment = WavelengthDependentRASHGExperiment()
         required_modules = experiment.required_modules
 
-        assert "PyRPL_PID" in required_modules, "URASHG experiment does not reference PyRPL_PID plugin"
+        assert (
+            "PyRPL_PID" in required_modules
+        ), "URASHG experiment does not reference PyRPL_PID plugin"
         logger.info(
             "✅ URASHG experiment correctly references external PyRPL_PID plugin"
         )

@@ -20,6 +20,7 @@ def check_python_version():
         raise RuntimeError("Python 3.8+ is required for PyMoDAQ v5")
     print(f"[OK] Python {sys.version_info.major}.{sys.version_info.minor} detected")
 
+
 def install_pymodaq():
     """Install PyMoDAQ version 5 and core dependencies"""
     print("Installing PyMoDAQ v5...")
@@ -37,13 +38,17 @@ def install_pymodaq():
     for package in packages:
         try:
             print(f"Installing {package}...")
-            subprocess.run([
-                sys.executable, "-m", "pip", "install", package
-            ], check=True, capture_output=True, text=True)
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", package],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
             print(f"[OK] {package} installed successfully")
         except subprocess.CalledProcessError as e:
             print(f"[WARNING]  Warning: Failed to install {package}: {e}")
             # Continue with other packages
+
 
 def setup_mock_modules():
     """Setup mock modules for hardware simulation"""
@@ -220,13 +225,14 @@ class pvc:
 
     print("[OK] Mock hardware modules created")
 
+
 def validate_installation():
     """Validate that required components are properly installed"""
     print("Validating installation...")
 
     required_modules = [
-        'numpy',
-        'pytest',
+        "numpy",
+        "pytest",
     ]
 
     missing_modules = []
@@ -244,9 +250,10 @@ def validate_installation():
 
     return True
 
+
 def create_test_config():
     """Create test configuration file"""
-    config_content = '''
+    config_content = """
 # PyMoDAQ URASHG Plugin Test Configuration
 
 [test_settings]
@@ -274,11 +281,12 @@ frame_timeout = 5.0
 elliptec_response_delay = 0.05
 maitai_response_delay = 0.1
 camera_frame_generation_time = 0.02
-'''
+"""
 
     config_path = Path(__file__).parent / "test_config.ini"
     config_path.write_text(config_content)
     print(f"[OK] Test configuration created: {config_path}")
+
 
 def main():
     """Main setup function"""
@@ -313,8 +321,10 @@ def main():
     except Exception as e:
         print(f"\n[ERROR] Setup failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

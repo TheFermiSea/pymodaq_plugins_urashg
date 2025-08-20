@@ -13,10 +13,10 @@ from pathlib import Path
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 def main():
     """
@@ -35,7 +35,8 @@ def main():
 
         # Import extension metadata
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
-            EXTENSION_NAME, CLASS_NAME
+            EXTENSION_NAME,
+            CLASS_NAME,
         )
         from pymodaq_plugins_urashg.utils.config import Config as PluginConfig
 
@@ -50,8 +51,7 @@ def main():
 
             # Get preset configuration
             preset_file_name = plugin_config.get_preset_config().get(
-                f'preset_for_{CLASS_NAME.lower()}',
-                'urashg_microscopy_system'
+                f"preset_for_{CLASS_NAME.lower()}", "urashg_microscopy_system"
             )
 
             logger.info(f"Loading dashboard with preset: {preset_file_name}")
@@ -66,13 +66,13 @@ def main():
 
         except ConfigError as e:
             error_msg = (
-                f'Configuration error for {EXTENSION_NAME}:\n\n'
+                f"Configuration error for {EXTENSION_NAME}:\n\n"
                 f'No entry with name "preset_for_{CLASS_NAME.lower()}" has been configured '
-                f'in the plugin config file.\n\n'
-                f'The config entry should be:\n'
-                f'[presets]\n'
+                f"in the plugin config file.\n\n"
+                f"The config entry should be:\n"
+                f"[presets]\n"
                 f'preset_for_{CLASS_NAME.lower()} = "urashg_microscopy_system"\n\n'
-                f'Please check your plugin configuration or create the preset file.'
+                f"Please check your plugin configuration or create the preset file."
             )
 
             logger.error(f"Configuration error: {e}")
@@ -94,6 +94,7 @@ def main():
         print(f"Unexpected error occurred: {e}")
         sys.exit(1)
 
+
 def launch_standalone():
     """
     Launch extension in standalone mode for development/testing.
@@ -108,7 +109,8 @@ def launch_standalone():
         from qtpy.QtWidgets import QMainWindow
 
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
-            URASHGMicroscopyExtension, EXTENSION_NAME
+            URASHGMicroscopyExtension,
+            EXTENSION_NAME,
         )
 
         logger.info(f"Starting {EXTENSION_NAME} in standalone mode...")
@@ -144,16 +146,17 @@ def launch_standalone():
         print(f"Error launching standalone mode: {e}")
         sys.exit(1)
 
+
 def check_dependencies():
     """Check if all required dependencies are available."""
     required_modules = [
-        'pymodaq',
-        'pymodaq_gui',
-        'pymodaq_data',
-        'pymodaq_utils',
-        'numpy',
-        'pyqtgraph',
-        'qtpy'
+        "pymodaq",
+        "pymodaq_gui",
+        "pymodaq_data",
+        "pymodaq_utils",
+        "numpy",
+        "pyqtgraph",
+        "qtpy",
     ]
 
     missing_modules = []
@@ -172,6 +175,7 @@ def check_dependencies():
         return False
 
     return True
+
 
 def print_help():
     """Print help information."""
@@ -196,22 +200,23 @@ https://github.com/PyMoDAQ/pymodaq_plugins_urashg
 """
     print(help_text)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Parse command line arguments
     args = sys.argv[1:]
 
-    if '--help' in args or '-h' in args:
+    if "--help" in args or "-h" in args:
         print_help()
         sys.exit(0)
 
-    if '--check-deps' in args:
+    if "--check-deps" in args:
         if check_dependencies():
             print("All required dependencies are available.")
             sys.exit(0)
         else:
             sys.exit(1)
 
-    if '--standalone' in args:
+    if "--standalone" in args:
         if not check_dependencies():
             sys.exit(1)
         launch_standalone()

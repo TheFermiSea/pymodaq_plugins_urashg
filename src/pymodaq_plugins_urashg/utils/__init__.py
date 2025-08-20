@@ -8,6 +8,7 @@ from pymodaq.utils.logger import get_module_name, set_logger
 # Configuration management
 try:
     from .config import Config
+
     CONFIG_AVAILABLE = True
 except ImportError:
     CONFIG_AVAILABLE = False

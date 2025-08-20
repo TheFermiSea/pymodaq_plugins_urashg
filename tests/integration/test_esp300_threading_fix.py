@@ -67,7 +67,6 @@ def test_esp300_initialization():
         time.sleep(0.5)  # Allow GC to run
         logger.info("✅ Garbage collection completed without crash")
 
-
     except Exception as e:
         logger.error(f"❌ Test failed with exception: {e}")
         import traceback
