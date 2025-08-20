@@ -28,7 +28,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pyqtgraph as pg
 import pytest
-from pymodaq.extensions.utils import CustomExt
+from pymodaq_gui.utils.custom_app import CustomApp
 from pymodaq.utils.config import Config
 from pymodaq.utils.data import Axis, DataSource, DataWithAxes
 from pymodaq.utils.logger import get_module_name, set_logger
@@ -111,8 +111,8 @@ class TestExtensionDiscovery:
 
         # Verify class inheritance
         assert issubclass(
-            URASHGMicroscopyExtension, CustomExt
-        ), "Extension must inherit from CustomExt"
+            URASHGMicroscopyExtension, CustomApp
+        ), "Extension must inherit from CustomApp"
 
         # Verify required class attributes
         required_attrs = ["name", "description", "author", "version"]
@@ -254,15 +254,15 @@ class TestExtensionSignalCompliance:
 
     def test_extension_inheritance(self):
         """Test extension inherits from CustomExt."""
-        from pymodaq.extensions.utils import CustomExt
+        from pymodaq_gui.utils.custom_app import CustomApp
 
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             URASHGMicroscopyExtension,
         )
 
         assert issubclass(
-            URASHGMicroscopyExtension, CustomExt
-        ), "Extension must inherit from CustomExt"
+            URASHGMicroscopyExtension, CustomApp
+        ), "Extension must inherit from CustomApp"
 
     def test_extension_metadata(self):
         """Test extension has required metadata."""
@@ -773,8 +773,8 @@ class TestExtensionIntegrationCompliance:
             URASHGMicroscopyExtension,
         )
 
-        # Should inherit from CustomExt
-        assert issubclass(URASHGMicroscopyExtension, CustomExt)
+        # Should inherit from CustomApp
+        assert issubclass(URASHGMicroscopyExtension, CustomApp)
 
         # Should have required metadata
         required_attrs = ["name", "description", "author", "version"]

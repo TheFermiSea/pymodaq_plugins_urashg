@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import numpy as np
-from pymodaq.extensions.utils import CustomExt
+from pymodaq_gui.utils.custom_app import CustomApp
 from pymodaq.utils.config import Config
 from pymodaq.utils.data import DataActuator
 from pymodaq.utils.logger import get_module_name, set_logger
@@ -231,7 +231,7 @@ class MeasurementWorker(QThread):
         self.status_message.emit("Measurement paused", "info")
 
 
-class URASHGMicroscopyExtension(CustomExt):
+class URASHGMicroscopyExtension(CustomApp):
     """
     Production-ready μRASHG Extension for PyMoDAQ Dashboard
 
@@ -388,15 +388,18 @@ class URASHGMicroscopyExtension(CustomExt):
         },
     ]
 
-    def __init__(self, parent: gutils.DockArea, dashboard):
+    def __init__(self, dockarea, dashboard=None):
         """
         Initialize the URASHG extension.
 
         Args:
-            parent: DockArea parent widget
-            dashboard: PyMoDAQ dashboard instance with modules_manager
+            dockarea: DockArea parent widget
+            dashboard: PyMoDAQ dashboard instance with modules_manager (optional)
         """
-        super().__init__(parent, dashboard)
+        super().__init__(dockarea)
+
+        # Store dashboard reference for PyMoDAQ 5.x compatibility
+        self.dashboard = dashboard
 
         # Access to PyMoDAQ's device management
         self._modules_manager = dashboard.modules_manager if dashboard else None
