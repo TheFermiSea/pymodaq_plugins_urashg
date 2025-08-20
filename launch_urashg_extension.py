@@ -7,8 +7,8 @@ This launcher properly integrates with PyMoDAQ's extension framework
 and follows PyMoDAQ 5.x standards for extension loading and initialization.
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Setup logging
@@ -28,15 +28,15 @@ def main():
     3. Initializes extension through PyMoDAQ framework
     """
     try:
-        from pymodaq.utils.gui_utils.utils import mkQApp
         from pymodaq.utils.gui_utils.loader_utils import load_dashboard_with_preset
+        from pymodaq.utils.gui_utils.utils import mkQApp
         from pymodaq.utils.messenger import messagebox
         from pymodaq_utils.config import ConfigError
 
         # Import extension metadata
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
-            EXTENSION_NAME,
             CLASS_NAME,
+            EXTENSION_NAME,
         )
         from pymodaq_plugins_urashg.utils.config import Config as PluginConfig
 
@@ -103,14 +103,14 @@ def launch_standalone():
     without requiring full PyMoDAQ preset configuration.
     """
     try:
-        from pymodaq.utils.gui_utils.utils import mkQApp
         from pymodaq.dashboard import DashBoard
+        from pymodaq.utils.gui_utils.utils import mkQApp
         from pyqtgraph.dockarea import DockArea
         from qtpy.QtWidgets import QMainWindow
 
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
-            URASHGMicroscopyExtension,
             EXTENSION_NAME,
+            URASHGMicroscopyExtension,
         )
 
         logger.info(f"Starting {EXTENSION_NAME} in standalone mode...")

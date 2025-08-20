@@ -3,8 +3,9 @@
 Mock PyMoDAQ classes for testing plugins without full PyMoDAQ installation.
 """
 
+from unittest.mock import MagicMock, Mock
+
 import numpy as np
-from unittest.mock import Mock, MagicMock
 
 
 class MockThreadCommand:

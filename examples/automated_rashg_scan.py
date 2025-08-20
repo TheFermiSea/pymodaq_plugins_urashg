@@ -15,21 +15,23 @@ Usage:
     python automated_rashg_scan.py --config rashg_config.yaml --output ./data/
 """
 
+import logging
 import sys
 import time
-import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-import logging
+
+import numpy as np
 
 # PyMoDAQ imports
 from pymodaq.dashboard import DashBoard
 from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataToExport, DataFromPlugins, Axis
+from pymodaq.utils.data import Axis, DataFromPlugins, DataToExport
+
+from pymodaq_plugins_urashg.analysis import rashg_analysis
 
 # URASHG plugin imports
 from pymodaq_plugins_urashg.hardware.urashg import URASHGSystem
-from pymodaq_plugins_urashg.analysis import rashg_analysis
 from pymodaq_plugins_urashg.utils import configuration_manager
 
 

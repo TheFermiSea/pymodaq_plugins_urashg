@@ -16,9 +16,9 @@ Usage:
     python launch_urashg_mock_debug.py
 """
 
-import sys
 import logging
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -88,9 +88,10 @@ def patch_pymodaq_imports():
 
 def create_mock_dashboard():
     """Create a mock PyMoDAQ dashboard with DockArea for the extension."""
-    from qtpy.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel
-    from qtpy.QtCore import QObject, Signal as pyqtSignal
     from pyqtgraph.dockarea import DockArea
+    from qtpy.QtCore import QObject
+    from qtpy.QtCore import Signal as pyqtSignal
+    from qtpy.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget
 
     class MockModulesManager:
         """Mock PyMoDAQ modules manager."""
@@ -164,8 +165,8 @@ def launch_extension_mock_mode():
         logger.info("Starting μRASHG Extension Mock Debug Launcher")
 
         # Import Qt components
-        from qtpy.QtWidgets import QApplication
         from qtpy.QtCore import Qt
+        from qtpy.QtWidgets import QApplication
 
         # Create QApplication
         app = QApplication.instance()

@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 from pymodaq_utils.resources.hatch_build_plugins import update_metadata_from_toml
 

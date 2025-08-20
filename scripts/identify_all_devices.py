@@ -1,5 +1,6 @@
-import serial
 import time
+
+import serial
 
 
 def identify_maitai(port, baudrate):

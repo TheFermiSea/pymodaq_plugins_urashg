@@ -6,12 +6,12 @@ This script runs complete mock testing for all three plugins in the URASHG
 microscopy system: Elliptec rotation mounts, MaiTai laser, and Prime BSI camera.
 """
 
-import sys
-import subprocess
-import time
-import os
-from pathlib import Path
 import importlib.util
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
 
 
 def print_header(title):

@@ -26,13 +26,13 @@ Arguments:
     --verbose     Enable detailed logging output
 """
 
+import argparse
+import logging
 import sys
 import time
-import logging
-import argparse
 import traceback
-from typing import Dict, Any, Optional
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 # Add the source directory to the path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -61,14 +61,14 @@ def test_pyrpl_wrapper_import():
 
     try:
         from pymodaq_plugins_urashg.utils import (
-            PyRPLManager,
-            PyRPLConnection,
-            PIDChannel,
+            PYRPL_WRAPPER_AVAILABLE,
             InputChannel,
             OutputChannel,
+            PIDChannel,
             PIDConfiguration,
+            PyRPLConnection,
+            PyRPLManager,
             get_pyrpl_manager,
-            PYRPL_WRAPPER_AVAILABLE,
         )
 
         print(f"✓ PyRPL wrapper import successful")
@@ -109,8 +109,8 @@ def test_power_stabilization_controller(use_hardware: bool = False):
     try:
         from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import (
             PowerStabilizationController,
-            StabilizationConfiguration,
             PowerTarget,
+            StabilizationConfiguration,
         )
 
         # Create configuration
@@ -202,10 +202,11 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
     print("=" * 60)
 
     try:
+        from pymodaq.utils.data import DataActuator
+
         from pymodaq_plugins_urashg.daq_move_plugins.daq_move_URASHG_PyRPL_PID import (
             DAQ_Move_URASHG_PyRPL_PID,
         )
-        from pymodaq.utils.data import DataActuator
 
         print(f"✓ URASHG PyRPL PID plugin imported successfully")
 
@@ -295,9 +296,9 @@ def test_wavelength_dependent_experiment(use_hardware: bool = False):
 
     try:
         from pymodaq_plugins_urashg.experiments.wavelength_dependent_rashg import (
-            WavelengthDependentRASHGExperiment,
-            SpectralScanConfiguration,
             SpectralPoint,
+            SpectralScanConfiguration,
+            WavelengthDependentRASHGExperiment,
         )
 
         print(f"✓ Wavelength-dependent experiment imported successfully")
@@ -376,9 +377,9 @@ def test_error_handling_and_safety():
     try:
         from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import (
             PowerStabilizationController,
-            StabilizationConfiguration,
-            PowerTarget,
             PowerStabilizationError,
+            PowerTarget,
+            StabilizationConfiguration,
         )
 
         print("✓ Error handling classes imported")

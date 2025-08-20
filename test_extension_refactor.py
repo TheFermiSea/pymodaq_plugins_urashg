@@ -7,10 +7,10 @@ This test verifies that the extension properly follows PyMoDAQ 5.x standards
 and can be properly integrated with the PyMoDAQ ecosystem.
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -21,10 +21,10 @@ def test_extension_imports():
     """Test that the extension can be imported without errors."""
     try:
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
-            URASHGMicroscopyExtension,
-            EXTENSION_NAME,
             CLASS_NAME,
+            EXTENSION_NAME,
             MeasurementWorker,
+            URASHGMicroscopyExtension,
         )
 
         logger.info("✅ Extension imports successful")
@@ -37,10 +37,11 @@ def test_extension_imports():
 def test_extension_inheritance():
     """Test that the extension inherits from the correct PyMoDAQ base class."""
     try:
+        from pymodaq.extensions.utils import CustomExt
+
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             URASHGMicroscopyExtension,
         )
-        from pymodaq.extensions.utils import CustomExt
 
         if issubclass(URASHGMicroscopyExtension, CustomExt):
             logger.info("✅ Extension correctly inherits from CustomExt")
@@ -57,9 +58,9 @@ def test_extension_metadata():
     """Test that the extension has required metadata."""
     try:
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
-            URASHGMicroscopyExtension,
-            EXTENSION_NAME,
             CLASS_NAME,
+            EXTENSION_NAME,
+            URASHGMicroscopyExtension,
         )
 
         # Check class-level metadata
@@ -154,11 +155,12 @@ def test_extension_parameters():
 def test_extension_instantiation():
     """Test that the extension can be instantiated with mock objects."""
     try:
+        from pyqtgraph.dockarea import DockArea
+        from qtpy.QtWidgets import QApplication, QWidget
+
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             URASHGMicroscopyExtension,
         )
-        from qtpy.QtWidgets import QApplication, QWidget
-        from pyqtgraph.dockarea import DockArea
 
         # Create QApplication if needed
         app = QApplication.instance()

@@ -3,9 +3,10 @@
 Test script for launching the Elliptec Calibration Experiment
 """
 
-import sys
-from qtpy import QtWidgets
 import logging
+import sys
+
+from qtpy import QtWidgets
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

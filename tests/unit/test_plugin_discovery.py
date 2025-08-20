@@ -2,8 +2,9 @@
 Unit tests for plugin discovery
 """
 
-import pytest
 import importlib.metadata
+
+import pytest
 
 
 @pytest.mark.unit

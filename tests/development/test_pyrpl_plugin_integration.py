@@ -9,8 +9,8 @@ Usage:
     python test_pyrpl_plugin_integration.py
 """
 
-import sys
 import logging
+import sys
 from typing import Dict, List
 
 # Configure logging

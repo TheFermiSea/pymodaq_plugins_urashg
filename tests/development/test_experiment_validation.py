@@ -4,9 +4,9 @@ Validation test for μRASHG experiments without GUI display
 Tests core functionality and parameter validation
 """
 
-import sys
-import os
 import logging
+import os
+import sys
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -143,10 +143,11 @@ def test_experiment_parameters():
     print("\n=== Testing Experiment Parameters ===")
 
     try:
+        from unittest.mock import Mock
+
         from src.pymodaq_plugins_urashg.experiments.elliptec_calibration import (
             ElliptecCalibrationExperiment,
         )
-        from unittest.mock import Mock
 
         # Mock GUI setup
         ElliptecCalibrationExperiment.setup_gui = Mock()
@@ -192,10 +193,11 @@ def test_experiment_methods():
     print("\n=== Testing Experiment Methods ===")
 
     try:
+        from unittest.mock import Mock
+
         from src.pymodaq_plugins_urashg.experiments.elliptec_calibration import (
             ElliptecCalibrationExperiment,
         )
-        from unittest.mock import Mock
 
         # Mock GUI setup
         ElliptecCalibrationExperiment.setup_gui = Mock()

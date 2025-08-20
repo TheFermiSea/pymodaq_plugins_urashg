@@ -16,9 +16,9 @@ Usage:
     python launch_urashg_plugin_test.py
 """
 
-import sys
 import logging
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -50,15 +50,15 @@ def test_individual_plugins():
 
     try:
         # Import Qt
+        from qtpy.QtCore import Qt
         from qtpy.QtWidgets import (
             QApplication,
+            QLabel,
             QMainWindow,
+            QPushButton,
             QVBoxLayout,
             QWidget,
-            QLabel,
-            QPushButton,
         )
-        from qtpy.QtCore import Qt
 
         # Create Qt Application
         app = QApplication.instance()

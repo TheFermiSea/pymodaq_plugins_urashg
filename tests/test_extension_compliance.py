@@ -17,27 +17,28 @@ Test Categories:
 - PyMoDAQ Framework Integration
 """
 
-import pytest
 import importlib.metadata
+import json
 import logging
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
 import sys
 import tempfile
-import json
-from typing import Dict, Any, List
+from pathlib import Path
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
 
-# Qt imports
-from qtpy import QtWidgets, QtCore, QtTest
-from qtpy.QtCore import QTimer, Signal
 import pyqtgraph as pg
+import pytest
+from pymodaq.extensions.utils import CustomExt
+from pymodaq.utils.config import Config
+from pymodaq.utils.data import Axis, DataSource, DataWithAxes
+from pymodaq.utils.logger import get_module_name, set_logger
 
 # PyMoDAQ imports
 from pymodaq.utils.parameter import Parameter
-from pymodaq.utils.data import DataWithAxes, Axis, DataSource
-from pymodaq.utils.logger import set_logger, get_module_name
-from pymodaq.utils.config import Config
-from pymodaq.extensions.utils import CustomExt
+
+# Qt imports
+from qtpy import QtCore, QtTest, QtWidgets
+from qtpy.QtCore import QTimer, Signal
 
 # Test utilities
 from tests.mock_modules.mock_devices import MockDeviceManager, MockDeviceStatus
@@ -253,10 +254,11 @@ class TestExtensionSignalCompliance:
 
     def test_extension_inheritance(self):
         """Test extension inherits from CustomExt."""
+        from pymodaq.extensions.utils import CustomExt
+
         from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
             URASHGMicroscopyExtension,
         )
-        from pymodaq.extensions.utils import CustomExt
 
         assert issubclass(
             URASHGMicroscopyExtension, CustomExt

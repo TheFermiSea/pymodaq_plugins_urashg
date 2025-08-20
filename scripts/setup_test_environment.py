@@ -7,10 +7,10 @@ in the URASHG microscopy system, including mock hardware simulation and
 dependency management.
 """
 
+import importlib
+import os
 import subprocess
 import sys
-import os
-import importlib
 from pathlib import Path
 
 

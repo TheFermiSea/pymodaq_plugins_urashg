@@ -3,8 +3,10 @@
 μRASHG Microscopy Extension for PyMoDAQ
 
 This extension provides comprehensive multi-device coordination for μRASHG
-(micro Rotational Anisotropy Second Harmonic Generation) microscopy measurements.
-It integrates with PyMoDAQ's dashboard framework using proper extension patterns.
+(micro Rotational Anisotropy Second Harmonic Generation) microscopy
+measurements.
+It integrates with PyMoDAQ's dashboard framework using proper extension
+patterns.
 
 Hardware Coordination:
 - 3x Elliptec rotation mounts (QWP, HWP incident, HWP analyzer)
@@ -20,29 +22,21 @@ Experiment Capabilities:
 - Automated calibration sequences
 """
 
-import json
-import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import numpy as np
-import pyqtgraph as pg
+from pymodaq.extensions.utils import CustomExt
 from pymodaq.utils.config import Config
-from pymodaq.utils.data import Axis, DataWithAxes, DataActuator
+from pymodaq.utils.data import DataActuator
 from pymodaq.utils.logger import get_module_name, set_logger
-from pymodaq.utils.messenger import messagebox
-from pymodaq.utils.parameter import Parameter
-from pymodaq_data.data import DataRaw, DataSource
 from pymodaq_gui import utils as gutils
 from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
 from pymodaq_gui.plotting.data_viewers.viewer2D import Viewer2D
-from pymodaq_utils.config import Config as UtilsConfig
-from pyqtgraph.dockarea import Dock, DockArea
-from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtCore import QObject, QThread, Signal, QTimer
+from qtpy import QtWidgets
+from qtpy.QtCore import QThread, QTimer, Signal
 
-from pymodaq.extensions.utils import CustomExt
 from pymodaq_plugins_urashg.utils.config import Config as PluginConfig
 
 logger = set_logger(get_module_name(__file__))
@@ -95,7 +89,9 @@ class MeasurementWorker(QThread):
             elif self.measurement_type == "Calibration":
                 self._run_calibration()
             else:
-                raise ValueError(f"Unknown measurement type: {self.measurement_type}")
+                raise ValueError(
+                    f"Unknown measurement type: {self.measurement_type}"
+                )
 
             self.measurement_finished.emit(True)
 
@@ -115,17 +111,20 @@ class MeasurementWorker(QThread):
         elliptec = self.extension.modules_manager.actuators.get(
             "Elliptec_Polarization_Control"
         )
-        camera = self.extension.modules_manager.detectors_2D.get("PrimeBSI_SHG_Camera")
+        camera = self.extension.modules_manager.detectors_2D.get(
+            "PrimeBSI_SHG_Camera"
+        )
         power_meter = self.extension.modules_manager.detectors_0D.get(
             "Newport_Power_Meter"
         )
 
         if not elliptec or not camera:
-            raise RuntimeError("Required devices (Elliptec, Camera) not available")
+            raise RuntimeError(
+                "Required devices (Elliptec, Camera) not available"
+            )
 
         # Polarization sweep
         angles = np.linspace(0, 180, pol_steps)
-        data_collection = []
 
         for i, angle in enumerate(angles):
             if not self.measurement_active:
@@ -167,12 +166,16 @@ class MeasurementWorker(QThread):
         wavelength_step = self.measurement_params.get("wavelength_step", 5)
 
         # Get laser control
-        laser = self.extension.modules_manager.actuators.get("MaiTai_Laser_Control")
+        laser = self.extension.modules_manager.actuators.get(
+            "MaiTai_Laser_Control"
+        )
         if not laser:
             raise RuntimeError("MaiTai laser not available")
 
         wavelengths = np.arange(
-            wavelength_start, wavelength_stop + wavelength_step, wavelength_step
+            wavelength_start,
+            wavelength_stop + wavelength_step,
+            wavelength_step
         )
 
         for i, wavelength in enumerate(wavelengths):
@@ -192,7 +195,9 @@ class MeasurementWorker(QThread):
             progress = int((i + 1) / len(wavelengths) * 100)
             self.measurement_progress.emit(progress)
 
-            self.status_message.emit(f"Completed wavelength {wavelength} nm", "info")
+            self.status_message.emit(
+                f"Completed wavelength {wavelength} nm", "info"
+            )
 
     def _run_polarimetric_shg(self):
         """Execute full polarimetric SHG analysis."""
@@ -375,7 +380,9 @@ class URASHGMicroscopyExtension(CustomExt):
         super().__init__(parent, dashboard)
 
         # Access to PyMoDAQ's device management
-        self._modules_manager = dashboard.modules_manager if dashboard else None
+        self._modules_manager = (
+            dashboard.modules_manager if dashboard else None
+        )
 
         # Measurement worker thread
         self.measurement_worker = None
@@ -415,7 +422,9 @@ class URASHGMicroscopyExtension(CustomExt):
 
         # Camera data viewer dock
         self.docks["camera"] = gutils.Dock("SHG Camera Data", size=(600, 600))
-        self.dockarea.addDock(self.docks["camera"], "right", self.docks["control"])
+        self.dockarea.addDock(
+            self.docks["camera"], "right", self.docks["control"]
+        )
 
         # Create camera viewer
         self.camera_viewer = Viewer2D(self.docks["camera"])
@@ -423,7 +432,9 @@ class URASHGMicroscopyExtension(CustomExt):
 
         # Plot analysis dock
         self.docks["plots"] = gutils.Dock("RASHG Analysis", size=(600, 400))
-        self.dockarea.addDock(self.docks["plots"], "bottom", self.docks["camera"])
+        self.dockarea.addDock(
+            self.docks["plots"], "bottom", self.docks["camera"]
+        )
 
         # Create plot viewer
         self.plot_viewer = Viewer1D(self.docks["plots"])
@@ -431,7 +442,9 @@ class URASHGMicroscopyExtension(CustomExt):
 
         # Status dock
         self.docks["status"] = gutils.Dock("System Status", size=(400, 200))
-        self.dockarea.addDock(self.docks["status"], "bottom", self.docks["control"])
+        self.dockarea.addDock(
+            self.docks["status"], "bottom", self.docks["control"]
+        )
 
         # Create status display widget
         self.status_widget = QtWidgets.QTextEdit()
@@ -485,10 +498,18 @@ class URASHGMicroscopyExtension(CustomExt):
 
         # Data actions
         self.add_action(
-            "save_data", "Save Data", "save", "Save current data", checkable=False
+            "save_data",
+            "Save Data",
+            "save",
+            "Save current data",
+            checkable=False
         )
         self.add_action(
-            "load_data", "Load Data", "open", "Load previous data", checkable=False
+            "load_data",
+            "Load Data",
+            "open",
+            "Load previous data",
+            checkable=False
         )
 
     def setup_menu(self, menubar: QtWidgets.QMenuBar = None):
@@ -517,11 +538,21 @@ class URASHGMicroscopyExtension(CustomExt):
         """Connect actions and signals."""
 
         # Connect actions to methods
-        self.get_action("start_measurement").triggered.connect(self.start_measurement)
-        self.get_action("stop_measurement").triggered.connect(self.stop_measurement)
-        self.get_action("initialize_devices").triggered.connect(self.initialize_devices)
-        self.get_action("home_rotators").triggered.connect(self.home_rotators)
-        self.get_action("run_calibration").triggered.connect(self.run_calibration)
+        self.get_action("start_measurement").triggered.connect(
+            self.start_measurement
+        )
+        self.get_action("stop_measurement").triggered.connect(
+            self.stop_measurement
+        )
+        self.get_action("initialize_devices").triggered.connect(
+            self.initialize_devices
+        )
+        self.get_action("home_rotators").triggered.connect(
+            self.home_rotators
+        )
+        self.get_action("run_calibration").triggered.connect(
+            self.run_calibration
+        )
         self.get_action("save_data").triggered.connect(self.save_data)
         self.get_action("load_data").triggered.connect(self.load_data)
 
@@ -536,9 +567,12 @@ class URASHGMicroscopyExtension(CustomExt):
         elif param_name in ["pol_steps", "integration_time"]:
             self.log_message(f"Updated {param_name}: {param_value}")
 
-        elif param_name in ["wavelength_start", "wavelength_stop", "wavelength_step"]:
+        elif param_name in [
+            "wavelength_start", "wavelength_stop", "wavelength_step"
+        ]:
             self.log_message(
-                f"Wavelength scan parameter updated: {param_name} = {param_value}"
+                f"Wavelength scan parameter updated: {param_name} = "
+                f"{param_value}"
             )
 
     def start_measurement(self):
@@ -558,7 +592,9 @@ class URASHGMicroscopyExtension(CustomExt):
                 "experiment", "measurement_type"
             ).value()
             params = {
-                "pol_steps": self.settings.child("experiment", "pol_steps").value(),
+                "pol_steps": self.settings.child(
+                    "experiment", "pol_steps"
+                ).value(),
                 "integration_time": self.settings.child(
                     "experiment", "integration_time"
                 ).value(),
@@ -578,7 +614,9 @@ class URASHGMicroscopyExtension(CustomExt):
             self.measurement_worker.setup_measurement(measurement_type, params)
 
             # Connect worker signals
-            self.measurement_worker.measurement_data.connect(self.on_measurement_data)
+            self.measurement_worker.measurement_data.connect(
+                self.on_measurement_data
+            )
             self.measurement_worker.measurement_progress.connect(
                 self.on_measurement_progress
             )
@@ -620,7 +658,10 @@ class URASHGMicroscopyExtension(CustomExt):
 
             # Expected devices from preset
             expected_devices = {
-                "actuators": ["Elliptec_Polarization_Control", "MaiTai_Laser_Control"],
+                "actuators": [
+                    "Elliptec_Polarization_Control",
+                    "MaiTai_Laser_Control"
+                ],
                 "detectors_2D": ["PrimeBSI_SHG_Camera"],
                 "detectors_0D": ["Newport_Power_Meter"],
             }
@@ -643,7 +684,8 @@ class URASHGMicroscopyExtension(CustomExt):
             if missing_devices:
                 missing_list = "\n".join(missing_devices)
                 self.log_message(
-                    f"Missing devices:\n{missing_list}\n\nPlease load the URASHG preset first.",
+                    f"Missing devices:\n{missing_list}\n\n"
+                    "Please load the URASHG preset first.",
                     "error",
                 )
                 return False
@@ -679,11 +721,15 @@ class URASHGMicroscopyExtension(CustomExt):
     def run_calibration(self):
         """Run system calibration."""
         if self.measurement_worker and self.measurement_worker.isRunning():
-            self.log_message("Cannot run calibration during measurement", "warning")
+            self.log_message(
+                "Cannot run calibration during measurement", "warning"
+            )
             return
 
         # Set measurement type to calibration and start
-        self.settings.child("experiment", "measurement_type").setValue("Calibration")
+        self.settings.child("experiment", "measurement_type").setValue(
+            "Calibration"
+        )
         self.start_measurement()
 
     def save_data(self):
@@ -712,23 +758,33 @@ class URASHGMicroscopyExtension(CustomExt):
             )
 
             # Check Camera status
-            camera = self._modules_manager.detectors_2D.get("PrimeBSI_SHG_Camera")
+            camera = self._modules_manager.detectors_2D.get(
+                "PrimeBSI_SHG_Camera"
+            )
             camera_status = "Connected" if camera else "Not Available"
             self.settings.child("device_status", "camera_status").setValue(
                 camera_status
             )
 
             # Check Laser status
-            laser = self._modules_manager.actuators.get("MaiTai_Laser_Control")
-            laser_status = "Connected" if laser else "Not Available"
-            self.settings.child("device_status", "laser_status").setValue(laser_status)
-
-            # Check Power Meter status
-            power_meter = self._modules_manager.detectors_0D.get("Newport_Power_Meter")
-            power_meter_status = "Connected" if power_meter else "Not Available"
-            self.settings.child("device_status", "power_meter_status").setValue(
-                power_meter_status
+            laser = self._modules_manager.actuators.get(
+                "MaiTai_Laser_Control"
             )
+            laser_status = "Connected" if laser else "Not Available"
+            self.settings.child("device_status", "laser_status").setValue(
+                laser_status
+            )
+
+            # Check Power meter status
+            power_meter = self._modules_manager.detectors_0D.get(
+                "Newport_Power_Meter"
+            )
+            power_meter_status = (
+                "Connected" if power_meter else "Not Available"
+            )
+            self.settings.child(
+                "device_status", "power_meter_status"
+            ).setValue(power_meter_status)
 
         except Exception as e:
             logger.error(f"Error updating device status: {e}")
@@ -738,7 +794,9 @@ class URASHGMicroscopyExtension(CustomExt):
         if not self._modules_manager:
             return False
 
-        elliptec = self._modules_manager.actuators.get("Elliptec_Polarization_Control")
+        elliptec = self._modules_manager.actuators.get(
+            "Elliptec_Polarization_Control"
+        )
         camera = self._modules_manager.detectors_2D.get("PrimeBSI_SHG_Camera")
 
         # Minimum required: Elliptec + Camera
@@ -760,7 +818,9 @@ class URASHGMicroscopyExtension(CustomExt):
         if success:
             self.log_message("Measurement completed successfully", "info")
         else:
-            self.log_message("Measurement failed or was interrupted", "error")
+            self.log_message(
+                "Measurement failed or was cancelled", "error"
+            )
 
         # Clean up worker
         if self.measurement_worker:
@@ -772,11 +832,13 @@ class URASHGMicroscopyExtension(CustomExt):
 
         if level == "error":
             formatted_msg = (
-                f"<span style='color: red;'>[{timestamp}] ERROR: {message}</span>"
+                f"<span style='color: red;'>[{timestamp}] ERROR: "
+                f"{message}</span>"
             )
         elif level == "warning":
             formatted_msg = (
-                f"<span style='color: orange;'>[{timestamp}] WARNING: {message}</span>"
+                f"<span style='color: orange;'>[{timestamp}] WARNING: "
+                f"{message}</span>"
             )
         else:
             formatted_msg = f"[{timestamp}] {message}"
@@ -795,8 +857,8 @@ class URASHGMicroscopyExtension(CustomExt):
 
 def main():
     """Main function for standalone testing."""
-    from pymodaq.utils.gui_utils.utils import mkQApp
     from pymodaq.utils.gui_utils.loader_utils import load_dashboard_with_preset
+    from pymodaq.utils.gui_utils.utils import mkQApp
     from pymodaq.utils.messenger import messagebox
     from pymodaq_utils.config import ConfigError
 
@@ -810,10 +872,11 @@ def main():
 
     except ConfigError:
         messagebox(
-            f'No entry with name "preset_for_urashgmicroscopyextension" has been configured '
-            f"in the plugin config file. The toml entry should be:\n"
-            f"[presets]\n"
-            f'preset_for_urashgmicroscopyextension = "urashg_microscopy_system"'
+            'No entry with name "preset_for_urashgmicroscopyextension" '
+            'has been configured '
+            "in the plugin config file. The toml entry should be:\n"
+            "[presets]\n"
+            'preset_for_urashgmicroscopyextension = "urashg_microscopy_system"'
         )
 
 
