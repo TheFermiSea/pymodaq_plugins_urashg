@@ -54,7 +54,7 @@ def test_esp300_initialization():
 
         except Exception as e:
             logger.error(f"❌ Plugin initialization failed: {e}")
-            return False
+            assert False, f"Plugin initialization failed: {e}"
 
         # Test cleanup (this is critical for thread safety)
         logger.info("Testing plugin cleanup...")
@@ -67,14 +67,13 @@ def test_esp300_initialization():
         time.sleep(0.5)  # Allow GC to run
         logger.info("✅ Garbage collection completed without crash")
 
-        return True
 
     except Exception as e:
         logger.error(f"❌ Test failed with exception: {e}")
         import traceback
 
         traceback.print_exc()
-        return False
+        assert False, f"Test failed with exception: {e}"
 
 
 def test_multiple_initializations():
@@ -89,17 +88,15 @@ def test_multiple_initializations():
 
         try:
             plugin.ini_stage_init()
-            success = True
         except Exception as e:
             logging.getLogger(__name__).error(f"❌ Failed on iteration {i+1}: {e}")
-            return False
+            assert False, f"Failed on iteration {i+1}: {e}"
 
         plugin.close()
         del plugin
         time.sleep(0.1)
 
     logging.getLogger(__name__).info("✅ Multiple initialization test passed")
-    return True
 
 
 if __name__ == "__main__":

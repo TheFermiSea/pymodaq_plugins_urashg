@@ -5,6 +5,14 @@ Utilities for URASHG plugins.
 
 from pymodaq.utils.logger import get_module_name, set_logger
 
+# Configuration management
+try:
+    from .config import Config
+    CONFIG_AVAILABLE = True
+except ImportError:
+    CONFIG_AVAILABLE = False
+    Config = None
+
 # PyRPL wrapper utilities for hardware integration
 try:
     from .pyrpl_wrapper import (
@@ -40,6 +48,8 @@ except ImportError:
 __all__ = [
     "set_logger",
     "get_module_name",
+    "Config",
+    "CONFIG_AVAILABLE",
     "PyRPLManager",
     "PyRPLConnection",
     "PIDChannel",

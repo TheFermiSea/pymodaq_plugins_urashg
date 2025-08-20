@@ -80,8 +80,15 @@ def check_plugin_threading_safety(
                     setting = setting.child(part)
                 setting.child(path_parts[-1]).setValue(value)
 
-        # Test initialization
-        result, success = plugin.ini_stage()
+        # Test initialization - use correct method for plugin type
+        if hasattr(plugin, 'ini_stage'):
+            result, success = plugin.ini_stage()
+        elif hasattr(plugin, 'ini_detector'):
+            result, success = plugin.ini_detector()
+        else:
+            logger.error(f"❌ {plugin_name} has no initialization method")
+            return False
+
         if not success:
             logger.error(f"❌ {plugin_name} initialization failed: {result}")
             return False
@@ -169,7 +176,14 @@ def check_stress_initialization(
                     # If mock mode setup fails, continue anyway
                     pass
 
-            result, success = plugin.ini_stage()
+            # Use correct initialization method for plugin type
+            if hasattr(plugin, 'ini_stage'):
+                result, success = plugin.ini_stage()
+            elif hasattr(plugin, 'ini_detector'):
+                result, success = plugin.ini_detector()
+            else:
+                logger.error(f"Plugin {plugin_name} has no initialization method")
+                return False
             if success:
                 plugin.close()
 
@@ -209,17 +223,17 @@ def main():
         {
             "class": DAQ_Move_Elliptec,
             "name": "Elliptec Rotation Mount",
-            "mock_settings": {"connection.mock_mode": True},
+            "mock_settings": {"connection_group.mock_mode": True},
         },
         {
             "class": DAQ_Move_MaiTai,
             "name": "MaiTai Laser Controller",
-            "mock_settings": {"connection.mock_mode": True},
+            "mock_settings": {"connection_group.mock_mode": True},
         },
         {
             "class": DAQ_0DViewer_Newport1830C,
             "name": "Newport 1830C Power Meter",
-            "mock_settings": {"hardware_settings.mock_mode": True},
+            "mock_settings": {"connection_group.mock_mode": True},
         },
         {
             "class": DAQ_2DViewer_PrimeBSI,

@@ -32,10 +32,9 @@ def test_pyrpl_plugin_import():
 
         logger.info("✅ PyRPL PID plugin imported successfully")
 
-        return True
     except ImportError as e:
         logger.error(f"❌ PyRPL plugin import failed: {e}")
-        return False
+        assert False, f"PyRPL plugin import failed: {e}"
 
 
 def test_plugin_discovery():
@@ -69,11 +68,11 @@ def test_plugin_discovery():
         else:
             logger.info("ℹ️  No PyRPL viewer plugins found (this is expected)")
 
-        return len(pyrpl_move_plugins) > 0
+        assert len(pyrpl_move_plugins) > 0, "No PyRPL move plugins found in entry points"
 
     except Exception as e:
         logger.error(f"❌ Plugin discovery failed: {e}")
-        return False
+        assert False, f"Plugin discovery failed: {e}"
 
 
 def test_pyrpl_library_import():
@@ -90,10 +89,9 @@ def test_pyrpl_library_import():
 
         logger.info("✅ PyRPL core functionality accessible")
 
-        return True
     except ImportError as e:
         logger.error(f"❌ PyRPL library import failed: {e}")
-        return False
+        assert False, f"PyRPL library import failed: {e}"
 
 
 def test_urashg_experiment_integration():
@@ -107,28 +105,23 @@ def test_urashg_experiment_integration():
         experiment = WavelengthDependentRASHGExperiment()
         required_modules = experiment.required_modules
 
-        if "PyRPL_PID" in required_modules:
+        assert "PyRPL_PID" in required_modules, "URASHG experiment does not reference PyRPL_PID plugin"
+        logger.info(
+            "✅ URASHG experiment correctly references external PyRPL_PID plugin"
+        )
+
+        if "URASHG_PyRPL_PID" not in required_modules:
             logger.info(
-                "✅ URASHG experiment correctly references external PyRPL_PID plugin"
+                "✅ Internal URASHG_PyRPL_PID plugin correctly removed from requirements"
             )
-
-            if "URASHG_PyRPL_PID" not in required_modules:
-                logger.info(
-                    "✅ Internal URASHG_PyRPL_PID plugin correctly removed from requirements"
-                )
-            else:
-                logger.warning(
-                    "⚠️  Internal URASHG_PyRPL_PID still referenced - potential conflict"
-                )
-
-            return True
         else:
-            logger.error("❌ URASHG experiment does not reference PyRPL_PID plugin")
-            return False
+            logger.warning(
+                "⚠️  Internal URASHG_PyRPL_PID still referenced - potential conflict"
+            )
 
     except Exception as e:
         logger.error(f"❌ URASHG experiment integration test failed: {e}")
-        return False
+        assert False, f"URASHG experiment integration test failed: {e}"
 
 
 def main():

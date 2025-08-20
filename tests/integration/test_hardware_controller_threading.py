@@ -170,14 +170,13 @@ def test_controller_threading_safety():
 
     if tests_passed == total_tests:
         print("🎉 ALL TESTS PASSED!")
-        print("\n✅ ESP300Controller __del__ method fix verified")
+        print("✅ ESP300Controller __del__ method fix verified")
         print("✅ Newport1830C_controller __del__ method fix verified")
         print("✅ No QThread crashes during garbage collection")
         print("\nYour PyMoDAQ dashboard should now initialize without crashes!")
-        return True
     else:
         print(f"❌ {total_tests - tests_passed} tests failed")
-        return False
+        assert False, f"{total_tests - tests_passed} tests failed"
 
 
 if __name__ == "__main__":
