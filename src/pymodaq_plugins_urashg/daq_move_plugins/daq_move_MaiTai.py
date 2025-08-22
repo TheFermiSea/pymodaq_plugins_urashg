@@ -194,8 +194,9 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         # Initialization flag for enhanced status monitoring
         self._fully_initialized = False
 
-    def ini_stage(self, controller=None):
+    def ini_actuator(self, controller=None):
         """Initialize the hardware stage."""
+        self.initialized = False
         try:
             # Import here to avoid issues if module not available
             from pymodaq_plugins_urashg.hardware.urashg.maitai_control import (
@@ -238,6 +239,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 # Enable enhanced status monitoring after initialization
                 self._fully_initialized = True
 
+                self.initialized = True
                 return "MaiTai laser initialized successfully", True
             else:
                 return "Failed to connect to MaiTai laser", False

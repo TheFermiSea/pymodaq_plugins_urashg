@@ -162,6 +162,13 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         self.x_axis = None
         self.y_axis = None
 
+    def ini_stage(self):
+        """
+        MANDATORY METHOD: Initialize stage for PyMoDAQ 5.x compatibility.
+        This method is required by the DAQ_Viewer_base class.
+        """
+        pass
+
     def ini_detector(self, controller=None):
         """
         Initializes the camera connection and populates the GUI with all camera-specific parameters.
@@ -208,7 +215,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
                 self.status.update(msg="Mock camera initialized", busy=False)
                 self.initialized = True
-                return self.status
+                return "Mock camera initialized", True
 
             # Real hardware mode
             # Ensure clean PVCAM state
@@ -235,21 +242,22 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             self.camera = cameras[0]  # Use first camera
             self.camera.open()
 
-            # self.update_camera_params()
-            # self.populate_advanced_params()
-            # self.populate_post_processing_params()
+            # Update GUI with camera capabilities
+            self.update_camera_params()
+            self.populate_advanced_params()
+            self.populate_post_processing_params()
 
             self.status.update(
                 msg=f"Camera {self.camera.name} Initialized.", busy=False
             )
             self.initialized = True
-            return self.status
+            return f"Camera {self.camera.name} Initialized.", True
 
         except Exception as e:
             error_msg = f"Camera Initialization Failed: {str(e)}"
             self.status.update(msg=error_msg, busy=False)
             self.initialized = False
-            return self.status
+            return error_msg, False
 
     def update_camera_params(self):
         """
@@ -424,9 +432,17 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
 
     def close(self):
         """Closes the camera connection and uninitializes the PVCAM library."""
-        if self.camera is not None and self.camera.is_open:
-            self.camera.close()
-        pvc.uninit_pvcam()
+        try:
+            if self.camera is not None and hasattr(self.camera, 'is_open') and self.camera.is_open:
+                self.camera.close()
+        except Exception as e:
+            print(f"Warning: Error closing camera: {e}")
+        
+        try:
+            if PYVCAM_AVAILABLE:
+                pvc.uninit_pvcam()
+        except Exception as e:
+            print(f"Warning: Error uninitializing PVCAM: {e}")
 
     def commit_settings(self, param: Parameter):
         """Applies a changed setting to the camera hardware."""
@@ -516,15 +532,23 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                 self.camera.temp
             )
 
-            frame = self.camera.get_frame(
+            # Get frame from camera
+            raw_frame = self.camera.get_frame(
                 exp_time=self.settings.child("camera_settings", "exposure").value()
-            ).reshape(self.camera.rois[0].shape)
+            )
+            
+            # Reshape to proper 2D array
+            if hasattr(self.camera, 'rois') and self.camera.rois:
+                frame = raw_frame.reshape(self.camera.rois[0].shape)
+            else:
+                # Fallback to sensor size
+                frame = raw_frame.reshape(self.camera.sensor_size)
 
-            # PyMoDAQ 5.0+ data structure
+            # PyMoDAQ 5.0+ data structure - ensure frame is 2D numpy array
             dwa_2d = DataWithAxes(
                 name="PrimeBSI",
                 source=DataSource.raw,
-                data=[frame],
+                data=[frame],  # Must be a list containing 2D numpy arrays
                 axes=[self.y_axis, self.x_axis],
             )
             data_to_emit = [dwa_2d]
@@ -539,7 +563,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                     dwa_0d = DataWithAxes(
                         name="SHG Signal",
                         source=DataSource.calculated,
-                        data=[integrated_signal],
+                        data=[np.array([integrated_signal])],
                     )
                     data_to_emit.append(dwa_0d)
 

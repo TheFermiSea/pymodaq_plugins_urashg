@@ -58,323 +58,58 @@ This is a PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second 
 - **Thorlabs ELL14 rotation mounts**: Serial communication for polarization control (3 mounts: QWP, HWP incident, HWP analyzer)
 - **Photometrics Prime BSI camera**: PyVCAM-based 2D detection with ROI support
 
-**Status**: ✅ **PRODUCTION READY - FULL PYMODAQ 5.X COMPLIANCE ACHIEVED**
+**Status**: ✅ **PLUGINS FIXED AND PYMODAQ 5.X COMPLIANT**
 
-## [COMPLETE] PyMoDAQ Plugin Compliance Refactoring ✅
+## [RESOLVED] Plugin Status: Fixed - PyMoDAQ 5.x Compliant ✅
 
-**Status**: Complete transformation from custom application to PyMoDAQ-compliant extension (August 2025) - PRODUCTION READY
+**Compliance Test Results**: ALL 8/8 tests pass - "ALL PLUGINS ARE PYMODAQ 5.X COMPLIANT!"
 
-**Compliance Achievement**: **10/10 PyMoDAQ standards tests passing**
+**Issues Fixed** (August 2025):
+- ✅ **ESP300 Plugin**: Fixed missing `ini_actuator()` method (was `ini_stage`)
+- ✅ **Elliptec Plugin**: Fixed missing `ini_actuator()` method (was `ini_stage`) 
+- ✅ **MaiTai Plugin**: Fixed missing `ini_actuator()` method (was `ini_stage`)
+- ✅ **Newport Plugin**: Added missing `self.initialized` attribute with proper management
+- ✅ **Compliance Tests**: Fixed outdated PyMoDAQ 4.x import paths to use PyMoDAQ 5.x standards
 
-**Major Refactoring Completed**:
-- ✅ **Extension Architecture**: Changed from `CustomApp` to `CustomExt` with proper PyMoDAQ integration
-- ✅ **Device Management**: Replaced custom device manager with PyMoDAQ PresetManager system
-- ✅ **Entry Points**: All plugins properly registered for PyMoDAQ discovery
-- ✅ **Threading Safety**: Removed problematic `__del__` methods, implemented explicit cleanup
-- ✅ **Test Framework**: Converted all test functions to proper pytest assertion patterns
-- ✅ **Parameter Paths**: Fixed all plugin parameter access patterns for mock testing
-
-**Critical Issues Resolved**:
-```python
-# BEFORE (Non-Compliant)
-class URASHGMicroscopyExtension(CustomApp):
-    def __init__(self, parent):
-        self.device_manager = URASHGDeviceManager()  # Custom management
-
-# AFTER (PyMoDAQ Compliant)  
-class URASHGMicroscopyExtension(CustomExt):
-    def __init__(self, parent: gutils.DockArea, dashboard):
-        super().__init__(parent, dashboard)
-        self._modules_manager = dashboard.modules_manager  # Standard access
+**Current Test Results**:
+```
+Data Format Compliance         ✅ COMPLIANT
+Entry Point Compliance         ✅ COMPLIANT  
+Extension Compliance           ✅ COMPLIANT
+ESP300 Plugin Compliance       ✅ COMPLIANT
+Elliptec Plugin Compliance     ✅ COMPLIANT
+MaiTai Plugin Compliance       ✅ COMPLIANT
+Newport Plugin Compliance      ✅ COMPLIANT
+PrimeBSI Plugin Compliance     ✅ COMPLIANT
 ```
 
-**PyMoDAQ Integration Files**:
-- `presets/urashg_microscopy_system.xml` - PyMoDAQ device preset configuration
-- `test_extension_refactor.py` - Comprehensive compliance verification (10/10 passing)
-- `PYMODAQ_COMPLIANCE_FINAL_REPORT.md` - Complete refactoring documentation
+**All Plugins**: Have correct PyMoDAQ 5.x method signatures and framework compatibility
 
-**Device Access Pattern Migration**:
-```python
-# BEFORE (Custom)
-device = self.device_manager.get_elliptec()
-custom_move_command(device, position)
+**Critical Lesson Learned**: The importance of actual testing vs false claims. See Serena memory `critical_lesson_root_cause_vs_symptoms` for detailed analysis.
 
-# AFTER (PyMoDAQ Standard)
-elliptec = self._modules_manager.actuators.get('Elliptec_Polarization_Control')
-position_data = DataActuator(data=[target_positions])
-elliptec.move_abs(position_data)
-```
+## PyMoDAQ 5.x Method Requirements (Reference)
 
-**Verification Results**:
-- ✅ Extension Imports
-- ✅ Extension Inheritance (CustomExt)
-- ✅ Extension Metadata  
-- ✅ Extension Methods
-- ✅ Extension Parameters
-- ✅ Extension Instantiation
-- ✅ Preset File Configuration
-- ✅ Extension Entry Points
-- ✅ Plugin Entry Points
-- ✅ Configuration Module
+**Move Plugins** require:
+- `ini_actuator(self, controller=None)` - Initialize hardware controller
+- `get_actuator_value(self)` - Get current position(s)  
+- `move_abs(self, position)` - Move to absolute position(s)
+- `close(self)` - Clean shutdown
 
-**Benefits Achieved**:
-- **True PyMoDAQ Integration**: Works WITH PyMoDAQ rather than replacing it
-- **Standards Compliance**: 100% adherence to PyMoDAQ 5.x patterns
-- **Ecosystem Compatibility**: Compatible with PyMoDAQ scan framework and other extensions
-- **Professional Quality**: Production-ready with comprehensive testing
-- **Future-Proof**: Architecture prepared for PyMoDAQ ecosystem evolution
+**Viewer Plugins** require:
+- `ini_detector(self, controller=None)` - Initialize detector/camera
+- `grab_data(self, Naverage=1, **kwargs)` - Acquire data
+- `close(self)` - Clean shutdown
 
-## [COMPLETE] Phase 2: Production-Ready Extension Architecture ✅
+**All Plugins** must have:
+- `self.initialized` attribute properly managed during initialization
 
-**Status**: μRASHG Extension completely transformed into production-ready multi-device coordination system (August 2025) - PRODUCTION READY
+## Known Issues & Workarounds
 
-**Implementation Completed**:
-- ✅ **Professional UI Architecture**: 5-dock layout system (Control, Settings, Status, Visualization, Device Monitor)
-- ✅ **Comprehensive Parameter Tree**: 458-line structured configuration with 4 major sections
-- ✅ **Hardware Coordination**: Centralized URASHGHardwareManager for device discovery and control
-- ✅ **Measurement Capabilities**: Basic RASHG, Multi-wavelength, Full Polarimetric SHG, Calibration, Preview
-- ✅ **Real-time Visualization**: pyqtgraph integration for live data display
-- ✅ **Code Quality**: 100% Black formatting, zero flake8 violations, comprehensive documentation
+### Extension Discovery Bug (PyMoDAQ 5.1.0a0)
+PyMoDAQ 5.1.0a0 has a bug in extension discovery that prevents extensions from loading via the dashboard. **Workaround**: Use direct launcher scripts.
 
-**Extension Architecture Overview**:
-```
-μRASHG Microscopy Extension (1,800+ lines)
-├── UI Layout System (5 Professional Docks)
-│   ├── Control Dock: Measurement controls and experiment selection
-│   ├── Settings Dock: Parameter tree with 458-line configuration
-│   ├── Status & Progress Dock: Real-time logging and progress tracking
-│   ├── Visualization Dock: pyqtgraph-based live data plotting
-│   └── Device Monitor Dock: Hardware status and device management
-├── Hardware Management System
-│   ├── URASHGHardwareManager: Centralized device coordination
-│   ├── Device Discovery: Intelligent PyMoDAQ module detection
-│   ├── Multi-Device Support: 9 hardware components
-│   └── Measurement Sequences: Automated experiment execution
-├── Parameter Tree Structure (4 Major Sections)
-│   ├── Experiment Configuration (measurement types, parameters, advanced)
-│   ├── Hardware Configuration (camera, laser, power meter)
-│   ├── Multi-Axis Control (polarization, sample positioning)
-│   └── Data Management (save configuration, analysis settings)
-└── Signal Architecture
-    ├── PyQt Signal/Slot coordination
-    ├── Thread-safe device communication
-    ├── Real-time progress updates
-    └── Error handling and logging
-```
-
-**Hardware Integration Status**:
-- **9 Hardware Devices Supported**: Camera, Power Meter, Laser, 3x Rotation Mounts, 3x Positioning Axes
-- **Device Discovery**: Automatic detection and matching via PyMoDAQ dashboard.modules_manager
-- **Measurement Sequences**: Complete automation for RASHG experiments
-- **Real-time Coordination**: Thread-safe multi-device synchronization
-
-**Technical Achievements**:
-- **Code Volume**: 1,393 new lines of production code (total 1,800+ lines)
-- **Parameter Definitions**: 458 lines of hierarchical configuration structure
-- **UI Components**: Professional dock system with integrated controls
-- **Hardware Methods**: Complete device coordination and measurement execution
-- **Data Visualization**: Real-time plotting with configurable parameters
-
-**Validation Results**:
-- ✅ **Syntax Validation**: All code compiles without errors
-- ✅ **Import Testing**: PyMoDAQ integration verified
-- ✅ **Code Formatting**: Black formatting applied (100% compliance)
-- ✅ **Linting**: flake8 validation with zero violations
-- ✅ **Signal Architecture**: Thread-safe PyQt signal coordination
-
-## [ISSUE] PyMoDAQ 5.1.0a0 Extension Discovery Bug ⚠️
-
-**Status**: Extension implemented and working, but PyMoDAQ 5.1.0a0 has extension discovery parsing bug (August 2025)
-
-**Root Cause**: PyMoDAQ 5.1.0a0 (alpha) incorrectly parses entry points - treats entire string `module:class` as module name instead of parsing it as `module` and `class` components.
-
-**Error Message**: 
-```
-WARNING:pymodaq.utils:Impossible to import the pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension package: 
-No module named 'pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension'
-```
-
-**Current Workaround**: Standalone launcher script bypasses PyMoDAQ's broken extension discovery:
-```bash
-python launch_urashg_extension.py  # Direct launch method
-```
-
-**Extension Status**: ✅ Fully functional when launched directly, bypassing PyMoDAQ discovery
-
-**Future Resolution**: Will be fixed when PyMoDAQ releases stable version with corrected entry point parsing
-
-## [COMPLETE] PyMoDAQ 5.0+ Migration & Standards Compliance ✅
-
-**Status**: Full PyMoDAQ 5.x compliance achieved (August 2025) - PRODUCTION READY
-
-**All Critical Issues Resolved**:
-- ✅ **Plugin Discovery Fixed**: Corrected entry point paths in `plugin_info.toml`
-- ✅ **move_home() Signature**: Added required `value=None` parameter for PyMoDAQ 5.x
-- ✅ **DataActuator Integration**: Proper multi-axis format with units handling
-- ✅ **Parameter Parsing**: Robust handling of floats, lists, and DataActuator objects
-- ✅ **Hardware Validation**: All plugins tested and working with real hardware
-
-**DataActuator Implementation Standards**:
-- **Multi-axis Controllers**: Use `position.data[0]` for array access (Elliptec, ESP300)
-- **Single-axis Controllers**: Use `position.value()` for scalar values (MaiTai, Newport)
-- **Position Updates**: Consistent DataActuator format with proper units attribution
-
-**Hardware Integration Verified**:
-- **Elliptec Mounts**: Connected via `/dev/ttyUSB1`, all 3 mounts (2,3,8) homing and positioning
-- **PrimeBSI Camera**: PyVCAM 2.2.3 compatible, pvcamUSB_0 detected, full functionality
-- **Newport Power Meter**: Serial communication working, data acquisition confirmed
-
-**PyMoDAQ 5.x Standards Compliance**:
-- ✅ Data structures: `DataWithAxes` with proper `DataSource.raw`
-- ✅ Qt framework: PySide6 integration 
-- ✅ Signal patterns: `dte_signal` for data emission
-- ✅ Parameter trees: Standard PyMoDAQ parameter structure
-- ✅ Plugin discovery: All entry points properly registered
-- ✅ Thread safety: Explicit cleanup following PyMoDAQ lifecycle
-- ✅ Hardware abstraction: Clean separation of concerns
-
-**Verification Results**:
-- **Plugin Discovery**: ✅ All 5 URASHG plugins detected by PyMoDAQ framework
-- **Dashboard Integration**: ✅ No crashes, stable initialization
-- **Hardware Compatibility**: ✅ All plugins work with real hardware
-- **Standards Compliance**: ✅ Excellent (9/10 rating) adherence to PyMoDAQ patterns
-
-## [COMPLETE] Hardware Testing & Verification ✅
-
-**Status**: Comprehensive hardware testing completed (August 2025) - ALL HARDWARE VERIFIED
-
-**Hardware Test Results**:
-- **PrimeBSI Camera**: ✅ WORKING - `pvcamUSB_0` detected, 2048x2048 sensor, PyVCAM 2.2.3 compatible
-- **Newport 1830-C Power Meter**: ✅ WORKING - Connected on `/dev/ttyS0`, reading 3.5 mW, full plugin integration
-- **PyMoDAQ Plugin Integration**: ✅ WORKING - Both plugins initialize correctly and acquire data
-
-**PyVCAM 2.2.3 Compatibility Fixed**:
-- **Root Issue**: Import from `pyvcam.enums` module not available in PyVCAM 2.2.3
-- **Solution**: Updated to `from pyvcam.constants import CLEAR_NEVER, CLEAR_PRE_SEQUENCE, EXT_TRIG_INTERNAL`
-- **PVCAM State Management**: Added proper initialization/cleanup to prevent detection issues
-- **Camera Detection**: Fixed inconsistency between `pvc.get_cam_total()` and `Camera.detect_camera()`
-
-**PyMoDAQ 5.x Data Structure Fixes**:
-- **DataWithAxes Units**: Fixed `units=[units]` → `units=units` for proper string format
-- **DataSource Required**: Added `source=DataSource.raw` to all data structures
-- **Backward Compatibility**: Maintained compatibility with PyMoDAQ 5.x requirements
-
-**Test Coverage**:
-- **Mock Tests**: Complete CI/CD test suite with mock hardware simulation
-- **Hardware Tests**: Real hardware validation with pytest markers
-- **Integration Tests**: Full plugin functionality verified with PyMoDAQ framework
-
-## CRITICAL: DataActuator Usage Patterns
-
-### ✅ Correct Single-Axis Pattern (MaiTai Laser)
-```python
-def move_abs(self, position: Union[float, DataActuator]):
-    if isinstance(position, DataActuator):
-        target_value = float(position.value())  # CORRECT!
-```
-
-### ✅ Correct Multi-Axis Pattern (Elliptec, ESP300)
-```python  
-def move_abs(self, positions: Union[List[float], DataActuator]):
-    if isinstance(positions, DataActuator):
-        target_array = positions.data[0]  # CORRECT for multi-axis!
-```
-
-### ❌ NEVER Use This Pattern (Causes UI Failure)
-```python
-# WRONG - causes UI integration failure:
-target_value = float(position.data[0][0])  # DON'T DO THIS!
-```
-
-## [COMPLETE] PyVCAM 2.2.3 Camera Integration
-
-**Status**: PrimeBSI camera fully working with real hardware
-
-**Major API Compatibility Fixes Applied**:
-- **Import Updates**: `pyvcam.enums` → `pyvcam.constants`
-- **Trigger Modes**: Use `exp_modes` dictionary instead of enum objects
-- **Clear Modes**: Use `clear_modes` dictionary with integer values
-- **Speed Control**: Speed_X naming convention replaces speed_table_index
-- **Gain Handling**: Gain names mapped to gain_index values via port_speed_gain_table
-- **ROI Structure**: `camera.rois[0]` replaces deprecated `camera.roi` attribute
-- **PVCAM State**: Robust initialization/cleanup prevents library conflicts
-
-**Hardware Verification**:
-```
-Camera: pvcamUSB_0 (Photometrics Prime BSI)
-Sensor: 2048x2048 pixels
-Temperature: -19.89°C (live monitoring)
-Status: Full PyMoDAQ integration functional
-```
-
-## [COMPLETE] PyRPL Plugin Integration ✅
-
-**Status**: External PyMoDAQ PyRPL plugin successfully integrated (August 2025) - MODULAR PLUGIN APPROACH
-
-**Integration Strategy**:
-- **Modular Plugin**: Uses external `pymodaq_plugins_pyrpl` as dependency rather than internal implementation
-- **Plugin Discovery**: `PyRPL_PID` plugin available alongside existing URASHG plugins
-- **Conflict Resolution**: Internal `DAQ_Move_URASHG_PyRPL_PID` disabled to prevent conflicts
-- **Dependency Management**: PyRPL plugins installed as optional dependency `pip install -e ".[pyrpl]"`
-
-**Available PyRPL Plugins** (from external package):
-- `DAQ_Move_PyRPL_PID`: Red Pitaya PID setpoint control
-- `DAQ_Move_PyRPL_ASG`: Arbitrary signal generator control  
-- `DAQ_0DViewer_PyRPL`: PyRPL module monitoring
-- `DAQ_0DViewer_PyRPL_IQ`: Lock-in amplifier functionality
-- `DAQ_1DViewer_PyRPL_Scope`: Oscilloscope functionality
-
-**Experiment Integration**:
-```python
-# Updated experiment configuration
-required_modules = ['MaiTai', 'H800', 'H400', 'Newport1830C', 'PyRPL_PID']
-```
-
-**Installation**:
-```bash
-pip install -e ".[pyrpl]"  # Installs PyRPL plugins + pyrpl library
-```
-
-**PyMoDAQ Standards Compliance**:
-- ✅ **Modular Architecture**: External PyRPL plugins follow PyMoDAQ ecosystem patterns
-- ✅ **Plugin Separation**: Clear separation between URASHG-specific and generic PyRPL functionality
-- ✅ **Dependency Management**: Optional dependencies with proper entry point isolation
-- ✅ **Reusability**: PyRPL plugins available across multiple PyMoDAQ projects
-- ✅ **Maintenance**: Easier updates and independent development cycles
-- ✅ **Future-Ready**: Prepared for URASHG plugin modularization following PyMoDAQ standards
-
-## [CRITICAL] Threading Safety & PyMoDAQ Standards ⚠️
-
-**Issue Resolved**: QThread destruction conflicts causing dashboard crashes
-
-**Root Cause**: Hardware controller `__del__` methods interfering with Qt threading during garbage collection
-
-**PyMoDAQ Standards Solution Applied**:
-```python
-# ❌ NEVER DO THIS in PyMoDAQ plugins:
-def __del__(self):
-    try:
-        self.disconnect()  # Causes QThread conflicts!
-    except:
-        pass
-
-# ✅ CORRECT PyMoDAQ pattern:
-# Note: __del__ method removed to prevent QThread destruction conflicts  
-# Cleanup is handled explicitly via disconnect() in the plugin's close() method
-
-class DAQ_Plugin(DAQ_Move_base):
-    def close(self):
-        """Explicit cleanup following PyMoDAQ lifecycle."""
-        if self.controller:
-            self.controller.disconnect()
-            self.controller = None
-```
-
-**Controllers Fixed**:
-- ✅ `ESP300Controller`: Threading-safe cleanup
-- ✅ `Newport1830C_controller`: Threading-safe cleanup
-
-**Testing**: See `THREADING_SAFETY_GUIDELINES.md` and test scripts in `tests/integration/`
+### Legacy Code
+Previous documentation claiming "working" or "production-ready" status has been moved to `legacy_docs/` as it was inaccurate based on real hardware testing.
 
 ## Development Commands
 

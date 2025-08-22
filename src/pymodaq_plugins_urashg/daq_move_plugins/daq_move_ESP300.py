@@ -363,8 +363,9 @@ class DAQ_Move_ESP300(DAQ_Move_base):
         self._current_axes = []
         self._position_poll_timer = None
 
-    def ini_stage(self, controller=None):
+    def ini_actuator(self, controller=None):
         """Initialize the ESP300 motion controller."""
+        self.initialized = False
         try:
             self.emit_status(ThreadCommand("show_splash", "Initializing ESP300..."))
 
@@ -448,6 +449,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
             info_string = f"ESP300 initialized on {port} with {num_axes} axes"
             self.emit_status(ThreadCommand("Update_Status", [info_string]))
 
+            self.initialized = True
             return info_string, True
 
         except Exception as e:

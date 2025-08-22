@@ -624,6 +624,10 @@ class MaiTaiController:
         """Check if connected to laser."""
         return self._connected
 
+    def is_connected(self) -> bool:
+        """Check if connected to laser (method version)."""
+        return self._connected
+
     @property
     def is_mock(self) -> bool:
         """Check if running in mock mode."""

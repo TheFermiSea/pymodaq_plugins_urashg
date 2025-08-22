@@ -432,3 +432,117 @@ class Newport1830CController:
     def is_mock(self) -> bool:
         """Check if running in mock mode."""
         return self.mock_mode
+
+    def set_power_range(self, power_range: str) -> bool:
+        """
+        Set power measurement range.
+        
+        Args:
+            power_range: Range setting ("Auto", "Range 1", etc.)
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            if self.mock_mode:
+                self._current_range = power_range
+                logger.info(f"Mock: Set power range to {power_range}")
+                return True
+                
+            # For real hardware, would send appropriate command
+            # Newport 1830-C range commands would go here
+            if power_range == "Auto":
+                response = self._send_command("AR", expect_response=True)
+            else:
+                # Extract range number and send appropriate command
+                range_num = power_range.split()[-1] if "Range" in power_range else "1"
+                response = self._send_command(f"R{range_num}", expect_response=True)
+                
+            if response:
+                self._current_range = power_range
+                logger.info(f"Set power range to {power_range}")
+                return True
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error setting power range: {e}")
+            return False
+
+    def set_filter_speed(self, filter_speed: str) -> bool:
+        """
+        Set measurement filter speed.
+        
+        Args:
+            filter_speed: Speed setting ("Slow", "Medium", "Fast")
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            if self.mock_mode:
+                self._mock_filter_speed = filter_speed
+                logger.info(f"Mock: Set filter speed to {filter_speed}")
+                return True
+                
+            # For real hardware, would send appropriate command
+            speed_map = {"Slow": "S", "Medium": "M", "Fast": "F"}
+            if filter_speed in speed_map:
+                response = self._send_command(f"F{speed_map[filter_speed]}", expect_response=True)
+                if response:
+                    self._mock_filter_speed = filter_speed
+                    logger.info(f"Set filter speed to {filter_speed}")
+                    return True
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error setting filter speed: {e}")
+            return False
+
+    def get_multiple_readings(self, count: int = 3) -> List[float]:
+        """
+        Get multiple power readings for averaging.
+        
+        Args:
+            count: Number of readings to take
+            
+        Returns:
+            List of power readings
+        """
+        readings = []
+        try:
+            for _ in range(count):
+                power = self.get_power()
+                if power is not None:
+                    readings.append(power)
+                time.sleep(0.1)  # Small delay between readings
+                
+            logger.debug(f"Got {len(readings)} readings: {readings}")
+            return readings
+            
+        except Exception as e:
+            logger.error(f"Error getting multiple readings: {e}")
+            return []
+
+    def zero_adjust(self) -> bool:
+        """
+        Perform zero adjustment on the power meter.
+        
+        Returns:
+            bool: True if successful
+        """
+        try:
+            if self.mock_mode:
+                self._mock_zero_offset = -self._mock_power_base * 0.1
+                logger.info("Mock: Zero adjustment performed")
+                return True
+                
+            # For real hardware, send zero adjust command
+            response = self._send_command("Z", expect_response=True)
+            if response:
+                logger.info("Zero adjustment completed")
+                return True
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error during zero adjustment: {e}")
+            return False

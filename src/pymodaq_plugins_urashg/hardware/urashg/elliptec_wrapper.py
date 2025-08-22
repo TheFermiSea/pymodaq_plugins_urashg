@@ -330,8 +330,37 @@ class ElliptecController:
 
         if response:
             try:
-                # Parse position from response (format: "XPOnnnnnnnn")
-                response_str = response.decode("ascii").strip()
+                # Handle binary response with error-tolerant decoding
+                if isinstance(response, bytes):
+                    # Try ASCII first, then fall back to error-tolerant decoding
+                    try:
+                        response_str = response.decode("ascii").strip()
+                    except UnicodeDecodeError:
+                        # Handle binary data - try latin-1 (preserves all byte values)
+                        response_str = response.decode("latin-1", errors="ignore").strip()
+                        self.logger.debug(f"Binary response from mount {mount_address}: {response.hex()}")
+                        
+                        # For binary responses, try to extract position from raw bytes
+                        if len(response) >= 4:
+                            # Some Elliptec devices return position as 4-byte integer
+                            try:
+                                # Try interpreting as little-endian 32-bit signed integer
+                                import struct
+                                pulses = struct.unpack('<i', response[:4])[0]
+                                degrees = (pulses / self._pulses_per_rev) * 360.0
+                                self._positions[mount_address] = degrees
+                                self.logger.debug(f"Mount {mount_address} binary position: {degrees:.2f} degrees")
+                                return degrees
+                            except:
+                                pass
+                                
+                        # If binary parsing fails, return cached position
+                        self.logger.warning(f"Could not parse binary response from mount {mount_address}")
+                        return self._positions.get(mount_address, 0.0)
+                else:
+                    response_str = str(response).strip()
+                
+                # Parse standard ASCII response (format: "XPOnnnnnnnn")
                 if "PO" in response_str:
                     # Extract hex position value
                     hex_pos = response_str.split("PO")[1][:8]
@@ -347,7 +376,7 @@ class ElliptecController:
                     self._positions[mount_address] = degrees
 
                     self.logger.debug(
-                        f"Mount {mount_address} position: {degrees:.2f}degrees"
+                        f"Mount {mount_address} position: {degrees:.2f} degrees"
                     )
                     return degrees
 

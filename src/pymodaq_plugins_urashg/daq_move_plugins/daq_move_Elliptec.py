@@ -174,8 +174,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 ThreadCommand("Update_Status", [f"UI Update Error: {str(e)}", "error"])
             )
 
-    def ini_stage(self, controller=None):
+    def ini_actuator(self, controller=None):
         """Initialize the hardware stage."""
+        self.initialized = False
         try:
             # Import here to avoid issues if module not available
             from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import (
@@ -215,6 +216,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 )
                 self.update_status()
                 # Status monitoring handled by PyMoDAQ polling (set poll_time in UI)
+                self.initialized = True
                 return "Elliptec mounts initialized successfully", True
             else:
                 self.emit_status(

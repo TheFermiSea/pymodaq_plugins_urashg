@@ -162,12 +162,16 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
         # Hardware controller
         self.controller: Newport1830CController = None
 
+        # Plugin state
+        self.initialized = False
+
         # Data configuration
         self.x_axis = None
         self.ind_data = 0
 
     def ini_detector(self, controller=None):
         """Initialize the Newport 1830-C power meter."""
+        self.initialized = False
         try:
             self.emit_status(
                 ThreadCommand("show_splash", "Initializing Newport 1830-C...")
@@ -212,6 +216,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
             info_string = f"Newport 1830-C initialized on {port}"
             self.emit_status(ThreadCommand("Update_Status", [info_string]))
 
+            self.initialized = True
             return info_string, True
 
         except Exception as e:
