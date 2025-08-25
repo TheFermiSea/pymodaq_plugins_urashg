@@ -22,7 +22,9 @@ def run_compliance_tests():
 
     # Run pytest with verbose output and colored results
     cmd = [
-        sys.executable, "-m", "pytest",
+        sys.executable,
+        "-m",
+        "pytest",
         "tests/test_pymodaq_compliance.py",
         "-v",
         "--tb=short",
@@ -31,12 +33,7 @@ def run_compliance_tests():
     ]
 
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=project_root,
-            capture_output=False,
-            text=True
-        )
+        result = subprocess.run(cmd, cwd=project_root, capture_output=False, text=True)
 
         print("\n" + "=" * 60)
 
@@ -70,20 +67,17 @@ def run_specific_test_class(test_class=None):
         print("🔍 Running all compliance tests")
 
     cmd = [
-        sys.executable, "-m", "pytest",
+        sys.executable,
+        "-m",
+        "pytest",
         test_target,
         "-v",
         "--tb=short",
-        "--color=yes"
+        "--color=yes",
     ]
 
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=project_root,
-            capture_output=False,
-            text=True
-        )
+        result = subprocess.run(cmd, cwd=project_root, capture_output=False, text=True)
         return result.returncode == 0
     except Exception as e:
         print(f"❌ Error running tests: {e}")
@@ -107,7 +101,9 @@ if __name__ == "__main__":
         print("  TestPluginIntegration    - Plugin integration tests")
         print("\nUsage:")
         print("  python run_compliance_tests.py                    # Run all tests")
-        print("  python run_compliance_tests.py TestEntryPoints    # Run specific class")
+        print(
+            "  python run_compliance_tests.py TestEntryPoints    # Run specific class"
+        )
         sys.exit(0)
 
     sys.exit(0 if success else 1)
