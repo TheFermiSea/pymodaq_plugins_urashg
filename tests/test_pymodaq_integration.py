@@ -23,36 +23,40 @@ This test validates:
 5. PyMoDAQ 5.x standards compliance
 """
 
-import sys
 import os
+import sys
 import traceback
 from pathlib import Path
 
 # Add source path for local imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+
 def test_esp300_plugin():
     """Test ESP300 plugin with real hardware on /dev/ttyUSB3."""
     print("\n=== Testing ESP300 PyMoDAQ Plugin ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import DAQ_Move_ESP300
-        from pymodaq.utils.data import DataActuator
         import numpy as np
+        from pymodaq.utils.data import DataActuator
+
+        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import (
+            DAQ_Move_ESP300,
+        )
 
         # Create plugin instance
-        plugin = DAQ_Move_ESP300(None, {'name': 'ESP300_Test'})
+        plugin = DAQ_Move_ESP300(None, {"name": "ESP300_Test"})
         print("✅ ESP300 plugin class instantiated")
 
         # Check parameter tree structure
         try:
-            connection_group = plugin.settings.child('connection_group')
+            connection_group = plugin.settings.child("connection_group")
             print("✅ Connection group parameter exists")
 
             # Configure for the detected hardware
-            connection_group.child('port').setValue('/dev/ttyUSB3')
-            connection_group.child('baudrate').setValue(19200)
-            connection_group.child('timeout').setValue(5000)
+            connection_group.child("port").setValue("/dev/ttyUSB3")
+            connection_group.child("baudrate").setValue(19200)
+            connection_group.child("timeout").setValue(5000)
             print("✅ Hardware parameters configured")
 
         except Exception as e:
@@ -71,7 +75,7 @@ def test_esp300_plugin():
                     print(f"✅ Current position read: {current_pos}")
 
                     # Verify data format
-                    if hasattr(current_pos, 'data') and len(current_pos.data) > 0:
+                    if hasattr(current_pos, "data") and len(current_pos.data) > 0:
                         print("✅ DataActuator format correct")
                     else:
                         print("❌ Invalid DataActuator format")
@@ -105,31 +109,35 @@ def test_esp300_plugin():
         traceback.print_exc()
         return False
 
+
 def test_elliptec_plugin():
     """Test Elliptec plugin with real hardware on /dev/ttyUSB1."""
     print("\n=== Testing Elliptec PyMoDAQ Plugin ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import DAQ_Move_Elliptec
-        from pymodaq.utils.data import DataActuator
         import numpy as np
+        from pymodaq.utils.data import DataActuator
+
+        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import (
+            DAQ_Move_Elliptec,
+        )
 
         # Create plugin instance
-        plugin = DAQ_Move_Elliptec(None, {'name': 'Elliptec_Test'})
+        plugin = DAQ_Move_Elliptec(None, {"name": "Elliptec_Test"})
         print("✅ Elliptec plugin class instantiated")
 
         # Check parameter tree structure
         try:
-            connection_group = plugin.settings.child('connection_group')
+            connection_group = plugin.settings.child("connection_group")
             print("✅ Connection group parameter exists")
 
             # Configure for the detected hardware
-            connection_group.child('serial_port').setValue('/dev/ttyUSB1')
-            connection_group.child('baudrate').setValue(9600)
-            connection_group.child('timeout').setValue(5000)
+            connection_group.child("serial_port").setValue("/dev/ttyUSB1")
+            connection_group.child("baudrate").setValue(9600)
+            connection_group.child("timeout").setValue(5000)
 
             # Set mount addresses for URASHG system
-            connection_group.child('mount_addresses').setValue('2,3,8')
+            connection_group.child("mount_addresses").setValue("2,3,8")
             print("✅ Hardware parameters configured")
 
         except Exception as e:
@@ -148,7 +156,7 @@ def test_elliptec_plugin():
                     print(f"✅ Current positions read: {current_pos}")
 
                     # Verify multi-axis data format
-                    if hasattr(current_pos, 'data') and len(current_pos.data) > 0:
+                    if hasattr(current_pos, "data") and len(current_pos.data) > 0:
                         pos_array = current_pos.data[0]
                         if len(pos_array) == 3:  # Three mounts
                             print("✅ Multi-axis DataActuator format correct")
@@ -183,25 +191,28 @@ def test_elliptec_plugin():
         traceback.print_exc()
         return False
 
+
 def test_newport_plugin():
     """Test Newport power meter plugin with real hardware on /dev/ttyS0."""
     print("\n=== Testing Newport Power Meter PyMoDAQ Plugin ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C import DAQ_0DViewer_Newport1830C
+        from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C import (
+            DAQ_0DViewer_Newport1830C,
+        )
 
         # Create plugin instance
-        plugin = DAQ_0DViewer_Newport1830C(None, {'name': 'Newport_Test'})
+        plugin = DAQ_0DViewer_Newport1830C(None, {"name": "Newport_Test"})
         print("✅ Newport plugin class instantiated")
 
         # Check parameter tree structure
         try:
-            connection_group = plugin.settings.child('connection_group')
+            connection_group = plugin.settings.child("connection_group")
             print("✅ Connection group parameter exists")
 
             # Configure for the detected hardware
-            connection_group.child('serial_port').setValue('/dev/ttyS0')
-            connection_group.child('timeout').setValue(5000)
+            connection_group.child("serial_port").setValue("/dev/ttyS0")
+            connection_group.child("timeout").setValue(5000)
             print("✅ Hardware parameters configured")
 
         except Exception as e:
@@ -244,28 +255,32 @@ def test_newport_plugin():
         traceback.print_exc()
         return False
 
+
 def test_maitai_plugin():
     """Test MaiTai laser plugin with real hardware on /dev/ttyUSB0."""
     print("\n=== Testing MaiTai Laser PyMoDAQ Plugin ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_MaiTai
-        from pymodaq.utils.data import DataActuator
         import numpy as np
+        from pymodaq.utils.data import DataActuator
+
+        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+            DAQ_Move_MaiTai,
+        )
 
         # Create plugin instance
-        plugin = DAQ_Move_MaiTai(None, {'name': 'MaiTai_Test'})
+        plugin = DAQ_Move_MaiTai(None, {"name": "MaiTai_Test"})
         print("✅ MaiTai plugin class instantiated")
 
         # Check parameter tree structure
         try:
-            connection_group = plugin.settings.child('connection_group')
+            connection_group = plugin.settings.child("connection_group")
             print("✅ Connection group parameter exists")
 
             # Configure for the detected hardware
-            connection_group.child('serial_port').setValue('/dev/ttyUSB0')
-            connection_group.child('baudrate').setValue(9600)
-            connection_group.child('timeout').setValue(5000)
+            connection_group.child("serial_port").setValue("/dev/ttyUSB0")
+            connection_group.child("baudrate").setValue(9600)
+            connection_group.child("timeout").setValue(5000)
             print("✅ Hardware parameters configured")
 
         except Exception as e:
@@ -284,7 +299,7 @@ def test_maitai_plugin():
                     print(f"✅ Current wavelength read: {current_wl}")
 
                     # Verify data format
-                    if hasattr(current_wl, 'data') and len(current_wl.data) > 0:
+                    if hasattr(current_wl, "data") and len(current_wl.data) > 0:
                         print("✅ DataActuator format correct")
                     else:
                         print("❌ Invalid DataActuator format")
@@ -315,14 +330,15 @@ def test_maitai_plugin():
         traceback.print_exc()
         return False
 
+
 def test_pymodaq_compliance():
     """Test PyMoDAQ 5.x compliance standards."""
     print("\n=== Testing PyMoDAQ 5.x Compliance ===")
 
     try:
         # Test DataActuator import and usage
-        from pymodaq.utils.data import DataActuator
         import numpy as np
+        from pymodaq.utils.data import DataActuator
 
         # Test DataActuator creation
         test_data = DataActuator(data=[np.array([800.0])])
@@ -334,13 +350,14 @@ def test_pymodaq_compliance():
 
         # Test DataWithAxes import
         try:
-            from pymodaq_data import DataWithAxes, Axis, DataSource
-            test_axis = Axis('wavelength', data=np.linspace(700, 900, 100), units='nm')
+            from pymodaq_data import Axis, DataSource, DataWithAxes
+
+            test_axis = Axis("wavelength", data=np.linspace(700, 900, 100), units="nm")
             test_image = DataWithAxes(
-                'test_image',
+                "test_image",
                 data=[np.random.rand(100, 100)],
                 axes=[test_axis, test_axis],
-                source=DataSource.raw
+                source=DataSource.raw,
             )
             print("✅ DataWithAxes creation successful")
         except Exception as e:
@@ -348,13 +365,22 @@ def test_pymodaq_compliance():
 
         # Test plugin entry points
         import importlib.metadata
+
         eps = importlib.metadata.entry_points()
 
-        move_plugins = list(eps.select(group='pymodaq.move_plugins')) if hasattr(eps, 'select') else eps.get('pymodaq.move_plugins', [])
-        viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins')) if hasattr(eps, 'select') else eps.get('pymodaq.viewer_plugins', [])
+        move_plugins = (
+            list(eps.select(group="pymodaq.move_plugins"))
+            if hasattr(eps, "select")
+            else eps.get("pymodaq.move_plugins", [])
+        )
+        viewer_plugins = (
+            list(eps.select(group="pymodaq.viewer_plugins"))
+            if hasattr(eps, "select")
+            else eps.get("pymodaq.viewer_plugins", [])
+        )
 
-        urashg_move = [ep for ep in move_plugins if 'urashg' in ep.value.lower()]
-        urashg_viewer = [ep for ep in viewer_plugins if 'urashg' in ep.value.lower()]
+        urashg_move = [ep for ep in move_plugins if "urashg" in ep.value.lower()]
+        urashg_viewer = [ep for ep in viewer_plugins if "urashg" in ep.value.lower()]
 
         print(f"✅ Found {len(urashg_move)} URASHG move plugins")
         print(f"✅ Found {len(urashg_viewer)} URASHG viewer plugins")
@@ -370,6 +396,7 @@ def test_pymodaq_compliance():
         print(f"❌ PyMoDAQ compliance test failed: {e}")
         traceback.print_exc()
         return False
+
 
 def main():
     """Run all PyMoDAQ integration tests."""
@@ -432,6 +459,7 @@ def main():
         print("⚠️  Multiple integration tests failed.")
         print("   Check plugin implementations and hardware connections")
         return 1
+
 
 if __name__ == "__main__":
     try:

@@ -174,7 +174,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 ThreadCommand("Update_Status", [f"UI Update Error: {str(e)}", "error"])
             )
 
-    def ini_actuator(self, controller=None):
+    def ini_stage(self, controller=None):
         """Initialize the hardware stage."""
         self.initialized = False
         try:

@@ -21,13 +21,14 @@ Hardware Expected:
     - ESP300 motion controller (serial connection)
 """
 
-import sys
 import os
+import sys
 import traceback
 from pathlib import Path
 
 # Add source path for local imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
+
 
 def test_plugin_loading():
     """Test that all URASHG plugins can be loaded via PyMoDAQ entry points."""
@@ -38,21 +39,23 @@ def test_plugin_loading():
 
         # Expected URASHG plugins
         expected_plugins = [
-            ('DAQ_Move_ESP300', 'pymodaq.move_plugins'),
-            ('DAQ_Move_Elliptec', 'pymodaq.move_plugins'),
-            ('DAQ_Move_MaiTai', 'pymodaq.move_plugins'),
-            ('DAQ_0DViewer_Newport1830C', 'pymodaq.viewer_plugins'),
-            ('DAQ_2DViewer_PrimeBSI', 'pymodaq.viewer_plugins')
+            ("DAQ_Move_ESP300", "pymodaq.move_plugins"),
+            ("DAQ_Move_Elliptec", "pymodaq.move_plugins"),
+            ("DAQ_Move_MaiTai", "pymodaq.move_plugins"),
+            ("DAQ_0DViewer_Newport1830C", "pymodaq.viewer_plugins"),
+            ("DAQ_2DViewer_PrimeBSI", "pymodaq.viewer_plugins"),
         ]
 
         eps = importlib.metadata.entry_points()
 
         for plugin_name, group in expected_plugins:
             try:
-                if hasattr(eps, 'select'):
+                if hasattr(eps, "select"):
                     ep_list = list(eps.select(group=group, name=plugin_name))
                 else:
-                    ep_list = [ep for ep in eps.get(group, []) if ep.name == plugin_name]
+                    ep_list = [
+                        ep for ep in eps.get(group, []) if ep.name == plugin_name
+                    ]
 
                 if ep_list:
                     plugin_class = ep_list[0].load()
@@ -71,20 +74,26 @@ def test_plugin_loading():
         print(f"❌ Plugin loading test failed: {e}")
         return False
 
+
 def test_elliptec_hardware():
     """Test Elliptec rotation mounts with real hardware."""
     print("\n=== Testing Elliptec Hardware ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import DAQ_Move_Elliptec
         from pymodaq.utils.data import DataActuator
+
+        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import (
+            DAQ_Move_Elliptec,
+        )
 
         # Create plugin instance with proper parameters
         plugin = DAQ_Move_Elliptec(None, None)
 
         # Configure for real hardware
-        plugin.settings.child('connection_group', 'serial_port').setValue('/dev/ttyUSB1')
-        plugin.settings.child('connection_group', 'timeout').setValue(5000)
+        plugin.settings.child("connection_group", "serial_port").setValue(
+            "/dev/ttyUSB1"
+        )
+        plugin.settings.child("connection_group", "timeout").setValue(5000)
 
         print("Initializing Elliptec controller...")
         info, success = plugin.ini_actuator()
@@ -105,7 +114,9 @@ def test_elliptec_hardware():
         # Test small movement (safe test)
         try:
             print("Testing small movement...")
-            test_positions = DataActuator(data=[[1.0, 1.0, 1.0]])  # Small 1-degree movement
+            test_positions = DataActuator(
+                data=[[1.0, 1.0, 1.0]]
+            )  # Small 1-degree movement
             plugin.move_abs(test_positions)
             print("✅ Movement command sent successfully")
         except Exception as e:
@@ -121,19 +132,22 @@ def test_elliptec_hardware():
         traceback.print_exc()
         return False
 
+
 def test_newport_power_meter():
     """Test Newport 1830-C Power Meter with real hardware."""
     print("\n=== Testing Newport Power Meter ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C import DAQ_0DViewer_Newport1830C
+        from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C import (
+            DAQ_0DViewer_Newport1830C,
+        )
 
         # Create plugin instance with proper parameters
         plugin = DAQ_0DViewer_Newport1830C(None, None)
 
         # Configure for real hardware
-        plugin.settings.child('connection_group', 'serial_port').setValue('/dev/ttyS0')
-        plugin.settings.child('connection_group', 'timeout').setValue(5000)
+        plugin.settings.child("connection_group", "serial_port").setValue("/dev/ttyS0")
+        plugin.settings.child("connection_group", "timeout").setValue(5000)
 
         print("Initializing Newport power meter...")
         info, success = plugin.ini_detector()
@@ -162,12 +176,15 @@ def test_newport_power_meter():
         traceback.print_exc()
         return False
 
+
 def test_primebsi_camera():
     """Test Photometrics PrimeBSI camera with real hardware."""
     print("\n=== Testing PrimeBSI Camera ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import DAQ_2DViewer_PrimeBSI
+        from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI import (
+            DAQ_2DViewer_PrimeBSI,
+        )
 
         # Create plugin instance with proper parameters
         plugin = DAQ_2DViewer_PrimeBSI(None, None)
@@ -199,21 +216,25 @@ def test_primebsi_camera():
         traceback.print_exc()
         return False
 
+
 def test_maitai_laser():
     """Test MaiTai laser with real hardware."""
     print("\n=== Testing MaiTai Laser ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import DAQ_Move_MaiTai
         from pymodaq.utils.data import DataActuator
+
+        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+            DAQ_Move_MaiTai,
+        )
 
         # Create plugin instance with proper parameters
         plugin = DAQ_Move_MaiTai(None, None)
 
         # Try common serial ports for MaiTai
-        for port in ['/dev/ttyUSB0', '/dev/ttyUSB2', '/dev/ttyUSB3']:
+        for port in ["/dev/ttyUSB0", "/dev/ttyUSB2", "/dev/ttyUSB3"]:
             if os.path.exists(port):
-                plugin.settings.child('connection_group', 'serial_port').setValue(port)
+                plugin.settings.child("connection_group", "serial_port").setValue(port)
                 break
 
         print("Initializing MaiTai laser...")
@@ -242,21 +263,25 @@ def test_maitai_laser():
         traceback.print_exc()
         return False
 
+
 def test_esp300_controller():
     """Test ESP300 motion controller with real hardware."""
     print("\n=== Testing ESP300 Controller ===")
 
     try:
-        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import DAQ_Move_ESP300
         from pymodaq.utils.data import DataActuator
+
+        from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import (
+            DAQ_Move_ESP300,
+        )
 
         # Create plugin instance with proper parameters
         plugin = DAQ_Move_ESP300(None, None)
 
         # Try common serial ports for ESP300
-        for port in ['/dev/ttyUSB3', '/dev/ttyUSB4', '/dev/ttyUSB5', '/dev/ttyUSB6']:
+        for port in ["/dev/ttyUSB3", "/dev/ttyUSB4", "/dev/ttyUSB5", "/dev/ttyUSB6"]:
             if os.path.exists(port):
-                plugin.settings.child('connection_group', 'serial_port').setValue(port)
+                plugin.settings.child("connection_group", "serial_port").setValue(port)
                 break
 
         print("Initializing ESP300 controller...")
@@ -285,16 +310,22 @@ def test_esp300_controller():
         traceback.print_exc()
         return False
 
+
 def test_extension_loading():
     """Test that the URASHG extension can be loaded."""
     print("\n=== Testing Extension Loading ===")
 
     try:
-        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+            URASHGMicroscopyExtension,
+        )
+
         print("✅ URASHG extension class imported successfully")
 
         # Test extension metadata
-        print(f"Extension name: {getattr(URASHGMicroscopyExtension, 'extension_name', 'Not defined')}")
+        print(
+            f"Extension name: {getattr(URASHGMicroscopyExtension, 'extension_name', 'Not defined')}"
+        )
         print("✅ Extension loading test completed")
         return True
 
@@ -302,6 +333,7 @@ def test_extension_loading():
         print(f"❌ Extension loading test failed: {e}")
         traceback.print_exc()
         return False
+
 
 def main():
     """Run all hardware tests."""
@@ -359,6 +391,7 @@ def main():
     else:
         print("⚠️  Some tests failed. Check hardware connections and configurations.")
         return 1
+
 
 if __name__ == "__main__":
     try:

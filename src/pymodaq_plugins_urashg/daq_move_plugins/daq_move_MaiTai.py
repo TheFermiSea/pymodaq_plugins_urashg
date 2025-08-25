@@ -1,13 +1,17 @@
 import time
-from typing import Union
+from typing import Dict, List, Union
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
+    DataActuator,
+    DataActuatorType,
     comon_parameters_fun,
+    main,
 )
-from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.data import DataActuator
+from pymodaq_gui.parameter import Parameter
+from pymodaq_utils.utils import ThreadCommand
 
 # QTimer replaced with PyMoDAQ threading patterns
 
@@ -25,11 +29,11 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     """
 
     # Plugin metadata - PyMoDAQ compliant
-    _controller_units = "nm"
     is_multiaxes = False
-    _axis_names = ["Wavelength"]
-    _epsilon = 0.1  # Wavelength precision in nm
-
+    _axis_names: Union[List[str], Dict[str, int]] = ["Wavelength"]
+    _controller_units: Union[str, List[str]] = "nm"
+    _epsilon: Union[float, List[float]] = 0.1  # Wavelength precision in nm
+    data_actuator_type = DataActuatorType.DataActuator
     # Plugin parameters - PyMoDAQ standard structure
     params = comon_parameters_fun(
         is_multiaxes=False, axis_names=_axis_names, epsilon=_epsilon
@@ -44,14 +48,14 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": "",
+                    "value": "/dev/ttyUSB2",
                     "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1",
                 },
                 {
                     "title": "Baudrate:",
                     "name": "baudrate",
                     "type": "int",
-                    "value": 115200,
+                    "value": 9600,
                 },
                 {
                     "title": "Timeout (s):",
@@ -194,7 +198,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         # Initialization flag for enhanced status monitoring
         self._fully_initialized = False
 
-    def ini_actuator(self, controller=None):
+    def ini_stage(self, controller=None):
         """Initialize the hardware stage."""
         self.initialized = False
         try:
@@ -564,7 +568,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                         self.controller.disconnect()
                         self.controller = None
                         # Reinitialize with new settings
-                        self.ini_stage()
+                        self.ini_stage_init()
 
                 elif param.name() == "set_wavelength_btn":
                     # Set wavelength from target parameter
@@ -744,32 +748,4 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
 
 if __name__ == "__main__":
-    # This part is for testing the plugin independently
-    import sys
-
-    from pymodaq.dashboard import DashBoard
-    from pymodaq.utils import daq_utils as utils
-    from qtpy import QtWidgets
-
-    app = utils.get_qapp()
-    if app is None:
-        app = QtWidgets.QApplication(sys.argv)
-
-    # It's good practice to have a mock version for development without hardware
-    # For this example, we assume the hardware is connected.
-    # To run, you would need a virtual COM port pair (e.g., com0com)
-    # and a script simulating the MaiTai on the other end.
-
-    win = QtWidgets.QMainWindow()
-    area = utils.DockArea()
-    win.setCentralWidget(area)
-    win.resize(1000, 500)
-    win.setWindowTitle("PyMoDAQ Dashboard")
-
-    prog = DashBoard(area)
-    win.show()
-
-    # To test, you would manually add the DAQ_Move module in the dashboard GUI
-    # and select this DAQ_Move_MaiTai plugin.
-
-    sys.exit(app.exec_())
+    main(__file__)

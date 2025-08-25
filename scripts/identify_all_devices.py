@@ -11,7 +11,7 @@ def identify_maitai(port, baudrate):
                 ser.write(b"*IDN?" + term)
                 time.sleep(0.2)
                 response = ser.readline().decode(errors="ignore").strip()
-                if "Mai Tai" in response or "Spectra-Physics" in response:
+                if "MaiTai" in response or "Spectra Physics" in response:
                     print(
                         f"Success! MaiTai found on {port} at {baudrate} baud with terminator {term!r}"
                     )
@@ -42,7 +42,7 @@ def identify_elliptec(port):
         with serial.Serial(port, 9600, timeout=1) as ser:
             ser.write(b"2gs\n")
             time.sleep(0.1)
-            response = ser.readline().decode().strip()
+            response = ser.readline().decode(errors="ignore").strip()
             if response.startswith("2GS"):
                 print(f"Elliptec found on {port}")
                 return True
@@ -52,8 +52,16 @@ def identify_elliptec(port):
 
 
 if __name__ == "__main__":
-    # Mock ports for testing
-    ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2"]
+    # Available USB serial ports
+    ports = [
+        "/dev/ttyUSB0",
+        "/dev/ttyUSB1",
+        "/dev/ttyUSB2",
+        "/dev/ttyUSB3",
+        "/dev/ttyUSB4",
+        "/dev/ttyUSB5",
+        "/dev/ttyUSB6",
+    ]
     baudrates = [9600, 19200, 38400, 57600, 115200]
 
     maitai_found = False

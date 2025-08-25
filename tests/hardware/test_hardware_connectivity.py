@@ -17,16 +17,20 @@ Hardware Expected:
     - ESP300 motion controller (serial connection on various ports)
 """
 
-import sys
 import os
-import serial
+import sys
 import time
 from pathlib import Path
+
+import serial
 
 # Add source path for local imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-def test_serial_device(port, baudrate=9600, timeout=2, test_command=None, description=""):
+
+def test_serial_device(
+    port, baudrate=9600, timeout=2, test_command=None, description=""
+):
     """Test basic serial communication with a device."""
     print(f"Testing {description} on {port}...")
 
@@ -41,11 +45,11 @@ def test_serial_device(port, baudrate=9600, timeout=2, test_command=None, descri
 
         if test_command:
             # Send test command
-            ser.write((test_command + '\r\n').encode())
+            ser.write((test_command + "\r\n").encode())
             time.sleep(0.1)
 
             # Read response
-            response = ser.read(100).decode('utf-8', errors='ignore').strip()
+            response = ser.read(100).decode("utf-8", errors="ignore").strip()
             ser.close()
 
             if response:
@@ -64,6 +68,7 @@ def test_serial_device(port, baudrate=9600, timeout=2, test_command=None, descri
         print(f"❌ {description}: Connection failed - {e}")
         return False
 
+
 def test_elliptec_connectivity():
     """Test Elliptec rotation mounts connectivity."""
     print("\n=== Testing Elliptec Rotation Mounts ===")
@@ -71,11 +76,12 @@ def test_elliptec_connectivity():
     # Elliptec uses 9600 baud by default
     # Command 'in' gets device info for all devices on bus
     return test_serial_device(
-        port='/dev/ttyUSB1',
+        port="/dev/ttyUSB1",
         baudrate=9600,
-        test_command='in',
-        description="Elliptec Rotation Mounts"
+        test_command="in",
+        description="Elliptec Rotation Mounts",
     )
+
 
 def test_newport_power_meter():
     """Test Newport 1830-C Power Meter connectivity."""
@@ -84,65 +90,76 @@ def test_newport_power_meter():
     # Newport 1830-C typically uses 9600 baud
     # Command '*IDN?' requests device identification
     return test_serial_device(
-        port='/dev/ttyS0',
+        port="/dev/ttyS0",
         baudrate=9600,
-        test_command='*IDN?',
-        description="Newport 1830-C Power Meter"
+        test_command="*IDN?",
+        description="Newport 1830-C Power Meter",
     )
+
 
 def test_maitai_laser():
     """Test MaiTai laser connectivity using correct SCPI protocol."""
     print("\n=== Testing MaiTai Laser (SCPI Protocol) ===")
 
     # Try Silicon Labs port first (user suggested), then others
-    ports_to_try = ['/dev/ttyUSB2', '/dev/ttyUSB0', '/dev/ttyUSB4', '/dev/ttyUSB5', '/dev/ttyUSB6']
+    ports_to_try = [
+        "/dev/ttyUSB2",
+        "/dev/ttyUSB0",
+        "/dev/ttyUSB4",
+        "/dev/ttyUSB5",
+        "/dev/ttyUSB6",
+    ]
     baud_rates = [115200, 9600, 19200]  # User suggested 115200 first
-    
+
     # SCPI commands from MaiTai manual
     scpi_commands = [
-        'READ:PCTWarmedup?',    # Warmup status query
-        'READ:WAVelength?',     # Wavelength query  
-        '*IDN?',               # Standard SCPI identification
-        'READ:SHUTter?'        # Shutter status
+        "READ:PCTWarmedup?",  # Warmup status query
+        "READ:WAVelength?",  # Wavelength query
+        "*IDN?",  # Standard SCPI identification
+        "READ:SHUTter?",  # Shutter status
     ]
 
     for port in ports_to_try:
         if not os.path.exists(port):
             continue
-            
+
         print(f"Trying MaiTai on {port}...")
-        
+
         for baud in baud_rates:
             print(f"  Testing {baud} baud...")
-            
+
             try:
                 # MaiTai requires XON/XOFF flow control per manual
                 with serial.Serial(
                     port=port,
                     baudrate=baud,
                     bytesize=8,
-                    parity='N',
+                    parity="N",
                     stopbits=1,
                     timeout=2.0,
-                    xonxoff=True  # Critical for MaiTai!
+                    xonxoff=True,  # Critical for MaiTai!
                 ) as ser:
-                    
+
                     time.sleep(0.3)  # Let device settle
                     ser.flushInput()
                     ser.flushOutput()
-                    
+
                     for cmd in scpi_commands:
                         # SCPI format: command terminated by CR, LF, or both
-                        ser.write((cmd + '\r\n').encode())
+                        ser.write((cmd + "\r\n").encode())
                         time.sleep(0.8)  # MaiTai may need time to respond
-                        
-                        response = ser.read(200).decode('ascii', errors='ignore').strip()
+
+                        response = (
+                            ser.read(200).decode("ascii", errors="ignore").strip()
+                        )
                         if response:
-                            print(f"✅ MaiTai Laser: Connected on {port} at {baud} baud")
+                            print(
+                                f"✅ MaiTai Laser: Connected on {port} at {baud} baud"
+                            )
                             print(f"   Command: {cmd}")
                             print(f"   Response: {response[:100]}...")
                             return True
-                            
+
             except Exception as e:
                 print(f"    {baud} baud failed: {str(e)[:30]}...")
                 continue
@@ -151,12 +168,13 @@ def test_maitai_laser():
     print("   Note: MaiTai uses SCPI protocol with XON/XOFF flow control")
     return False
 
+
 def test_esp300_controller():
     """Test ESP300 motion controller connectivity."""
     print("\n=== Testing ESP300 Motion Controller ===")
 
     # ESP300 confirmed working on USB3 from real hardware tests
-    ports_to_try = ['/dev/ttyUSB3', '/dev/ttyUSB4', '/dev/ttyUSB5', '/dev/ttyUSB6']
+    ports_to_try = ["/dev/ttyUSB3", "/dev/ttyUSB4", "/dev/ttyUSB5", "/dev/ttyUSB6"]
 
     for port in ports_to_try:
         if os.path.exists(port):
@@ -166,13 +184,14 @@ def test_esp300_controller():
             if test_serial_device(
                 port=port,
                 baudrate=19200,
-                test_command='*IDN?',
-                description=f"ESP300 Controller ({port})"
+                test_command="*IDN?",
+                description=f"ESP300 Controller ({port})",
             ):
                 return True
 
     print("❌ ESP300 Controller: No responsive device found on any port")
     return False
+
 
 def test_primebsi_camera():
     """Test PrimeBSI camera connectivity via PyVCAM."""
@@ -228,13 +247,20 @@ def test_primebsi_camera():
             pass
         return False
 
+
 def test_device_permissions():
     """Test device file permissions."""
     print("\n=== Testing Device Permissions ===")
 
     devices_to_check = [
-        '/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyUSB2', '/dev/ttyUSB3',
-        '/dev/ttyUSB4', '/dev/ttyUSB5', '/dev/ttyUSB6', '/dev/ttyS0'
+        "/dev/ttyUSB0",
+        "/dev/ttyUSB1",
+        "/dev/ttyUSB2",
+        "/dev/ttyUSB3",
+        "/dev/ttyUSB4",
+        "/dev/ttyUSB5",
+        "/dev/ttyUSB6",
+        "/dev/ttyS0",
     ]
 
     accessible_devices = []
@@ -243,7 +269,7 @@ def test_device_permissions():
         if os.path.exists(device):
             try:
                 # Try to open device for reading
-                with open(device, 'rb') as f:
+                with open(device, "rb") as f:
                     accessible_devices.append(device)
                     print(f"✅ {device}: Readable")
             except PermissionError:
@@ -255,6 +281,7 @@ def test_device_permissions():
 
     print(f"\nAccessible devices: {accessible_devices}")
     return len(accessible_devices) > 0
+
 
 def main():
     """Run all hardware connectivity tests."""
@@ -312,6 +339,7 @@ def main():
         print("⚠️  Many devices not accessible. Check connections and permissions.")
         return 1
 
+
 if __name__ == "__main__":
     try:
         exit_code = main()
@@ -322,5 +350,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Test suite crashed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

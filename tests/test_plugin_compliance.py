@@ -16,13 +16,14 @@ Usage:
     python test_plugin_compliance.py
 """
 
-import sys
 import os
+import sys
 import traceback
 from pathlib import Path
 
 # Add source path for local imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
+
 
 def test_plugin_class_structure(plugin_module, plugin_class_name, plugin_type):
     """Test plugin class structure and compliance."""
@@ -38,6 +39,7 @@ def test_plugin_class_structure(plugin_module, plugin_class_name, plugin_type):
         # Check inheritance
         if plugin_type == "move":
             from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
+
             if issubclass(plugin_class, DAQ_Move_base):
                 print("✅ Correct inheritance from DAQ_Move_base")
             else:
@@ -45,6 +47,7 @@ def test_plugin_class_structure(plugin_module, plugin_class_name, plugin_type):
                 return False
         elif plugin_type == "viewer":
             from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
+
             if issubclass(plugin_class, DAQ_Viewer_base):
                 print("✅ Correct inheritance from DAQ_Viewer_base")
             else:
@@ -52,18 +55,18 @@ def test_plugin_class_structure(plugin_module, plugin_class_name, plugin_type):
                 return False
 
         # Check required attributes
-        if hasattr(plugin_class, 'params'):
+        if hasattr(plugin_class, "params"):
             print("✅ Parameter tree definition found")
         else:
             print("❌ Missing parameter tree definition")
             return False
 
         # Check methods - PyMoDAQ 5.x standards
-        required_methods = ['close']
+        required_methods = ["close"]
         if plugin_type == "move":
-            required_methods.extend(['ini_actuator', 'get_actuator_value', 'move_abs'])
+            required_methods.extend(["ini_stage", "get_actuator_value", "move_abs"])
         elif plugin_type == "viewer":
-            required_methods.extend(['ini_detector', 'grab_data'])
+            required_methods.extend(["ini_detector", "grab_data"])
 
         for method in required_methods:
             if hasattr(plugin_class, method):
@@ -73,7 +76,7 @@ def test_plugin_class_structure(plugin_module, plugin_class_name, plugin_type):
                 return False
 
         # Check controller units for move plugins
-        if plugin_type == "move" and hasattr(plugin_class, '_controller_units'):
+        if plugin_type == "move" and hasattr(plugin_class, "_controller_units"):
             print(f"✅ Controller units defined: {plugin_class._controller_units}")
 
         return True
@@ -83,14 +86,16 @@ def test_plugin_class_structure(plugin_module, plugin_class_name, plugin_type):
         traceback.print_exc()
         return False
 
+
 def test_esp300_compliance():
     """Test ESP300 plugin compliance."""
     print("\n=== Testing ESP300 Plugin Compliance ===")
     return test_plugin_class_structure(
         "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300",
         "DAQ_Move_ESP300",
-        "move"
+        "move",
     )
+
 
 def test_elliptec_compliance():
     """Test Elliptec plugin compliance."""
@@ -98,8 +103,9 @@ def test_elliptec_compliance():
     return test_plugin_class_structure(
         "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec",
         "DAQ_Move_Elliptec",
-        "move"
+        "move",
     )
+
 
 def test_maitai_compliance():
     """Test MaiTai plugin compliance."""
@@ -107,8 +113,9 @@ def test_maitai_compliance():
     return test_plugin_class_structure(
         "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai",
         "DAQ_Move_MaiTai",
-        "move"
+        "move",
     )
+
 
 def test_newport_compliance():
     """Test Newport plugin compliance."""
@@ -116,8 +123,9 @@ def test_newport_compliance():
     return test_plugin_class_structure(
         "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C",
         "DAQ_0DViewer_Newport1830C",
-        "viewer"
+        "viewer",
     )
+
 
 def test_primebsi_compliance():
     """Test PrimeBSI plugin compliance."""
@@ -125,8 +133,9 @@ def test_primebsi_compliance():
     return test_plugin_class_structure(
         "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI",
         "DAQ_2DViewer_PrimeBSI",
-        "viewer"
+        "viewer",
     )
+
 
 def test_data_format_compliance():
     """Test data format compliance with PyMoDAQ 5.x."""
@@ -134,8 +143,8 @@ def test_data_format_compliance():
 
     try:
         # Test DataActuator import and usage
-        from pymodaq.utils.data import DataActuator
         import numpy as np
+        from pymodaq.utils.data import DataActuator
 
         # Test single-axis data
         single_data = DataActuator(data=[np.array([800.0])])
@@ -153,24 +162,22 @@ def test_data_format_compliance():
         print(f"✅ Multi-axis data[0] access: {array}")
 
         # Test DataWithAxes import
-        from pymodaq_data import DataWithAxes, Axis, DataSource
+        from pymodaq_data import Axis, DataSource, DataWithAxes
 
         # Test 2D data structure (for camera)
-        x_axis = Axis('x', data=np.arange(100), units='pixels')
-        y_axis = Axis('y', data=np.arange(100), units='pixels')
+        x_axis = Axis("x", data=np.arange(100), units="pixels")
+        y_axis = Axis("y", data=np.arange(100), units="pixels")
         image_data = DataWithAxes(
-            'camera_image',
+            "camera_image",
             data=[np.random.rand(100, 100)],
             axes=[x_axis, y_axis],
-            source=DataSource.raw
+            source=DataSource.raw,
         )
         print("✅ 2D DataWithAxes creation successful")
 
         # Test 0D data structure (for power meter)
         power_data = DataWithAxes(
-            'power_measurement',
-            data=[np.array([0.5])],
-            source=DataSource.raw
+            "power_measurement", data=[np.array([0.5])], source=DataSource.raw
         )
         print("✅ 0D DataWithAxes creation successful")
 
@@ -180,6 +187,7 @@ def test_data_format_compliance():
         print(f"❌ Data format compliance test failed: {e}")
         traceback.print_exc()
         return False
+
 
 def test_entry_point_compliance():
     """Test entry point compliance and registration."""
@@ -192,21 +200,18 @@ def test_entry_point_compliance():
 
         # Expected plugins
         expected_move_plugins = [
-            'DAQ_Move_ESP300',
-            'DAQ_Move_Elliptec',
-            'DAQ_Move_MaiTai'
+            "DAQ_Move_ESP300",
+            "DAQ_Move_Elliptec",
+            "DAQ_Move_MaiTai",
         ]
 
-        expected_viewer_plugins = [
-            'DAQ_0DViewer_Newport1830C',
-            'DAQ_2DViewer_PrimeBSI'
-        ]
+        expected_viewer_plugins = ["DAQ_0DViewer_Newport1830C", "DAQ_2DViewer_PrimeBSI"]
 
         # Check move plugins
-        if hasattr(eps, 'select'):
-            move_plugins = list(eps.select(group='pymodaq.move_plugins'))
+        if hasattr(eps, "select"):
+            move_plugins = list(eps.select(group="pymodaq.move_plugins"))
         else:
-            move_plugins = eps.get('pymodaq.move_plugins', [])
+            move_plugins = eps.get("pymodaq.move_plugins", [])
 
         found_move = []
         for plugin_name in expected_move_plugins:
@@ -218,10 +223,10 @@ def test_entry_point_compliance():
                 print(f"❌ Move plugin missing: {plugin_name}")
 
         # Check viewer plugins
-        if hasattr(eps, 'select'):
-            viewer_plugins = list(eps.select(group='pymodaq.viewer_plugins'))
+        if hasattr(eps, "select"):
+            viewer_plugins = list(eps.select(group="pymodaq.viewer_plugins"))
         else:
-            viewer_plugins = eps.get('pymodaq.viewer_plugins', [])
+            viewer_plugins = eps.get("pymodaq.viewer_plugins", [])
 
         found_viewer = []
         for plugin_name in expected_viewer_plugins:
@@ -235,7 +240,10 @@ def test_entry_point_compliance():
         # Test plugin loading
         total_loadable = 0
         for ep in move_plugins + viewer_plugins:
-            if any(x in ep.name for x in ['ESP300', 'Elliptec', 'MaiTai', 'Newport', 'PrimeBSI']):
+            if any(
+                x in ep.name
+                for x in ["ESP300", "Elliptec", "MaiTai", "Newport", "PrimeBSI"]
+            ):
                 try:
                     plugin_class = ep.load()
                     print(f"✅ Plugin loadable: {ep.name}")
@@ -243,11 +251,15 @@ def test_entry_point_compliance():
                 except Exception as e:
                     print(f"❌ Plugin load failed: {ep.name} - {e}")
 
-        success = (len(found_move) == len(expected_move_plugins) and
-                  len(found_viewer) == len(expected_viewer_plugins) and
-                  total_loadable >= 5)
+        success = (
+            len(found_move) == len(expected_move_plugins)
+            and len(found_viewer) == len(expected_viewer_plugins)
+            and total_loadable >= 5
+        )
 
-        print(f"Summary: {len(found_move)}/{len(expected_move_plugins)} move plugins, {len(found_viewer)}/{len(expected_viewer_plugins)} viewer plugins, {total_loadable} loadable")
+        print(
+            f"Summary: {len(found_move)}/{len(expected_move_plugins)} move plugins, {len(found_viewer)}/{len(expected_viewer_plugins)} viewer plugins, {total_loadable} loadable"
+        )
 
         return success
 
@@ -256,24 +268,32 @@ def test_entry_point_compliance():
         traceback.print_exc()
         return False
 
+
 def test_extension_compliance():
     """Test extension compliance."""
     print("\n=== Testing Extension Compliance ===")
 
     try:
-        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+            URASHGMicroscopyExtension,
+        )
+
         print("✅ Extension class imported successfully")
 
         # Check inheritance - PyMoDAQ 5.x standards
-        from pymodaq_gui.utils.custom_app import CustomApp
-        if issubclass(URASHGMicroscopyExtension, CustomApp):
-            print("✅ Correct inheritance from CustomApp")
+        from pymodaq.extensions.utils import CustomExt
+
+        if issubclass(URASHGMicroscopyExtension, CustomExt):
+            print("✅ Correct inheritance from CustomExt")
         else:
             print("❌ Incorrect inheritance for extension")
             return False
 
         # Check required attributes - PyMoDAQ 5.x standards
-        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import EXTENSION_NAME
+        from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
+            EXTENSION_NAME,
+        )
+
         if EXTENSION_NAME:
             print(f"✅ Extension name: {EXTENSION_NAME}")
         else:
@@ -281,14 +301,15 @@ def test_extension_compliance():
 
         # Check entry point registration
         import importlib.metadata
+
         eps = importlib.metadata.entry_points()
 
-        if hasattr(eps, 'select'):
-            extension_eps = list(eps.select(group='pymodaq.extensions'))
+        if hasattr(eps, "select"):
+            extension_eps = list(eps.select(group="pymodaq.extensions"))
         else:
-            extension_eps = eps.get('pymodaq.extensions', [])
+            extension_eps = eps.get("pymodaq.extensions", [])
 
-        found_extension = any('URASHG' in ep.name for ep in extension_eps)
+        found_extension = any("URASHG" in ep.name for ep in extension_eps)
         if found_extension:
             print("✅ Extension entry point registered")
         else:
@@ -301,6 +322,7 @@ def test_extension_compliance():
         print(f"❌ Extension compliance test failed: {e}")
         traceback.print_exc()
         return False
+
 
 def main():
     """Run all plugin compliance tests."""
@@ -369,6 +391,7 @@ def main():
         print("⚠️  POOR COMPLIANCE (<60%)")
         print("   Multiple compliance issues need attention")
         return 1
+
 
 if __name__ == "__main__":
     try:

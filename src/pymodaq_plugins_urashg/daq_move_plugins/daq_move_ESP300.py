@@ -363,7 +363,7 @@ class DAQ_Move_ESP300(DAQ_Move_base):
         self._current_axes = []
         self._position_poll_timer = None
 
-    def ini_actuator(self, controller=None):
+    def ini_stage(self, controller=None):
         """Initialize the ESP300 motion controller."""
         self.initialized = False
         try:

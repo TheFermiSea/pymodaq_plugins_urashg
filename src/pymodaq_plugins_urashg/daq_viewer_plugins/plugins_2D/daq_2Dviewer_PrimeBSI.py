@@ -1,5 +1,8 @@
 import numpy as np
-from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
+from pymodaq.control_modules.viewer_utility_classes import (
+    DAQ_Viewer_base,
+    comon_parameters,
+)
 from pymodaq.utils.daq_utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
 
@@ -48,7 +51,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
     - Dynamic ROI selection and on-the-fly intensity integration for 0D data export.
     """
 
-    params = [
+    params = comon_parameters + [
         {
             "title": "Camera Settings",
             "name": "camera_settings",
@@ -161,13 +164,6 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         self.camera: Camera = None
         self.x_axis = None
         self.y_axis = None
-
-    def ini_stage(self):
-        """
-        MANDATORY METHOD: Initialize stage for PyMoDAQ 5.x compatibility.
-        This method is required by the DAQ_Viewer_base class.
-        """
-        pass
 
     def ini_detector(self, controller=None):
         """
@@ -433,11 +429,15 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
     def close(self):
         """Closes the camera connection and uninitializes the PVCAM library."""
         try:
-            if self.camera is not None and hasattr(self.camera, 'is_open') and self.camera.is_open:
+            if (
+                self.camera is not None
+                and hasattr(self.camera, "is_open")
+                and self.camera.is_open
+            ):
                 self.camera.close()
         except Exception as e:
             print(f"Warning: Error closing camera: {e}")
-        
+
         try:
             if PYVCAM_AVAILABLE:
                 pvc.uninit_pvcam()
@@ -536,9 +536,9 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             raw_frame = self.camera.get_frame(
                 exp_time=self.settings.child("camera_settings", "exposure").value()
             )
-            
+
             # Reshape to proper 2D array
-            if hasattr(self.camera, 'rois') and self.camera.rois:
+            if hasattr(self.camera, "rois") and self.camera.rois:
                 frame = raw_frame.reshape(self.camera.rois[0].shape)
             else:
                 # Fallback to sensor size

@@ -27,16 +27,17 @@ from pathlib import Path
 from typing import Any, Dict
 
 import numpy as np
-from pymodaq_gui.utils.custom_app import CustomApp
-from pymodaq.utils.config import Config
-from pymodaq.utils.data import DataActuator
-from pymodaq.utils.logger import get_module_name, set_logger
+from pymodaq.extensions.utils import CustomExt
+from pymodaq.utils.data import DataActuator  # Import for measurement worker
 from pymodaq_gui import utils as gutils
 from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
 from pymodaq_gui.plotting.data_viewers.viewer2D import Viewer2D
-from qtpy import QtWidgets
+from pymodaq_utils.config import Config
+
+# DataActuator import moved to measurement worker
+from pymodaq_utils.logger import get_module_name, set_logger
+from qtpy import QtCore, QtWidgets
 from qtpy.QtCore import QThread, QTimer, Signal
-from qtpy import QtCore
 
 from pymodaq_plugins_urashg.utils.config import Config as PluginConfig
 
@@ -231,7 +232,7 @@ class MeasurementWorker(QThread):
         self.status_message.emit("Measurement paused", "info")
 
 
-class URASHGMicroscopyExtension(CustomApp):
+class URASHGMicroscopyExtension(CustomExt):
     """
     Production-ready μRASHG Extension for PyMoDAQ Dashboard
 
@@ -388,21 +389,18 @@ class URASHGMicroscopyExtension(CustomApp):
         },
     ]
 
-    def __init__(self, dockarea, dashboard=None):
+    def __init__(self, parent: gutils.DockArea, dashboard):
         """
-        Initialize the URASHG extension.
+        Initialize the URASHG extension following PyMoDAQ 5.x patterns.
 
         Args:
-            dockarea: DockArea parent widget
-            dashboard: PyMoDAQ dashboard instance with modules_manager (optional)
+            parent: DockArea parent widget (following template signature)
+            dashboard: PyMoDAQ dashboard instance with modules_manager
         """
-        super().__init__(dockarea)
+        super().__init__(parent, dashboard)
 
-        # Store dashboard reference for PyMoDAQ 5.x compatibility
-        self.dashboard = dashboard
-
-        # Access to PyMoDAQ's device management
-        self._modules_manager = dashboard.modules_manager if dashboard else None
+        # Access to PyMoDAQ's device management (provided by CustomExt base)
+        # self.modules_manager is available from parent class
 
         # Measurement worker thread
         self.measurement_worker = None
@@ -416,39 +414,11 @@ class URASHGMicroscopyExtension(CustomApp):
         self.status_timer.timeout.connect(self.update_device_status)
         self.status_timer.start(5000)  # Update every 5 seconds
 
-        # Initialize UI
+        # Initialize UI following template pattern
         self.setup_ui()
 
-    def setup_ui(self):
-        """Setup the complete UI following PyMoDAQ patterns."""
-        # Initialize docks dictionary
-        self.docks = {}
-
-        # Setup UI components in order
-        self.setup_docks()
-        self.setup_widgets()
-        self.setup_actions()
-        self.setup_menu()
-        self.connect_things()
-
-    def setup_widgets(self):
-        """Setup individual widgets following PyMoDAQ patterns."""
-        # This method is called to setup specific widget components
-        # Can be implemented as needed for specific widget initialization
-        pass
-
-    @property
-    def modules_manager(self):
-        """Access to PyMoDAQ's modules manager."""
-        return self._modules_manager
-
     def setup_docks(self):
-        """Setup the extension docks layout."""
-
-        # Ensure dockarea is available
-        if not hasattr(self, "dockarea") or self.dockarea is None:
-            logger.warning("No dockarea available for extension docks")
-            return
+        """Setup the extension docks layout (mandatory method from template)."""
 
         # Main control dock
         self.docks["control"] = gutils.Dock("URASHG Control", size=(400, 600))
@@ -485,7 +455,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.docks["status"].addWidget(self.status_widget)
 
     def setup_actions(self):
-        """Setup extension actions."""
+        """Setup extension actions (mandatory method from template)."""
 
         # Measurement actions
         self.add_action(
@@ -537,7 +507,7 @@ class URASHGMicroscopyExtension(CustomApp):
         )
 
     def setup_menu(self, menubar: QtWidgets.QMenuBar = None):
-        """Setup extension menu."""
+        """Setup extension menu (optional method from template)."""
         if menubar is None:
             return
 
@@ -559,7 +529,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.affect_to("load_data", data_menu)
 
     def connect_things(self):
-        """Connect actions and signals."""
+        """Connect actions and signals (mandatory method from template)."""
 
         # Connect actions to methods
         self.get_action("start_measurement").triggered.connect(self.start_measurement)
@@ -571,7 +541,7 @@ class URASHGMicroscopyExtension(CustomApp):
         self.get_action("load_data").triggered.connect(self.load_data)
 
     def value_changed(self, param):
-        """Handle parameter changes."""
+        """Handle parameter changes (template method)."""
         param_name = param.name()
         param_value = param.value()
 
@@ -653,15 +623,15 @@ class URASHGMicroscopyExtension(CustomApp):
         try:
             self.log_message("Initializing RASHG devices...")
 
-            # Check if modules_manager is available
-            if not self._modules_manager:
+            # Check if modules_manager is available (from CustomExt base class)
+            if not self.modules_manager:
                 self.log_message("No modules manager available", "error")
                 return False
 
             # Check if devices are loaded in modules_manager
-            actuators = self._modules_manager.actuators
-            detectors_2d = self._modules_manager.detectors_2D
-            detectors_0d = self._modules_manager.detectors_0D
+            actuators = self.modules_manager.actuators
+            detectors_2d = self.modules_manager.detectors_2D
+            detectors_0d = self.modules_manager.detectors_0D
 
             # Expected devices from preset
             expected_devices = {
@@ -705,7 +675,7 @@ class URASHGMicroscopyExtension(CustomApp):
     def home_rotators(self):
         """Home all rotation mounts."""
         try:
-            elliptec = self._modules_manager.actuators.get(
+            elliptec = self.modules_manager.actuators.get(
                 "Elliptec_Polarization_Control"
             )
             if elliptec:
@@ -742,62 +712,14 @@ class URASHGMicroscopyExtension(CustomApp):
         # Implementation depends on data format
         self.log_message("Data loading not yet implemented", "warning")
 
-    def save_configuration(self, filepath: str = None):
-        """Save current extension configuration."""
-        if hasattr(self, "settings"):
-            config_data = (
-                self.settings.to_dict() if hasattr(self.settings, "to_dict") else {}
-            )
-            self.log_message(f"Configuration saved: {filepath}", "info")
-        else:
-            self.log_message("No configuration to save", "warning")
-
-    def load_configuration(self, filepath: str = None):
-        """Load extension configuration from file."""
-        self.log_message(f"Configuration loaded: {filepath}", "info")
-
-    def analyze_current_data(self):
-        """Analyze the current measurement data."""
-        self.log_message("Data analysis not yet implemented", "warning")
-
-    def export_data(self, format: str = "hdf5"):
-        """Export data in specified format."""
-        self.log_message(f"Data export ({format}) not yet implemented", "warning")
-
-    def emergency_stop(self):
-        """Emergency stop all operations."""
-        if self.measurement_worker and self.measurement_worker.isRunning():
-            self.measurement_worker.stop_measurement()
-        self.log_message("Emergency stop activated", "warning")
-
-    def pause_measurement(self):
-        """Pause the current measurement."""
-        if self.measurement_worker and self.measurement_worker.isRunning():
-            self.measurement_worker.pause_measurement()
-        self.log_message("Measurement paused", "info")
-
-    def handle_error(self, error_message: str):
-        """Handle system errors gracefully."""
-        self.error_occurred.emit(error_message)
-        self.log_message(f"Error handled: {error_message}", "error")
-
-    def on_device_error(self, device_name: str, error_message: str):
-        """Handle device-specific errors."""
-        self.device_status_changed.emit(device_name, "error")
-        self.log_message(f"Device error ({device_name}): {error_message}", "error")
-
-    def log_error(self, error_message: str):
-        """Log error messages."""
-        self.log_message(error_message, "error")
-
     def update_device_status(self):
         """Update device status indicators."""
         try:
-            if not self._modules_manager:
+            if not self.modules_manager:
                 return
 
             # Check Elliptec status
-            elliptec = self._modules_manager.actuators.get(
+            elliptec = self.modules_manager.actuators.get(
                 "Elliptec_Polarization_Control"
             )
             elliptec_status = "Connected" if elliptec else "Not Available"
@@ -806,19 +728,19 @@ class URASHGMicroscopyExtension(CustomApp):
             )
 
             # Check Camera status
-            camera = self._modules_manager.detectors_2D.get("PrimeBSI_SHG_Camera")
+            camera = self.modules_manager.detectors_2D.get("PrimeBSI_SHG_Camera")
             camera_status = "Connected" if camera else "Not Available"
             self.settings.child("device_status", "camera_status").setValue(
                 camera_status
             )
 
             # Check Laser status
-            laser = self._modules_manager.actuators.get("MaiTai_Laser_Control")
+            laser = self.modules_manager.actuators.get("MaiTai_Laser_Control")
             laser_status = "Connected" if laser else "Not Available"
             self.settings.child("device_status", "laser_status").setValue(laser_status)
 
             # Check Power meter status
-            power_meter = self._modules_manager.detectors_0D.get("Newport_Power_Meter")
+            power_meter = self.modules_manager.detectors_0D.get("Newport_Power_Meter")
             power_meter_status = "Connected" if power_meter else "Not Available"
             self.settings.child("device_status", "power_meter_status").setValue(
                 power_meter_status
@@ -829,11 +751,11 @@ class URASHGMicroscopyExtension(CustomApp):
 
     def _check_devices_ready(self) -> bool:
         """Check if all required devices are ready for measurement."""
-        if not self._modules_manager:
+        if not self.modules_manager:
             return False
 
-        elliptec = self._modules_manager.actuators.get("Elliptec_Polarization_Control")
-        camera = self._modules_manager.detectors_2D.get("PrimeBSI_SHG_Camera")
+        elliptec = self.modules_manager.actuators.get("Elliptec_Polarization_Control")
+        camera = self.modules_manager.detectors_2D.get("PrimeBSI_SHG_Camera")
 
         # Minimum required: Elliptec + Camera
         return elliptec is not None and camera is not None
