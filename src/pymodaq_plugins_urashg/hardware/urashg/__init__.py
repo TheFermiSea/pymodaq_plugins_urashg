@@ -188,7 +188,7 @@ __all__ = [
 __version__ = "0.1.0"
 __author__ = "PyMoDAQ Plugin Development Team"
 __maintainer__ = "PyMoDAQ Plugin Development Team"
-__email__ = "contact@pymodaq.org"
+__email__ = "squires.b@gmail.com"
 
 # Hardware compatibility matrix
 HARDWARE_COMPATIBILITY = {

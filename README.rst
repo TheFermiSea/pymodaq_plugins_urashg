@@ -54,7 +54,7 @@ Installation Steps
 
 2. **Development Installation**::
 
-    git clone https://github.com/PyMoDAQ/pymodaq_plugins_urashg.git
+    git clone https://github.com/TheFermiSea/pymodaq_plugins_urashg.git
     cd pymodaq_plugins_urashg
     pip install -e .
 

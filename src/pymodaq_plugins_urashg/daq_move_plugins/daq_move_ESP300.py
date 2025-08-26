@@ -14,9 +14,9 @@ import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,
+    DataActuator,
 )
-from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataActuator
+from pymodaq_utils.utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (

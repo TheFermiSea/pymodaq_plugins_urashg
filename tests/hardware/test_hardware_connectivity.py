@@ -98,74 +98,65 @@ def test_newport_power_meter():
 
 
 def test_maitai_laser():
-    """Test MaiTai laser connectivity using correct SCPI protocol."""
-    print("\n=== Testing MaiTai Laser (SCPI Protocol) ===")
-
+    """Test direct communication with MaiTai Ti:Sapphire laser."""
+    print("\n" + "="*50)
+    print("Testing MaiTai Ti:Sapphire Laser")
+    print("="*50)
+    
     # Try Silicon Labs port first (user suggested), then others
     ports_to_try = [
-        "/dev/ttyUSB2",
+        "/dev/ttyUSB2",  # ✅ FIXED: Actual detected port first
         "/dev/ttyUSB0",
         "/dev/ttyUSB4",
-        "/dev/ttyUSB5",
+        "/dev/ttyUSB5", 
         "/dev/ttyUSB6",
     ]
-    baud_rates = [115200, 9600, 19200]  # User suggested 115200 first
+    baud_rates = [9600, 19200, 115200]  # ✅ FIXED: 9600 first (actual working baudrate)
 
     # SCPI commands from MaiTai manual
-    scpi_commands = [
-        "READ:PCTWarmedup?",  # Warmup status query
-        "READ:WAVelength?",  # Wavelength query
-        "*IDN?",  # Standard SCPI identification
-        "READ:SHUTter?",  # Shutter status
+    test_commands = [
+        "?",           # Simple query
+        "*IDN?",       # Identification
+        "READ:POW?",   # Read power
+        "READ:WAVE?",  # Read wavelength
     ]
-
+    
     for port in ports_to_try:
-        if not os.path.exists(port):
-            continue
-
-        print(f"Trying MaiTai on {port}...")
-
         for baud in baud_rates:
-            print(f"  Testing {baud} baud...")
-
-            try:
-                # MaiTai requires XON/XOFF flow control per manual
-                with serial.Serial(
-                    port=port,
-                    baudrate=baud,
-                    bytesize=8,
-                    parity="N",
-                    stopbits=1,
-                    timeout=2.0,
-                    xonxoff=True,  # Critical for MaiTai!
-                ) as ser:
-
-                    time.sleep(0.3)  # Let device settle
-                    ser.flushInput()
-                    ser.flushOutput()
-
-                    for cmd in scpi_commands:
-                        # SCPI format: command terminated by CR, LF, or both
-                        ser.write((cmd + "\r\n").encode())
-                        time.sleep(0.8)  # MaiTai may need time to respond
-
-                        response = (
-                            ser.read(200).decode("ascii", errors="ignore").strip()
-                        )
-                        if response:
-                            print(
-                                f"✅ MaiTai Laser: Connected on {port} at {baud} baud"
-                            )
-                            print(f"   Command: {cmd}")
-                            print(f"   Response: {response[:100]}...")
-                            return True
-
-            except Exception as e:
-                print(f"    {baud} baud failed: {str(e)[:30]}...")
-                continue
-
-    print("❌ MaiTai Laser: No responsive device found on any port")
-    print("   Note: MaiTai uses SCPI protocol with XON/XOFF flow control")
+            print(f"\n--- Testing {port} at {baud} baud ---")
+            
+            result = test_serial_device(
+                port=port,
+                baudrate=baud,
+                test_command="*IDN?",
+                expected_response="MaiTai",
+                timeout=2.0
+            )
+            
+            if result:
+                print(f"✅ MaiTai CONFIRMED on {port} at {baud} baud")
+                
+                # Test additional commands  
+                print("Testing additional commands...")
+                for cmd in test_commands[1:]:  # Skip "?" as it might not work
+                    cmd_result = test_serial_device(
+                        port=port,
+                        baudrate=baud, 
+                        test_command=cmd,
+                        expected_response=None,  # Accept any response
+                        timeout=1.0
+                    )
+                    if cmd_result:
+                        print(f"   ✅ {cmd} -> Response received")
+                    else:
+                        print(f"   ⚠️ {cmd} -> No response")
+                        
+                return True
+            else:
+                print(f"   ❌ No response from {port} at {baud}")
+    
+    print("\n❌ MaiTai not found on any tested port/baud combination")
+    print("   Expected: Working MaiTai on /dev/ttyUSB2 at 9600 baud")  # ✅ FIXED: Correct expectation
     return False
 
 

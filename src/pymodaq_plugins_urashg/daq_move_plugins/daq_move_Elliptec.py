@@ -4,11 +4,24 @@ import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,
+    DataActuator,
+    main,
 )
-from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import DataActuator
+from pymodaq_utils.utils import ThreadCommand
 
-# QTimer replaced with PyMoDAQ threading patterns
+# Import URASHG configuration
+try:
+    from pymodaq_plugins_urashg.utils.config import Config
+    from pymodaq_plugins_urashg import get_config
+    config = get_config()
+    elliptec_config = config.get_hardware_config('elliptec')
+except ImportError:
+    elliptec_config = {
+        'serial_port': '/dev/ttyUSB0',
+        'baudrate': 9600,
+        'timeout': 2.0,
+        'mount_addresses': '2,3,8'
+    }
 
 
 class DAQ_Move_Elliptec(DAQ_Move_base):
@@ -25,12 +38,40 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
     _controller_units = "degrees"
     is_multiaxes = True
     _axis_names = ["HWP_Incident", "QWP", "HWP_Analyzer"]  # Physical names
-    _epsilon = 0.1  # Position precision in degrees
+    _epsilon = [0.1, 0.1, 0.1]  # Position precision in degrees for each axis
 
-    # Plugin parameters
+    # Plugin parameters following PyMoDAQ 5.x standards
     params = comon_parameters_fun(
-        is_multiaxes=True, axis_names=_axis_names, epsilon=_epsilon
+        is_multiaxes=True,
+        axis_names=_axis_names,
+        epsilon=_epsilon
     ) + [
+        # Position bounds for each axis (degrees)
+        {
+            "title": "Position Bounds:",
+            "name": "bounds_group",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Min Position (°):",
+                    "name": "min_position",
+                    "type": "float",
+                    "value": 0.0,
+                    "min": 0.0,
+                    "max": 360.0,
+                    "tip": "Minimum rotation position in degrees",
+                },
+                {
+                    "title": "Max Position (°):",
+                    "name": "max_position",
+                    "type": "float",
+                    "value": 360.0,
+                    "min": 0.0,
+                    "max": 360.0,
+                    "tip": "Maximum rotation position in degrees",
+                },
+            ],
+        },
         # Hardware connection
         {
             "title": "Connection:",
@@ -41,40 +82,45 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": "",
-                    "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1",
+                    "value": elliptec_config.get('serial_port', '/dev/ttyUSB0'),
+                    "tip": "Serial port for Elliptec controller (e.g. /dev/ttyUSB0 or COM1)",
                 },
                 {
                     "title": "Baudrate:",
                     "name": "baudrate",
-                    "type": "int",
-                    "value": 9600,
+                    "type": "list",
+                    "limits": [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200],
+                    "value": elliptec_config.get('baudrate', 9600),
+                    "tip": "Serial communication baud rate",
                 },
                 {
                     "title": "Timeout (s):",
                     "name": "timeout",
                     "type": "float",
-                    "value": 2.0,
+                    "value": elliptec_config.get('timeout', 2.0),
                     "min": 0.1,
                     "max": 10.0,
+                    "tip": "Communication timeout in seconds",
                 },
                 {
                     "title": "Mount Addresses:",
                     "name": "mount_addresses",
                     "type": "str",
-                    "value": "2,3,8",
+                    "value": elliptec_config.get('mount_addresses', '2,3,8'),
+                    "tip": "Comma-separated Elliptec addresses: HWP_Incident(2), QWP(3), HWP_Analyzer(8)",
                 },
                 {
                     "title": "Mock Mode:",
                     "name": "mock_mode",
                     "type": "bool",
                     "value": False,
+                    "tip": "Enable for testing without physical hardware",
                 },
             ],
         },
         # Device actions
         {
-            "title": "Actions:",
+            "title": "Global Actions:",
             "name": "actions_group",
             "type": "group",
             "children": [
@@ -91,6 +137,142 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 {
                     "title": "Test Connection:",
                     "name": "test_connection",
+                    "type": "action",
+                },
+            ],
+        },
+        # Individual axis controls
+        {
+            "title": "HWP Incident (Axis 1):",
+            "name": "axis1_group",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Target Angle (°):",
+                    "name": "axis1_target",
+                    "type": "float",
+                    "value": 0.0,
+                    "min": -180.0,
+                    "max": 180.0,
+                    "step": 0.1,
+                },
+                {
+                    "title": "Jog Step (°):",
+                    "name": "axis1_jog_step",
+                    "type": "float",
+                    "value": 1.0,
+                    "min": 0.1,
+                    "max": 45.0,
+                    "step": 0.1,
+                },
+                {
+                    "title": "Home Axis 1:",
+                    "name": "axis1_home",
+                    "type": "action",
+                },
+                {
+                    "title": "Set Angle:",
+                    "name": "axis1_set_angle",
+                    "type": "action",
+                },
+                {
+                    "title": "Jog +:",
+                    "name": "axis1_jog_plus",
+                    "type": "action",
+                },
+                {
+                    "title": "Jog -:",
+                    "name": "axis1_jog_minus",
+                    "type": "action",
+                },
+            ],
+        },
+        {
+            "title": "QWP (Axis 2):",
+            "name": "axis2_group",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Target Angle (°):",
+                    "name": "axis2_target",
+                    "type": "float",
+                    "value": 0.0,
+                    "min": -180.0,
+                    "max": 180.0,
+                    "step": 0.1,
+                },
+                {
+                    "title": "Jog Step (°):",
+                    "name": "axis2_jog_step",
+                    "type": "float",
+                    "value": 1.0,
+                    "min": 0.1,
+                    "max": 45.0,
+                    "step": 0.1,
+                },
+                {
+                    "title": "Home Axis 2:",
+                    "name": "axis2_home",
+                    "type": "action",
+                },
+                {
+                    "title": "Set Angle:",
+                    "name": "axis2_set_angle",
+                    "type": "action",
+                },
+                {
+                    "title": "Jog +:",
+                    "name": "axis2_jog_plus",
+                    "type": "action",
+                },
+                {
+                    "title": "Jog -:",
+                    "name": "axis2_jog_minus",
+                    "type": "action",
+                },
+            ],
+        },
+        {
+            "title": "HWP Analyzer (Axis 3):",
+            "name": "axis3_group",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Target Angle (°):",
+                    "name": "axis3_target",
+                    "type": "float",
+                    "value": 0.0,
+                    "min": -180.0,
+                    "max": 180.0,
+                    "step": 0.1,
+                },
+                {
+                    "title": "Jog Step (°):",
+                    "name": "axis3_jog_step",
+                    "type": "float",
+                    "value": 1.0,
+                    "min": 0.1,
+                    "max": 45.0,
+                    "step": 0.1,
+                },
+                {
+                    "title": "Home Axis 3:",
+                    "name": "axis3_home",
+                    "type": "action",
+                },
+                {
+                    "title": "Set Angle:",
+                    "name": "axis3_set_angle",
+                    "type": "action",
+                },
+                {
+                    "title": "Jog +:",
+                    "name": "axis3_jog_plus",
+                    "type": "action",
+                },
+                {
+                    "title": "Jog -:",
+                    "name": "axis3_jog_minus",
                     "type": "action",
                 },
             ],
@@ -112,70 +294,127 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         },
     ]
 
-    def __init__(self, parent=None, params_state=None):
-        """Initialize Elliptec PyMoDAQ plugin."""
-        super().__init__(parent, params_state)
-
-        # Hardware controller
+    def ini_attributes(self):
+        """Initialize attributes before __init__ - PyMoDAQ 5.x pattern"""
         self.controller = None
 
-        # PyMoDAQ will handle periodic polling via built-in poll_time parameter
+    def check_bound(self, position):
+        """Ensure position is within valid range for rotation mounts"""
+        min_pos = self.settings.child('bounds_group', 'min_position').value()
+        max_pos = self.settings.child('bounds_group', 'max_position').value()
+        return max(min_pos, min(max_pos, float(position)))
 
-    def _update_ui_from_settings(self):
-        """Dynamically create UI elements based on mount addresses."""
+    def get_actuator_value(self):
+        """Get current position of all axes"""
         try:
-            mount_addresses_str = self.settings.child(
-                "connection_group", "mount_addresses"
-            ).value()
-            mount_addresses = [addr.strip() for addr in mount_addresses_str.split(",")]
+            if self.controller is None:
+                # Return raw numpy arrays - PyMoDAQ framework wraps in DataActuator
+                import numpy as np
+                return [np.array([0.0]) for _ in self._axis_names]
 
-            # Clear existing dynamic controls
-            actions_group = self.settings.child("actions_group")
-            status_group = self.settings.child("status_group")
+            # Use get_all_positions() instead of get_positions()
+            positions = self.controller.get_all_positions()
+            if isinstance(positions, dict):
+                # Convert dict to list in axis order (mount addresses to axis names)
+                position_list = []
+                for i, axis_name in enumerate(self._axis_names):
+                    # Ensure mount address is string - fix for "8]gp" error
+                    mount_addr = str(self.controller.mount_addresses[i]) if i < len(self.controller.mount_addresses) else "2"
+                    position_list.append(positions.get(mount_addr, 0.0))
+            else:
+                position_list = positions if isinstance(positions, list) else [positions]
 
-            # Use a temporary list to avoid issues while removing
-            to_remove_actions = [
-                child
-                for child in actions_group.children()
-                if "home_mount" in child.name()
-            ]
-            to_remove_status = [
-                child
-                for child in status_group.children()
-                if "mount" in child.name() and "pos" in child.name()
-            ]
+            # Ensure we have the right number of values
+            while len(position_list) < len(self._axis_names):
+                position_list.append(0.0)
 
-            for child in to_remove_actions:
-                actions_group.removeChild(child)
-            for child in to_remove_status:
-                status_group.removeChild(child)
+            # Convert to numpy arrays for PyMoDAQ framework
+            import numpy as np
+            # Ensure we have valid positions and create non-empty numpy arrays
+            position_list = position_list[:len(self._axis_names)]
+            if not position_list:  # If empty, fill with zeros
+                position_list = [0.0] * len(self._axis_names)
 
-            # Add new controls
-            for addr in mount_addresses:
-                # Add home button
-                home_action = {
-                    "title": f"Home Mount {addr}:",
-                    "name": f"home_mount_{addr}",
-                    "type": "action",
-                }
-                actions_group.addChild(home_action)
+            numpy_arrays = []
+            for pos in position_list:
+                if isinstance(pos, (int, float)):
+                    numpy_arrays.append(np.array([float(pos)]))
+                else:
+                    numpy_arrays.append(np.array([0.0]))  # Fallback for invalid positions
 
-                # Add position status
-                pos_status = {
-                    "title": f"Mount {addr} Position (deg):",
-                    "name": f"mount_{addr}_pos",
-                    "type": "float",
-                    "value": 0.0,
-                    "readonly": True,
-                }
-                status_group.addChild(pos_status)
+            # Return raw numpy arrays - PyMoDAQ framework handles DataActuator wrapping
+            return numpy_arrays
+
         except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"UI Update Error: {str(e)}", "error"])
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Error getting position: {str(e)}", "log"]))
+            # Return raw numpy arrays - PyMoDAQ framework wraps in DataActuator
+            import numpy as np
+            return [np.array([0.0]) for _ in self._axis_names]
+
+    def close(self):
+        """Close the hardware connection"""
+        try:
+            if self.controller is not None:
+                self.controller.disconnect()
+                self.controller = None
+            self.emit_status(ThreadCommand("Update_Status", ["Elliptec disconnected", "log"]))
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error closing: {str(e)}", "log"]))
+
+    def commit_settings(self, param):
+        """Handle parameter changes"""
+        try:
+            # Global actions
+            if param.name() == "home_all":
+                self.home_all_mounts()
+            elif param.name() == "get_positions":
+                self.get_actuator_value()
+                self.emit_status(ThreadCommand("Update_Status", ["Positions updated", "log"]))
+            elif param.name() == "test_connection":
+                self.test_hardware_connection()
+
+            # Axis 1 (HWP Incident) controls
+            elif param.name() == "axis1_home":
+                self.home_axis(0)
+            elif param.name() == "axis1_set_angle":
+                angle = self.settings.child("axis1_group", "axis1_target").value()
+                self.move_axis(0, angle)
+            elif param.name() == "axis1_jog_plus":
+                self.jog_axis(0, True)
+            elif param.name() == "axis1_jog_minus":
+                self.jog_axis(0, False)
+
+            # Axis 2 (QWP) controls
+            elif param.name() == "axis2_home":
+                self.home_axis(1)
+            elif param.name() == "axis2_set_angle":
+                angle = self.settings.child("axis2_group", "axis2_target").value()
+                self.move_axis(1, angle)
+            elif param.name() == "axis2_jog_plus":
+                self.jog_axis(1, True)
+            elif param.name() == "axis2_jog_minus":
+                self.jog_axis(1, False)
+
+            # Axis 3 (HWP Analyzer) controls
+            elif param.name() == "axis3_home":
+                self.home_axis(2)
+            elif param.name() == "axis3_set_angle":
+                angle = self.settings.child("axis3_group", "axis3_target").value()
+                self.move_axis(2, angle)
+            elif param.name() == "axis3_jog_plus":
+                self.jog_axis(2, True)
+            elif param.name() == "axis3_jog_minus":
+                self.jog_axis(2, False)
+
+            # Configuration changes
+            elif param.name() in ["serial_port", "baudrate", "timeout", "mount_addresses", "mock_mode"]:
+                self.emit_status(ThreadCommand("Update_Status", ["Settings updated - restart to apply", "log"]))
+
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error in commit_settings: {str(e)}", "log"]))
 
     def ini_stage(self, controller=None):
-        """Initialize the hardware stage."""
+        """Initialize the hardware stage - PyMoDAQ 5.x standard method"""
         self.initialized = False
         try:
             # Import here to avoid issues if module not available
@@ -183,459 +422,255 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 ElliptecController,
             )
 
-            # Update UI before initializing controller
-            self._update_ui_from_settings()
-
             # Get connection parameters
             port = self.settings.child("connection_group", "serial_port").value()
             baudrate = self.settings.child("connection_group", "baudrate").value()
             timeout = self.settings.child("connection_group", "timeout").value()
-            mount_addresses = self.settings.child(
-                "connection_group", "mount_addresses"
-            ).value()
+            mount_addresses = self.settings.child("connection_group", "mount_addresses").value()
             mock_mode = self.settings.child("connection_group", "mock_mode").value()
 
-            # Create controller
-            self.controller = ElliptecController(
-                port=port,
-                baudrate=baudrate,
-                timeout=timeout,
-                mount_addresses=mount_addresses,
-                mock_mode=mock_mode,
-            )
+            # Use existing controller if provided (slave mode)
+            if controller is not None:
+                self.controller = controller
+            else:
+                # Create new controller
+                self.controller = ElliptecController(
+                    port=port,
+                    baudrate=baudrate,
+                    timeout=timeout,
+                    mount_addresses=mount_addresses,
+                    mock_mode=mock_mode,
+                )
 
             # Connect to hardware
             if self.controller.connect():
-                self.settings.child("status_group", "connection_status").setValue(
-                    "Connected"
-                )
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status", ["Elliptec mounts connected.", "good"]
-                    )
-                )
-                self.update_status()
-                # Status monitoring handled by PyMoDAQ polling (set poll_time in UI)
+                self.settings.child("status_group", "connection_status").setValue("Connected")
+                self.emit_status(ThreadCommand("Update_Status", ["Elliptec mounts connected.", "log"]))
+
+                # Set units for all axes
+                for axis in self._axis_names:
+                    self.settings.child('units').setValue(self._controller_units)
+
                 self.initialized = True
                 return "Elliptec mounts initialized successfully", True
             else:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        ["Failed to connect to Elliptec mounts.", "bad"],
-                    )
-                )
+                self.emit_status(ThreadCommand("Update_Status", ["Failed to connect to Elliptec mounts.", "log"]))
                 return "Failed to connect to Elliptec mounts", False
 
+        except ImportError as e:
+            msg = f"ElliptecController not available: {str(e)}"
+            self.emit_status(ThreadCommand("Update_Status", [msg, "log"]))
+            return msg, False
         except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Error initializing Elliptec: {str(e)}", "error"],
-                )
-            )
-            return f"Error initializing Elliptec: {str(e)}", False
-
-    def close(self):
-        """Close the hardware connection."""
-        try:
-            # Status monitoring cleanup handled by PyMoDAQ
-            if self.controller and self.controller.connected:
-                self.controller.disconnect()
-            self.settings.child("status_group", "connection_status").setValue(
-                "Disconnected"
-            )
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Error closing: {str(e)}", "log"])
-            )
-
-    def commit_settings(self, param):
-        """Handle parameter changes."""
-        if param.name() == "mount_addresses":
-            self._update_ui_from_settings()
-            # Re-initialize to apply changes
-            self.ini_stage()
-
-        elif param.name() == "home_all":
-            self.home_all_mounts()
-        elif "home_mount" in param.name():
-            # Handle dynamic home buttons
-            try:
-                addr = param.name().split("_")[-1]
-                self.home_individual_mount(addr)
-            except IndexError:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [f"Invalid home button name: {param.name()}", "error"],
-                    )
-                )
-
-        elif param.name() == "get_positions":
-            self.update_status()
-        elif param.name() == "test_connection":
-            self.test_hardware_connection()
-
-    def move_home(self, value=None):
-        """
-        Move all axes to home position.
-
-        Parameters
-        ----------
-        value : any, optional
-            Home position value (required by PyMoDAQ 5.x interface)
-        """
-        self.home_all_mounts()
-
-    def home_all_mounts(self):
-        """Home all rotation mounts."""
-        if not self.controller or not self.controller.connected:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    ["Hardware not connected. Cannot home.", "warning"],
-                )
-            )
-            return
-
-        try:
-            self.emit_status(
-                ThreadCommand("Update_Status", ["Homing all mounts...", "log"])
-            )
-            success = self.controller.home_all()
-            if success:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        ["All mounts homed successfully", "good"],
-                    )
-                )
-                self.update_status()
-            else:
-                self.emit_status(
-                    ThreadCommand("Update_Status", ["Homing failed", "bad"])
-                )
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Error homing: {str(e)}", "error"])
-            )
-
-    def home_individual_mount(self, mount_address: str):
-        """Home individual rotation mount."""
-        if not self.controller or not self.controller.connected:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    ["Hardware not connected. Cannot home.", "warning"],
-                )
-            )
-            return
-
-        try:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Homing mount {mount_address}...", "log"],
-                )
-            )
-            success = self.controller.home(mount_address)
-            if success:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [f"Mount {mount_address} homed successfully", "good"],
-                    )
-                )
-                self.update_status()
-            else:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [f"Homing mount {mount_address} failed", "bad"],
-                    )
-                )
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Error homing mount {mount_address}: {str(e)}", "error"],
-                )
-            )
-
-    def test_hardware_connection(self):
-        """Test hardware connection and report status."""
-        try:
-            port = self.settings.child("connection_group", "serial_port").value()
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Testing connection to {port}...", "log"],
-                )
-            )
-
-            if self.controller and self.controller.connected:
-                mount_addresses = self.controller.mount_addresses
-                working_mounts = []
-
-                for addr in mount_addresses:
-                    device_info = self.controller.get_device_info(addr)
-                    if device_info:
-                        working_mounts.append(addr)
-                        self.emit_status(
-                            ThreadCommand(
-                                "Update_Status",
-                                [
-                                    f"Mount {addr}: {device_info[:50]}...",
-                                    "log",
-                                ],
-                            )
-                        )
-                    else:
-                        self.emit_status(
-                            ThreadCommand(
-                                "Update_Status",
-                                [f"Mount {addr}: No response", "warning"],
-                            )
-                        )
-
-                if working_mounts:
-                    msg = f"Connection OK - {len(working_mounts)}/{len(mount_addresses)} mounts responding"
-                    self.emit_status(ThreadCommand("Update_Status", [msg, "good"]))
-                    self.update_status()
-                else:
-                    self.emit_status(
-                        ThreadCommand(
-                            "Update_Status",
-                            [
-                                "Connection established but no mounts responding",
-                                "bad",
-                            ],
-                        )
-                    )
-            else:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status", ["Hardware not connected", "warning"]
-                    )
-                )
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Connection test error: {str(e)}", "error"],
-                )
-            )
-
-    def get_actuator_value(self):
-        """
-        Get current positions of all mounts as DataActuator object and update status parameters.
-
-        This method is called periodically by PyMoDAQ's polling mechanism (when poll_time > 0),
-        replacing the need for custom threading for status updates.
-        """
-        if not self.controller or not self.controller.connected:
-            default_len = len(
-                self.settings.child("connection_group", "mount_addresses")
-                .value()
-                .split(",")
-            )
-            return DataActuator(data=[np.array([0.0] * default_len)])
-
-        try:
-            # Get positions and update status parameters (PyMoDAQ polling pattern)
-            positions = self.controller.get_all_positions()
-            position_list = [
-                positions.get(addr, 0.0) for addr in self.controller.mount_addresses
-            ]
-
-            # Update UI status parameters during polling
-            try:
-                for i, addr in enumerate(self.controller.mount_addresses):
-                    param_name = f"mount_{addr}_pos"
-                    status_param = self.settings.child("status_group", param_name)
-                    if status_param:
-                        status_param.setValue(position_list[i])
-            except Exception:
-                pass  # Don't fail main operation for UI updates
-
-            return DataActuator(data=[np.array(position_list)])
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Error reading positions: {str(e)}", "error"],
-                )
-            )
-            fallback_len = (
-                len(self.controller.mount_addresses) if self.controller else 3
-            )
-            return DataActuator(data=[np.array([0.0] * fallback_len)])
+            msg = f"Error initializing Elliptec: {str(e)}"
+            self.emit_status(ThreadCommand("Update_Status", [msg, "log"]))
+            return msg, False
 
     def move_abs(self, positions: Union[List[float], DataActuator]):
-        """
-        Move to absolute positions.
-
-        Parameters
-        ----------
-        positions : Union[List[float], DataActuator]
-            Target positions for all axes.
-        """
-        if not self.controller or not self.controller.connected:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    ["Hardware not connected. Cannot move.", "warning"],
-                )
-            )
-            return
-
+        """Move to absolute positions"""
         try:
+            if self.controller is None:
+                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                return
+
+            # Handle DataActuator input (PyMoDAQ 5.x pattern)
             if isinstance(positions, DataActuator):
-                target_positions_list = positions.data[0].tolist()
-            elif isinstance(positions, (list, tuple, np.ndarray)):
-                target_positions_list = list(positions)
+                # Use value() method for DataActuator
+                target_positions = positions.value()
+                if not isinstance(target_positions, list):
+                    target_positions = [target_positions]
             else:
-                # Handle single float value for multi-axis controller
-                # Distribute to all axes or use current position for others
-                current_positions = self.get_actuator_value()[0].tolist()
-                target_positions_list = [float(positions)] + current_positions[1:]
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            f"Single value {positions} applied to first axis only",
-                            "log",
-                        ],
-                    )
-                )
+                target_positions = positions if isinstance(positions, list) else [positions]
 
-            # Ensure we have the right number of values for all mounts
-            num_mounts = len(self.controller.mount_addresses)
-            if len(target_positions_list) < num_mounts:
-                # Pad with current positions
-                current_positions = self.get_actuator_value()[0].tolist()
-                target_positions_list.extend(
-                    current_positions[len(target_positions_list) :]
-                )
+            # Ensure we have the right number of positions
+            while len(target_positions) < len(self._axis_names):
+                target_positions.append(0.0)
 
-            for addr, position in zip(
-                self.controller.mount_addresses, target_positions_list
-            ):
-                success = self.controller.move_absolute(addr, position)
-                if success:
-                    self.emit_status(
-                        ThreadCommand(
-                            "Update_Status",
-                            [
-                                f"Mount {addr} moving to {position:.2f} degrees",
-                                "log",
-                            ],
-                        )
-                    )
-                else:
-                    self.emit_status(
-                        ThreadCommand(
-                            "Update_Status",
-                            [f"Failed to move mount {addr}", "warning"],
-                        )
-                    )
+            # Apply bounds checking
+            for i, pos in enumerate(target_positions):
+                target_positions[i] = self.check_bound(pos)
 
-            self.move_done()
+            # Move all axes individually (no move_absolute_all method exists)
+            success = True
+            for i, pos in enumerate(target_positions):
+                if i < len(self.controller.mount_addresses):
+                    mount_addr = str(self.controller.mount_addresses[i])
+                    if not self.controller.move_absolute(mount_addr, pos):
+                        success = False
+                        self.emit_status(ThreadCommand("Update_Status", [f"Failed to move {self._axis_names[i]} to {pos}°", "log"]))
+
+            if success:
+                self.emit_status(ThreadCommand("Update_Status", ["Move completed", "log"]))
+                self.move_done()  # Signal completion
+            else:
+                self.emit_status(ThreadCommand("Update_Status", ["Some moves failed", "log"]))
 
         except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Error moving: {str(e)}", "error"])
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Error in move_abs: {str(e)}", "log"]))
 
     def move_rel(self, positions: Union[List[float], DataActuator]):
-        """
-        Move to relative positions.
-
-        Parameters
-        ----------
-        positions : Union[List[float], DataActuator]
-            Relative position changes for all axes.
-        """
+        """Move relative positions"""
         try:
+            # Get current positions as numpy arrays
+            current_arrays = self.get_actuator_value()
+
+            # Extract values from numpy arrays
+            current_values = []
+            for arr in current_arrays:
+                if len(arr) > 0:
+                    current_values.append(float(arr[0]))
+                else:
+                    current_values.append(0.0)
+
+            # Handle relative position input
             if isinstance(positions, DataActuator):
-                relative_moves_list = positions.data[0].tolist()
-            elif isinstance(positions, (list, tuple, np.ndarray)):
-                relative_moves_list = list(positions)
+                rel_positions = positions.value()
+                if not isinstance(rel_positions, list):
+                    rel_positions = [rel_positions]
             else:
-                # Handle single float value for multi-axis controller
-                # Apply to first axis only, others get 0 movement
-                relative_moves_list = [float(positions), 0.0, 0.0][
-                    : len(self.controller.mount_addresses)
-                ]
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            f"Relative move {positions} applied to first axis only",
-                            "log",
-                        ],
-                    )
-                )
+                rel_positions = positions if isinstance(positions, list) else [positions]
 
-            current_array = self.get_actuator_value()[0]
-            current_list = current_array.tolist()
+            # Calculate absolute target positions
+            target_positions = []
+            for i in range(len(self._axis_names)):
+                current = current_values[i] if i < len(current_values) else 0.0
+                relative = rel_positions[i] if i < len(rel_positions) else 0.0
+                target_positions.append(current + relative)
 
-            # Ensure we have the right number of relative moves
-            num_mounts = len(self.controller.mount_addresses)
-            if len(relative_moves_list) < num_mounts:
-                relative_moves_list.extend(
-                    [0.0] * (num_mounts - len(relative_moves_list))
-                )
+            self.move_abs(target_positions)
 
-            target = [c + p for c, p in zip(current_list, relative_moves_list)]
-
-            self.move_abs(target)
         except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Error in relative move: {str(e)}", "error"],
-                )
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Error in move_rel: {str(e)}", "log"]))
+
+    def move_home(self):
+        """Move all axes to home position"""
+        try:
+            if self.controller is None:
+                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                return
+
+            success = self.controller.home_all()
+            if success:
+                self.emit_status(ThreadCommand("Update_Status", ["All axes homed", "log"]))
+                self.move_done()  # Signal completion
+            else:
+                self.emit_status(ThreadCommand("Update_Status", ["Homing failed", "log"]))
+
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error in move_home: {str(e)}", "log"]))
 
     def stop_motion(self):
-        """Stop motion (not implemented for Elliptec)."""
-        self.emit_status(
-            ThreadCommand("Update_Status", ["Stop command received", "log"])
-        )
-
-    def update_status(self):
-        """Update status parameters from hardware and notify PyMoDAQ UI."""
-        if not self.controller or not self.controller.connected:
-            return
-
+        """Stop all motion"""
         try:
-            positions = self.controller.get_all_positions()
+            # Elliptec devices may not have explicit stop command
+            # Just signal that motion is complete
+            self.emit_status(ThreadCommand("Update_Status", ["Motion stopped", "log"]))
+            self.move_done()  # Signal that motion is complete
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error stopping motion: {str(e)}", "log"]))
 
-            # Update individual mount position displays in parameter tree
-            for addr in self.controller.mount_addresses:
-                pos = positions.get(addr, 0.0)
-                self.settings.child("status_group", f"mount_{addr}_pos").setValue(pos)
+    def home_all_mounts(self):
+        """Home all mounts - convenience method"""
+        self.move_home()
 
-            # Update current position for PyMoDAQ framework with proper DataActuator format
-            position_list = [
-                positions.get(addr, 0.0) for addr in self.controller.mount_addresses
-            ]
+    def test_hardware_connection(self):
+        """Test hardware connection"""
+        try:
+            if self.controller is None:
+                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                return
 
-            plugin_name = getattr(self, "_title", self.__class__.__name__)
-            self.current_position = DataActuator(
-                name=plugin_name,
-                data=[np.array(position_list)],
-                units=self._controller_units,
-            )
+            # Use is_connected instead of test_connection
+            if self.controller.is_connected():
+                self.emit_status(ThreadCommand("Update_Status", ["Connection test passed", "log"]))
+            else:
+                self.emit_status(ThreadCommand("Update_Status", ["Connection test failed", "log"]))
 
         except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Status update error: {str(e)}", "error"],
-                )
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Connection test error: {str(e)}", "log"]))
 
-    # Custom threading methods removed - PyMoDAQ polling handles status updates via get_actuator_value
+    def home_axis(self, axis_index):
+        """Home a specific axis"""
+        try:
+            if self.controller is None:
+                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                return
+
+            if axis_index < len(self._axis_names):
+                # Ensure mount address is string
+                mount_addr = str(self.controller.mount_addresses[axis_index])
+                success = self.controller.home(mount_addr)
+                axis_name = self._axis_names[axis_index]
+
+                if success:
+                    self.emit_status(ThreadCommand("Update_Status", [f"{axis_name} homed successfully", "log"]))
+                else:
+                    self.emit_status(ThreadCommand("Update_Status", [f"Failed to home {axis_name}", "log"]))
+            else:
+                self.emit_status(ThreadCommand("Update_Status", [f"Invalid axis index: {axis_index}", "log"]))
+
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error homing axis {axis_index}: {str(e)}", "log"]))
+
+    def move_axis(self, axis_index, angle):
+        """Move a specific axis to an angle"""
+        try:
+            if self.controller is None:
+                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                return
+
+            if axis_index < len(self._axis_names):
+                # Apply bounds checking
+                angle = self.check_bound(angle)
+
+                # Ensure mount address is string
+                mount_addr = str(self.controller.mount_addresses[axis_index])
+                success = self.controller.move_absolute(mount_addr, angle)
+                axis_name = self._axis_names[axis_index]
+
+                if success:
+                    self.emit_status(ThreadCommand("Update_Status", [f"{axis_name} moved to {angle}°", "log"]))
+                else:
+                    self.emit_status(ThreadCommand("Update_Status", [f"Failed to move {axis_name} to {angle}°", "log"]))
+            else:
+                self.emit_status(ThreadCommand("Update_Status", [f"Invalid axis index: {axis_index}", "log"]))
+
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error moving axis {axis_index}: {str(e)}", "log"]))
+
+    def jog_axis(self, axis_index, positive_direction):
+        """Jog a specific axis by the step amount"""
+        try:
+            if self.controller is None:
+                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                return
+
+            if axis_index < len(self._axis_names):
+                # Get jog step from settings
+                group_names = ["axis1_group", "axis2_group", "axis3_group"]
+                step_names = ["axis1_jog_step", "axis2_jog_step", "axis3_jog_step"]
+
+                if axis_index < len(group_names):
+                    jog_step = self.settings.child(group_names[axis_index], step_names[axis_index]).value()
+                    if not positive_direction:
+                        jog_step = -jog_step
+
+                    # Ensure mount address is string
+                    mount_addr = str(self.controller.mount_addresses[axis_index])
+                    success = self.controller.move_relative(mount_addr, jog_step)
+                    axis_name = self._axis_names[axis_index]
+
+                    direction = "+" if positive_direction else "-"
+                    if success:
+                        self.emit_status(ThreadCommand("Update_Status", [f"{axis_name} jogged {direction}{abs(jog_step)}°", "log"]))
+                    else:
+                        self.emit_status(ThreadCommand("Update_Status", [f"Failed to jog {axis_name}", "log"]))
+                else:
+                    self.emit_status(ThreadCommand("Update_Status", [f"Invalid axis index: {axis_index}", "log"]))
+
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error jogging axis {axis_index}: {str(e)}", "log"]))
+
+
+if __name__ == '__main__':
+    main(__file__)

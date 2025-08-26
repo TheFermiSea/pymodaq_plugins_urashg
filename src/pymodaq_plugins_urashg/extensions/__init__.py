@@ -21,28 +21,16 @@ CLASS_NAME = "URASHGMicroscopyExtension"
 
 __all__ = [
     "URASHGMicroscopyExtension",  # Primary extension
-    "URASHG_EOM_Calibration",
-    "URASHG_Elliptec_Calibration",
-    "URASHG_Variable_Attenuator",
-    "URASHG_PDSHG_Experiment",
-    "URASHG_Basic_Experiment",
 ]
 
-# Import all extensions for PyMoDAQ discovery
+# Import available extensions for PyMoDAQ discovery
 try:
     # Primary comprehensive extension
-    from .basic_urashg_extension import URASHG_Basic_Experiment
-    from .elliptec_calibration_extension import URASHG_Elliptec_Calibration
-
-    # Legacy individual extensions
-    from .eom_calibration_extension import URASHG_EOM_Calibration
-    from .pdshg_experiment_extension import URASHG_PDSHG_Experiment
     from .urashg_microscopy_extension import URASHGMicroscopyExtension
-    from .variable_attenuator_extension import URASHG_Variable_Attenuator
 
 except ImportError as e:
     # Graceful handling for development/testing
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.warning(f"Could not import all URASHG extensions: {e}")
+    logger.warning(f"Could not import URASHG extensions: {e}")

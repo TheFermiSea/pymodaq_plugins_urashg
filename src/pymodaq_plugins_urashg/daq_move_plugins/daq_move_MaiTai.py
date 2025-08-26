@@ -1,46 +1,77 @@
-import time
-from typing import Dict, List, Union
+from typing import Union
 
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     DataActuator,
-    DataActuatorType,
     comon_parameters_fun,
     main,
 )
-from pymodaq.utils.data import DataActuator
-from pymodaq_gui.parameter import Parameter
+
 from pymodaq_utils.utils import ThreadCommand
 
-# QTimer replaced with PyMoDAQ threading patterns
+# Import URASHG configuration
+try:
+    from pymodaq_plugins_urashg.utils.config import Config
+    from pymodaq_plugins_urashg import get_config
+    config = get_config()
+    maitai_config = config.get_hardware_config('maitai')
+except ImportError:
+    maitai_config = {
+        'serial_port': '/dev/ttyUSB2',
+        'baudrate': 9600,
+        'timeout': 2.0,
+        'wavelength_range_min': 700.0,
+        'wavelength_range_max': 1000.0
+    }
 
 
 class DAQ_Move_MaiTai(DAQ_Move_base):
     """
-    PyMoDAQ plugin for MaiTai laser wavelength control.
+    PyMoDAQ plugin for controlling MaiTai Ti:Sapphire laser.
 
-    Fully compliant with PyMoDAQ DAQ_Move_base standards:
-    - Uses hardware controller for abstraction
-    - Implements non-blocking operations
-    - Proper error handling and status reporting
-    - Thread-safe operations
-    - Follows PyMoDAQ parameter management
+    Provides wavelength control, power monitoring, and shutter operations
+    for Spectra-Physics MaiTai femtosecond laser systems.
     """
 
-    # Plugin metadata - PyMoDAQ compliant
+    # Plugin identification
+    _controller_units = "nm"  # Wavelength in nanometers
+    _axis_names = ["Wavelength"]
+
     is_multiaxes = False
-    _axis_names: Union[List[str], Dict[str, int]] = ["Wavelength"]
-    _controller_units: Union[str, List[str]] = "nm"
-    _epsilon: Union[float, List[float]] = 0.1  # Wavelength precision in nm
-    data_actuator_type = DataActuatorType.DataActuator
-    # Plugin parameters - PyMoDAQ standard structure
+    _epsilon = 1.0  # 1nm resolution for wavelength
+
     params = comon_parameters_fun(
         is_multiaxes=False, axis_names=_axis_names, epsilon=_epsilon
     ) + [
-        # Hardware connection
+        # Position bounds for wavelength
         {
-            "title": "Connection:",
+            "title": "Position Bounds:",
+            "name": "bounds_group",
+            "type": "group",
+            "children": [
+                {
+                    "title": "Min Wavelength (nm):",
+                    "name": "min_position",
+                    "type": "float",
+                    "value": 700.0,
+                    "min": 700.0,
+                    "max": 1000.0,
+                    "tip": "Minimum tunable wavelength",
+                },
+                {
+                    "title": "Max Wavelength (nm):",
+                    "name": "max_position",
+                    "type": "float",
+                    "value": 1000.0,
+                    "min": 700.0,
+                    "max": 1000.0,
+                    "tip": "Maximum tunable wavelength",
+                },
+            ],
+        },
+        {
+            "title": "Connection Settings:",
             "name": "connection_group",
             "type": "group",
             "children": [
@@ -48,164 +79,125 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": "/dev/ttyUSB2",
-                    "placeholder": "Enter serial port e.g. /dev/ttyUSB0 or COM1",
+                    "value": maitai_config.get('serial_port', '/dev/ttyUSB2'),
+                    "tip": "Serial port for MaiTai laser (e.g. /dev/ttyUSB2 or COM3)",
                 },
                 {
                     "title": "Baudrate:",
                     "name": "baudrate",
-                    "type": "int",
-                    "value": 9600,
+                    "type": "list",
+                    "limits": [9600, 19200, 38400, 57600, 115200],
+                    "value": maitai_config.get('baudrate', 9600),
+                    "tip": "Serial communication baud rate for MaiTai laser",
                 },
                 {
                     "title": "Timeout (s):",
                     "name": "timeout",
                     "type": "float",
-                    "value": 2.0,
+                    "value": maitai_config.get('timeout', 2.0),
                     "min": 0.1,
                     "max": 10.0,
+                    "tip": "Communication timeout in seconds",
                 },
                 {
                     "title": "Mock Mode:",
                     "name": "mock_mode",
                     "type": "bool",
                     "value": False,
+                    "tip": "Enable for testing without physical MaiTai laser",
                 },
             ],
         },
-        # Wavelength limits (MaiTai only accepts INTEGER wavelengths)
         {
-            "title": "Wavelength Range:",
-            "name": "wavelength_group",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Min Wavelength (nm):",
-                    "name": "min_wavelength",
-                    "type": "int",
-                    "value": 700,
-                    "readonly": True,
-                },
-                {
-                    "title": "Max Wavelength (nm):",
-                    "name": "max_wavelength",
-                    "type": "int",
-                    "value": 900,
-                    "readonly": True,
-                },
-            ],
-        },
-        # Laser Control
-        {
-            "title": "Laser Control:",
-            "name": "control_group",
+            "title": "Laser Settings:",
+            "name": "laser_settings",
             "type": "group",
             "children": [
                 {
                     "title": "Target Wavelength (nm):",
                     "name": "target_wavelength",
-                    "type": "int",
-                    "value": 800,
-                    "min": 690,
-                    "max": 1040,
-                    "suffix": "nm",
-                },
-                {
-                    "title": "Home Wavelength (nm):",
-                    "name": "home_wavelength",
-                    "type": "int",
-                    "value": 800,
-                    "min": 690,
-                    "max": 1040,
-                    "suffix": "nm",
-                    "tip": "Default wavelength for home position",
-                },
-                {
-                    "title": "Tolerance (nm):",
-                    "name": "tolerance",
                     "type": "float",
-                    "value": 1.0,
+                    "value": 800.0,
+                    "min": 700.0,
+                    "max": 1000.0,
+                    "step": 1.0,
+                    "tip": "Set target wavelength for laser",
                 },
                 {
-                    "title": "Set Wavelength",
-                    "name": "set_wavelength_btn",
-                    "type": "action",
+                    "title": "Wavelength Range (nm):",
+                    "name": "wavelength_range",
+                    "type": "group",
+                    "children": [
+                        {
+                            "title": "Min Wavelength (nm):",
+                            "name": "min_wavelength",
+                            "type": "float",
+                            "value": maitai_config.get('wavelength_range_min', 700.0),
+                            "min": 700.0,
+                            "max": 1000.0,
+                            "readonly": True,
+                            "tip": "Minimum tunable wavelength for MaiTai laser",
+                        },
+                        {
+                            "title": "Max Wavelength (nm):",
+                            "name": "max_wavelength",
+                            "type": "float",
+                            "value": maitai_config.get('wavelength_range_max', 1000.0),
+                            "min": 700.0,
+                            "max": 1000.0,
+                            "readonly": True,
+                            "tip": "Maximum tunable wavelength for MaiTai laser",
+                        },
+                    ],
                 },
                 {
-                    "title": "Open Shutter",
-                    "name": "open_shutter_btn",
-                    "type": "action",
-                },
-                {
-                    "title": "Close Shutter",
-                    "name": "close_shutter_btn",
-                    "type": "action",
-                },
-                {
-                    "title": "Go Home",
-                    "name": "go_home_btn",
-                    "type": "action",
+                    "title": "Power Limit (%):",
+                    "name": "power_limit",
+                    "type": "float",
+                    "value": 50.0,
+                    "min": 0.0,
+                    "max": 100.0,
                 },
             ],
         },
-        # Status monitoring
         {
-            "title": "Status:",
-            "name": "status_group",
+            "title": "Shutter Control:",
+            "name": "shutter_group",
             "type": "group",
             "children": [
                 {
-                    "title": "Current Wavelength (nm):",
-                    "name": "current_wavelength",
-                    "type": "float",
-                    "value": 0.0,
-                    "readonly": True,
-                },
-                {
-                    "title": "Current Power (W):",
-                    "name": "current_power",
-                    "type": "float",
-                    "value": 0.0,
-                    "readonly": True,
-                },
-                {
-                    "title": "Shutter Open:",
-                    "name": "shutter_open",
-                    "type": "bool",
-                    "value": False,
-                    "readonly": True,
-                },
-                {
-                    "title": "Connection Status:",
-                    "name": "connection_status",
+                    "title": "Shutter Status:",
+                    "name": "shutter_status",
                     "type": "str",
-                    "value": "Disconnected",
+                    "value": "Closed",
                     "readonly": True,
+                    "tip": "Current shutter status",
+                },
+                {
+                    "title": "Open Shutter:",
+                    "name": "open_shutter",
+                    "type": "action",
+                    "tip": "Open the laser shutter",
+                },
+                {
+                    "title": "Close Shutter:",
+                    "name": "close_shutter",
+                    "type": "action",
+                    "tip": "Close the laser shutter",
                 },
             ],
         },
     ]
 
-    def __init__(self, parent=None, params_state=None):
-        """Initialize MaiTai PyMoDAQ plugin."""
-        super().__init__(parent, params_state)
-
-        # Hardware controller
+    def ini_attributes(self):
+        """Initialize attributes before __init__ - PyMoDAQ 5.x pattern"""
         self.controller = None
 
-        # PyMoDAQ will handle periodic polling via built-in poll_time parameter
-
-        # Initialization flag for enhanced status monitoring
-        self._fully_initialized = False
-
     def ini_stage(self, controller=None):
-        """Initialize the hardware stage."""
+        """Initialize the MaiTai laser controller."""
         self.initialized = False
         try:
-            # Import here to avoid issues if module not available
-            from pymodaq_plugins_urashg.hardware.urashg.maitai_control import (
-                MaiTaiController,
-            )
+            self.emit_status(ThreadCommand("show_splash", "Initializing MaiTai Laser..."))
 
             # Get connection parameters
             port = self.settings.child("connection_group", "serial_port").value()
@@ -213,538 +205,234 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             timeout = self.settings.child("connection_group", "timeout").value()
             mock_mode = self.settings.child("connection_group", "mock_mode").value()
 
-            # Create controller
-            self.controller = MaiTaiController(
-                port=port,
-                baudrate=baudrate,
-                timeout=timeout,
-                mock_mode=mock_mode,
-            )
+            if mock_mode:
+                # Mock controller for testing
+                self.controller = MockMaiTaiController()
+                info = "MaiTai Laser initialized in MOCK mode"
+                self.emit_status(ThreadCommand("close_splash"))
+                self.emit_status(ThreadCommand("Update_Status", [info]))
+                self.initialized = True
+                return info, True
 
-            # Connect to hardware
-            if self.controller.connect():
-                self.settings.child("status_group", "connection_status").setValue(
-                    "Connected"
+            # Real hardware initialization
+            try:
+                from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+                self.controller = MaiTaiController(
+                    port=port,
+                    baudrate=baudrate,
+                    timeout=timeout,
+                    mock_mode=False
                 )
 
-                # Get initial status (simplified to avoid hanging)
-                try:
-                    wavelength = self.controller.get_wavelength()
-                    if wavelength is not None:
-                        self.settings.child(
-                            "status_group", "current_wavelength"
-                        ).setValue(wavelength)
-                        self.current_position = wavelength
-                except Exception:
-                    pass  # Ignore errors during initialization
+                if self.controller.connect():
+                    info = f"MaiTai Laser connected on {port}"
+                    self.emit_status(ThreadCommand("close_splash"))
+                    self.emit_status(ThreadCommand("Update_Status", [info]))
+                    self.initialized = True
+                    return info, True
+                else:
+                    raise ConnectionError("Failed to connect to MaiTai hardware")
 
-                # Status monitoring handled by PyMoDAQ polling (set poll_time in UI)
-
-                # Enable enhanced status monitoring after initialization
-                self._fully_initialized = True
-
+            except ImportError:
+                # Fall back to mock if hardware module not available
+                self.controller = MockMaiTaiController()
+                info = "MaiTai hardware not available - using mock mode"
+                self.emit_status(ThreadCommand("close_splash"))
+                self.emit_status(ThreadCommand("Update_Status", [info]))
                 self.initialized = True
-                return "MaiTai laser initialized successfully", True
-            else:
-                return "Failed to connect to MaiTai laser", False
+                return info, True
 
         except Exception as e:
-            return f"Error initializing MaiTai: {str(e)}", False
+            error_msg = f"Error initializing MaiTai: {e}"
+            self.emit_status(ThreadCommand("Update_Status", [error_msg]))
+            self.emit_status(ThreadCommand("close_splash"))
+            return error_msg, False
 
-    def close(self):
-        """Close the hardware connection."""
-        try:
-            # Stop status monitoring
-            # Status monitoring cleanup handled by PyMoDAQ
-
-            # Disconnect hardware
-            if self.controller and self.controller.connected:
-                self.controller.disconnect()
-
-            self.settings.child("status_group", "connection_status").setValue(
-                "Disconnected"
-            )
-
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Error closing: {str(e)}", "log"])
-            )
+    def check_bound(self, wavelength):
+        """Ensure wavelength is within valid range"""
+        min_wl = self.settings.child('bounds_group', 'min_position').value()
+        max_wl = self.settings.child('bounds_group', 'max_position').value()
+        return max(min_wl, min(max_wl, wavelength))
 
     def get_actuator_value(self):
-        """
-        Get current wavelength as DataActuator object and update all status parameters.
-
-        This method is called periodically by PyMoDAQ's polling mechanism (when poll_time > 0),
-        replacing the need for custom threading for status updates.
-        """
-        if not self.controller or not self.controller.connected:
-            return DataActuator(data=[np.array([0.0])])
-
+        """Get current wavelength position."""
         try:
-            # Get wavelength and update status parameters (PyMoDAQ polling pattern)
-            wavelength = self.controller.get_wavelength()
-            if wavelength is not None:
-                self.current_position = wavelength
-                # Update status parameter for UI display
-                self.settings.child("status_group", "current_wavelength").setValue(
-                    wavelength
-                )
-
-                # Update power status
-                try:
-                    power = self.controller.get_power()
-                    if power is not None:
-                        self.settings.child("status_group", "current_power").setValue(
-                            power
-                        )
-                except Exception:
-                    pass  # Don't fail main operation for power reading
-
-                # Update shutter state (if fully initialized)
-                if hasattr(self, "_fully_initialized") and self._fully_initialized:
-                    try:
-                        shutter_open, emission_possible = (
-                            self.controller.get_enhanced_shutter_state()
-                        )
-                        self.settings.child("status_group", "shutter_open").setValue(
-                            shutter_open
-                        )
-                    except Exception:
-                        pass  # Don't fail main operation for shutter status
-
-                return DataActuator(data=[np.array([wavelength])])
-            else:
-                fallback_position = (
-                    self.current_position if hasattr(self, "current_position") else 0.0
-                )
-                return DataActuator(data=[np.array([fallback_position])])
-
+            if self.controller and hasattr(self.controller, 'get_wavelength'):
+                wavelength = self.controller.get_wavelength()
+                # PyMoDAQ expects raw numpy arrays - framework wraps in DataActuator
+                return [np.array([wavelength])]
+            # Default wavelength as raw numpy arrays
+            return [np.array([800.0])]
         except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Error reading wavelength: {str(e)}", "log"],
-                )
-            )
-            fallback_position = (
-                self.current_position if hasattr(self, "current_position") else 0.0
-            )
-            return DataActuator(data=[np.array([fallback_position])])
+            self.emit_status(ThreadCommand("Update_Status", [f"Error reading position: {e}"]))
+            # Return default wavelength as raw numpy arrays
+            return [np.array([800.0])]
 
-    def move_abs(self, position: Union[float, DataActuator]):
-        """
-        Move to absolute wavelength position.
-
-        Parameters
-        ----------
-        position : Union[float, DataActuator]
-            Target wavelength in nm. For DataActuator objects, use position.value()
-            to extract the numerical value (PyMoDAQ 5.x single-axis pattern).
-        """
-        if not self.controller or not self.controller.connected:
-            self.emit_status(
-                ThreadCommand("Update_Status", ["Hardware not connected", "log"])
-            )
-            return
-
+    def move_abs(self, position):
+        """Move to absolute wavelength position."""
         try:
-            # Extract numerical value from DataActuator using .value() method
             if isinstance(position, DataActuator):
-                target_wavelength = float(position.value())
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            f"DEBUG: DataActuator wavelength: {target_wavelength} nm",
-                            "log",
-                        ],
-                    )
-                )
+                target_wavelength = position.value()
+            elif isinstance(position, (list, np.ndarray)):
+                target_wavelength = position[0] if len(position) > 0 else 800.0
             else:
                 target_wavelength = float(position)
 
-            # Validate wavelength range
-            min_wl = self.settings.child("wavelength_group", "min_wavelength").value()
-            max_wl = self.settings.child("wavelength_group", "max_wavelength").value()
+            target_wavelength = self.check_bound(target_wavelength)
 
-            if not (min_wl <= target_wavelength <= max_wl):
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            f"Wavelength {target_wavelength} nm outside range [{min_wl}, {max_wl}]",
-                            "log",
-                        ],
-                    )
-                )
-                return
-
-            # Set wavelength (MaiTai requires integer)
-            success = self.controller.set_wavelength(int(round(target_wavelength)))
-
-            if success:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            f"Moving to {int(round(target_wavelength))} nm",
-                            "log",
-                        ],
-                    )
-                )
-
-                # Update current position
-                self.current_position = int(round(target_wavelength))
-
-                # Emit move done signal
-                self.move_done()
+            if self.controller and hasattr(self.controller, 'set_wavelength'):
+                success = self.controller.set_wavelength(target_wavelength)
+                if success:
+                    self.emit_status(ThreadCommand("Update_Status",
+                                                 [f"Moved to {target_wavelength} nm"]))
+                    self.move_done()  # Signal completion
+                else:
+                    self.emit_status(ThreadCommand("Update_Status",
+                                                 [f"Failed to move to {target_wavelength} nm"]))
             else:
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            f"Failed to set wavelength to {target_wavelength} nm",
-                            "log",
-                        ],
-                    )
-                )
+                # Mock successful move
+                self.emit_status(ThreadCommand("Update_Status",
+                                             [f"Mock moved to {target_wavelength} nm"]))
+                self.move_done()  # Signal completion
 
         except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Error moving: {str(e)}", "log"])
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Error moving: {e}"]))
 
-    def move_rel(self, position: Union[float, DataActuator]):
-        """
-        Move to relative wavelength position.
-
-        Parameters
-        ----------
-        position : Union[float, DataActuator]
-            Relative wavelength change in nm. For DataActuator objects, use position.value()
-            to extract the numerical value (PyMoDAQ 5.x single-axis pattern).
-        """
-        self.emit_status(
-            ThreadCommand(
-                "Update_Status",
-                [f"DEBUG: move_rel called with {type(position)}", "log"],
-            )
-        )
+    def move_rel(self, position):
+        """Move relative wavelength position."""
         try:
-            # Extract numerical value from DataActuator using .value() method
+            # Get current wavelength
+            current_arrays = self.get_actuator_value()
+            current_wavelength = float(current_arrays[0][0]) if len(current_arrays) > 0 and len(current_arrays[0]) > 0 else 800.0
+
             if isinstance(position, DataActuator):
-                relative_move = float(position.value())
+                relative_wavelength = position.value()
+            elif isinstance(position, (list, np.ndarray)):
+                relative_wavelength = position[0] if len(position) > 0 else 0.0
             else:
-                # Fallback for direct numerical input (backward compatibility)
-                relative_move = float(position)
+                relative_wavelength = float(position)
 
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [
-                        f"DEBUG: Relative move of {relative_move} nm requested",
-                        "log",
-                    ],
-                )
-            )
-
-            current = self.get_actuator_value()
-            target = current + relative_move
-
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"DEBUG: Current: {current}, Target: {target}", "log"],
-                )
-            )
-
-            # Create DataActuator for target position
-            plugin_name = getattr(self, "title", self.__class__.__name__)
-            target_data = DataActuator(
-                name=plugin_name,
-                data=[np.array([target])],
-                units=self._controller_units,
-            )
-            self.move_abs(target_data)
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Error in relative move: {str(e)}", "log"],
-                )
-            )
-
-    def stop_motion(self):
-        """Stop motion (not applicable for wavelength setting)."""
-        self.emit_status(
-            ThreadCommand("Update_Status", ["Stop command received", "log"])
-        )
-
-    def update_status(self):
-        """Update status parameters from hardware and notify PyMoDAQ UI."""
-        if not self.controller or not self.controller.connected:
-            return
-
-        try:
-            # Update wavelength and notify main PyMoDAQ UI
-            wavelength = self.controller.get_wavelength()
-            if wavelength is not None:
-                # Update status parameter for display
-                self.settings.child("status_group", "current_wavelength").setValue(
-                    wavelength
-                )
-
-                # Status update - wavelength updated above
-
-            # Update power
-            power = self.controller.get_power()
-            if power is not None:
-                self.settings.child("status_group", "current_power").setValue(power)
-
-            # Update shutter state only after full initialization
-            if hasattr(self, "_fully_initialized") and self._fully_initialized:
-                try:
-                    # Full enhanced status monitoring only after initialization
-                    shutter_open, emission_possible = (
-                        self.controller.get_enhanced_shutter_state()
-                    )
-                    self.settings.child("status_group", "shutter_open").setValue(
-                        shutter_open
-                    )
-
-                    # Get full status byte information periodically
-                    if not hasattr(self, "_status_counter"):
-                        self._status_counter = 0
-                    self._status_counter += 1
-
-                    if self._status_counter % 25 == 0:  # Even less frequent
-                        status_byte, status_info = self.controller.get_status_byte()
-                        if status_info.get("connected", False):
-                            modelocked = status_info.get("modelocked", False)
-                            self.emit_status(
-                                ThreadCommand(
-                                    "Update_Status",
-                                    [
-                                        f"Status: Emission={emission_possible}, Modelocked={modelocked}, Shutter={shutter_open}",
-                                        "log",
-                                    ],
-                                )
-                            )
-                except Exception as e:
-                    # Log enhanced status errors only occasionally
-                    if hasattr(self, "_error_counter"):
-                        self._error_counter = getattr(self, "_error_counter", 0) + 1
-                        if self._error_counter % 10 == 0:  # Log every 10th error
-                            self.emit_status(
-                                ThreadCommand(
-                                    "Update_Status",
-                                    [
-                                        f"Enhanced status error: {str(e)}",
-                                        "log",
-                                    ],
-                                )
-                            )
+            # Calculate target wavelength
+            target_wavelength = current_wavelength + relative_wavelength
+            self.move_abs(target_wavelength)
 
         except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status", [f"Status update error: {str(e)}", "log"]
-                )
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Error in relative move: {e}"]))
 
-    # Custom threading methods removed - PyMoDAQ polling handles status updates via get_actuator_value
-
-    def commit_settings(self, param=None):
-        """
-        Commit settings changes to hardware.
-
-        This method is called by PyMoDAQ when parameter values change.
-        """
+    def move_home(self):
+        """Move to home wavelength position (800nm)."""
         try:
-            if param is not None:
-                if param.name() == "mock_mode":
-                    # Reconnect if mock mode changed
-                    if self.controller:
-                        self.controller.disconnect()
-                        self.controller = None
-                        # Reinitialize with new settings
-                        self.ini_stage_init()
-
-                elif param.name() == "set_wavelength_btn":
-                    # Set wavelength from target parameter
-                    target = self.settings.child(
-                        "control_group", "target_wavelength"
-                    ).value()
-                    self.move_abs(target)
-
-                elif param.name() == "open_shutter_btn":
-                    # Open shutter
-                    self.emit_status(
-                        ThreadCommand(
-                            "Update_Status",
-                            ["DEBUG: Open shutter button clicked", "log"],
-                        )
-                    )
-                    if self.controller and self.controller.connected:
-                        if self.controller.open_shutter():
-                            # Check for errors after shutter command (quick check)
-                            has_errors, error_messages = (
-                                self.controller.check_system_errors(quick_check=True)
-                            )
-                            if has_errors:
-                                error_text = "; ".join(error_messages)
-                                self.emit_status(
-                                    ThreadCommand(
-                                        "Update_Status",
-                                        [
-                                            f"Shutter command errors: {error_text}",
-                                            "log",
-                                        ],
-                                    )
-                                )
-                            else:
-                                # Verify shutter actually opened
-                                time.sleep(0.5)  # Brief delay for shutter to respond
-                                shutter_open, emission_possible = (
-                                    self.controller.get_enhanced_shutter_state()
-                                )
-                                status_msg = f"Shutter open: {shutter_open}, Emission possible: {emission_possible}"
-                                self.emit_status(
-                                    ThreadCommand("Update_Status", [status_msg, "log"])
-                                )
-                        else:
-                            self.emit_status(
-                                ThreadCommand(
-                                    "Update_Status",
-                                    [
-                                        "Failed to send open shutter command",
-                                        "log",
-                                    ],
-                                )
-                            )
-
-                elif param.name() == "close_shutter_btn":
-                    # Close shutter
-                    self.emit_status(
-                        ThreadCommand(
-                            "Update_Status",
-                            ["DEBUG: Close shutter button clicked", "log"],
-                        )
-                    )
-                    if self.controller and self.controller.connected:
-                        if self.controller.close_shutter():
-                            # Check for errors after shutter command (quick check)
-                            has_errors, error_messages = (
-                                self.controller.check_system_errors(quick_check=True)
-                            )
-                            if has_errors:
-                                error_text = "; ".join(error_messages)
-                                self.emit_status(
-                                    ThreadCommand(
-                                        "Update_Status",
-                                        [
-                                            f"Shutter command errors: {error_text}",
-                                            "log",
-                                        ],
-                                    )
-                                )
-                            else:
-                                # Verify shutter actually closed
-                                time.sleep(0.5)  # Brief delay for shutter to respond
-                                shutter_open, emission_possible = (
-                                    self.controller.get_enhanced_shutter_state()
-                                )
-                                status_msg = f"Shutter open: {shutter_open}, Emission possible: {emission_possible}"
-                                self.emit_status(
-                                    ThreadCommand("Update_Status", [status_msg, "log"])
-                                )
-                        else:
-                            self.emit_status(
-                                ThreadCommand(
-                                    "Update_Status",
-                                    [
-                                        "Failed to send close shutter command",
-                                        "log",
-                                    ],
-                                )
-                            )
-
-                elif param.name() == "go_home_btn":
-                    # Move to home wavelength
-                    self.emit_status(
-                        ThreadCommand(
-                            "Update_Status",
-                            ["Moving to home wavelength...", "log"],
-                        )
-                    )
-                    self.move_home()
-
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [f"Settings commit error: {str(e)}", "log"],
-                )
-            )
-
-    def move_home(self, value=None):
-        """
-        Move laser to home wavelength position.
-
-        For MaiTai laser, home position is the default wavelength (800 nm).
-        The value parameter is ignored but required for PyMoDAQ 5.x compliance.
-
-        Parameters
-        ----------
-        value : Any, optional
-            Ignored parameter, required for PyMoDAQ 5.x compatibility
-        """
-        try:
-            home_wavelength = self.settings.child(
-                "control_group", "home_wavelength"
-            ).value()
-
-            self.emit_status(
-                ThreadCommand(
-                    "Update_Status",
-                    [
-                        f"Moving to home wavelength: {home_wavelength} nm",
-                        "log",
-                    ],
-                )
-            )
-
-            # Use move_abs to go to home position
+            home_wavelength = 800.0
             self.move_abs(home_wavelength)
-
-            self.emit_status(
-                ThreadCommand("Update_Status", ["Laser moved to home position", "log"])
-            )
-
+            self.emit_status(ThreadCommand("Update_Status", [f"Moved to home position: {home_wavelength} nm"]))
         except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Home move error: {str(e)}", "log"])
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Error moving home: {e}"]))
 
     def stop_motion(self):
-        """Stop any ongoing wavelength movement."""
+        """Stop wavelength movement."""
+        try:
+            # For MaiTai laser, just signal completion since moves are typically fast
+            self.emit_status(ThreadCommand("Update_Status", ["Motion stopped"]))
+            self.move_done()
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error stopping motion: {e}"]))
+
+    def close(self):
+        """Close the laser controller."""
         try:
             if self.controller:
-                # MaiTai doesn't have explicit stop command
-                # Just report current status
-                self.emit_status(
-                    ThreadCommand(
-                        "Update_Status",
-                        [
-                            "Motion stop requested (MaiTai has no explicit stop)",
-                            "log",
-                        ],
-                    )
-                )
+                if hasattr(self.controller, 'close'):
+                    self.controller.close()
+                elif hasattr(self.controller, 'disconnect'):
+                    self.controller.disconnect()
+                self.controller = None
+            self.emit_status(ThreadCommand("Update_Status", ["MaiTai connection closed"]))
         except Exception as e:
-            self.emit_status(
-                ThreadCommand("Update_Status", [f"Stop motion error: {str(e)}", "log"])
-            )
+            self.emit_status(ThreadCommand("Update_Status", [f"Error closing: {e}"]))
+
+    def commit_settings(self, param):
+        """Handle parameter changes and actions."""
+        try:
+            if param.name() == "open_shutter":
+                self.open_shutter()
+            elif param.name() == "close_shutter":
+                self.close_shutter()
+            elif param.name() == "target_wavelength":
+                wavelength = param.value()
+                self.move_abs(wavelength)
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error in commit_settings: {e}"]))
+
+    def open_shutter(self):
+        """Open the laser shutter."""
+        try:
+            if self.controller and hasattr(self.controller, 'open_shutter'):
+                success = self.controller.open_shutter()
+                if success:
+                    self.settings.child("shutter_group", "shutter_status").setValue("Open")
+                    self.emit_status(ThreadCommand("Update_Status", ["Shutter opened"]))
+                else:
+                    self.emit_status(ThreadCommand("Update_Status", ["Failed to open shutter"]))
+            else:
+                # Mock shutter operation
+                self.settings.child("shutter_group", "shutter_status").setValue("Open")
+                self.emit_status(ThreadCommand("Update_Status", ["Mock shutter opened"]))
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error opening shutter: {e}"]))
+
+    def close_shutter(self):
+        """Close the laser shutter."""
+        try:
+            if self.controller and hasattr(self.controller, 'close_shutter'):
+                success = self.controller.close_shutter()
+                if success:
+                    self.settings.child("shutter_group", "shutter_status").setValue("Closed")
+                    self.emit_status(ThreadCommand("Update_Status", ["Shutter closed"]))
+                else:
+                    self.emit_status(ThreadCommand("Update_Status", ["Failed to close shutter"]))
+            else:
+                # Mock shutter operation
+                self.settings.child("shutter_group", "shutter_status").setValue("Closed")
+                self.emit_status(ThreadCommand("Update_Status", ["Mock shutter closed"]))
+        except Exception as e:
+            self.emit_status(ThreadCommand("Update_Status", [f"Error closing shutter: {e}"]))
+
+
+class MockMaiTaiController:
+    """Mock controller for testing MaiTai laser plugin."""
+
+    def __init__(self):
+        self.wavelength = 800.0  # Default wavelength in nm
+        self.shutter_open = False  # Shutter state
+
+    def get_wavelength(self):
+        """Get current wavelength."""
+        return self.wavelength
+
+    def set_wavelength(self, wavelength):
+        """Set wavelength."""
+        if 700 <= wavelength <= 1000:
+            self.wavelength = wavelength
+            return True
+        return False
+
+    def open_shutter(self):
+        """Open the laser shutter."""
+        self.shutter_open = True
+        return True
+
+    def close_shutter(self):
+        """Close the laser shutter."""
+        self.shutter_open = False
+        return True
+
+    def close(self):
+        """Close connection."""
+        pass
+
+    def disconnect(self):
+        """Disconnect from device."""
+        pass
 
 
 if __name__ == "__main__":

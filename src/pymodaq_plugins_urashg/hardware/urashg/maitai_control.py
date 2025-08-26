@@ -29,43 +29,46 @@ class MaiTaiController:
     def __init__(
         self,
         port: str = "",
-        baudrate: int = 115200,
+        baudrate: int = 9600,  # ✅ FIXED: Correct baudrate based on device identification
         timeout: float = 2.0,
         mock_mode: bool = False,
     ):
         """
-        Initialize MaiTai controller.
-
-        Parameters
-        ----------
-        port : str
-            Serial port for device communication
-        baudrate : int
-            Serial communication baud rate
-        timeout : float
-            Communication timeout in seconds
-        mock_mode : bool
-            Enable mock mode for testing without hardware
+        Initialize MaiTai laser controller.
+        
+        Args:
+            port: Serial port path (e.g., '/dev/ttyUSB2', 'COM3')
+            baudrate: Communication baudrate (default: 9600)
+            timeout: Communication timeout in seconds
+            mock_mode: Enable mock mode for testing without hardware
         """
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.mock_mode = mock_mode
-
-        # Connection state
-        self._serial_connection = None
-        self._connected = False
-        self._lock = Lock()
-
-        # Mock state for testing
-        self._mock_wavelength = 780.0
-        self._mock_power = 2.5
-        self._mock_shutter = False
-
+        self.serial_connection = None
+        
+        # Initialize logger
         self.logger = logging.getLogger(__name__)
-        self.logger.info(
-            f"MaiTaiController initialized: port={port}, mock_mode={mock_mode}"
-        )
+        
+        # MaiTai wavelength limits (nm)  
+        self.min_wavelength = 700.0
+        self.max_wavelength = 1000.0
+        
+        # Internal connection state
+        self._connected = False
+        self._serial_connection = None
+        self._lock = Lock()
+        
+        # Mock state variables
+        self._mock_wavelength = 780.0  # Default wavelength
+        self._mock_power = 2.5  # Default power in watts
+        self._mock_shutter = False  # Shutter closed by default
+        
+        if mock_mode:
+            self.logger.info("MaiTai controller initialized in mock mode")
+        else:
+            self.logger.info(f"MaiTai controller initialized for {port} at {baudrate} baud")
 
     def connect(self) -> bool:
         """

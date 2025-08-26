@@ -25,9 +25,17 @@ try:
     from pymodaq_utils.logger import get_module_name, set_logger
     from pymodaq_utils.utils import PackageNotFoundError, get_version
 
-    from .utils import Config
-
-    config = Config()
+    # Lazy import config to avoid BaseConfig initialization issues during plugin discovery
+    config = None
+    
+    def get_config():
+        """Lazy loader for URASHG configuration."""
+        global config
+        if config is None:
+            from .utils import Config
+            config = Config()
+        return config
+    
     try:
         __version__ = get_version(__package__)
     except PackageNotFoundError:
@@ -36,7 +44,7 @@ try:
     # Hardware abstraction layers
     from .hardware import urashg
 
-    __all__ = ["__version__", "config", "urashg"]
+    __all__ = ["__version__", "get_config", "urashg"]
 
 except ImportError as e:
     # PyMoDAQ not available - minimal fallback for CI/testing

@@ -10,14 +10,21 @@
 [urashg.hardware.elliptec]
 # Elliptec rotation mounts configuration
 # Note: Adjust serial port based on actual hardware connection
-serial_port = "/dev/ttyUSB1" # Typical: Linux, use COM port on Windows
+serial_port = "/dev/ttyUSB0" # Updated based on device identification
 baudrate = 9600
 timeout = 2.0
 
-# Mount addresses (0-15, factory default varies)
-mount_addresses = [2, 3, 8] # HWP incident, QWP, HWP analyzer
+# Specific mount addresses for URASHG setup
+hwp_incident_address = 2    # Half-wave plate before sample
+qwp_address = 3            # Quarter-wave plate  
+hwp_analyzer_address = 8   # Half-wave plate after sample
+mount_addresses = [2, 3, 8] # All mount addresses
+
+# Motion control settings
 home_on_startup = false
 position_tolerance = 0.1    # degrees
+home_timeout = 30.0        # seconds
+max_rotation_speed = 100   # degrees per second
 
 [urashg.hardware.redpitaya]
 # Red Pitaya FPGA-based PID controller
@@ -34,12 +41,17 @@ kd_default = 0.001
 
 [urashg.hardware.camera]
 # Photometrics Prime BSI camera configuration
+simulation_mode = false
+exposure_time = 100       # milliseconds
 exposure_default = 100.0  # milliseconds
+gain = 1
 gain_default = 1
+binning = 1
 cooling_enabled = true
 cooling_temperature = -20 # Celsius
 
-# Default ROI settings
+# ROI settings
+roi_enabled = false
 roi_x = 0
 roi_y = 0
 roi_width = 2048
@@ -48,7 +60,7 @@ roi_height = 2048
 [urashg.hardware.maitai]
 # MaiTai laser configuration
 # Note: Adjust serial port based on actual hardware connection
-serial_port = "/dev/ttyUSB0"  # Typical: Linux, use COM port on Windows
+serial_port = "/dev/ttyUSB2"  # Updated based on device identification  
 baudrate = 9600
 timeout = 5.0
 wavelength_range_min = 700.0  # nm
@@ -59,7 +71,7 @@ power_range_max = 3.5         # watts
 [urashg.hardware.newport]
 # Newport 1830-C power meter configuration
 # Note: Adjust GPIB address based on actual hardware configuration
-gpib_address = 12  # Avoid common addresses 1-10, use 12-30 range
+gpib_address = 1    # Updated to match current working configuration
 timeout = 5.0
 wavelength = 800.0 # nm - default measurement wavelength
 auto_range = true
@@ -68,10 +80,11 @@ range_value = 1.0  # watts - manual range if auto_range = false
 [urashg.hardware.esp300]
 # Newport ESP300 motion controller
 # Note: Adjust serial port based on actual hardware connection
-serial_port = "/dev/ttyUSB2" # Typical: Linux, use COM port on Windows
+serial_port = "/dev/ttyUSB3" # Updated based on device identification
 baudrate = 19200
 timeout = 10.0
 axis_count = 3
+mock_mode = true           # Enable until hardware properly configured
 
 # Axis configuration (X, Y, Z)
 axis_units = ["mm", "mm", "mm"]
@@ -123,6 +136,16 @@ temperature_monitoring = true
 beam_block_required = false
 user_confirmation = true
 
+[urashg.safety.power]
+max_average_power = 2.0
+max_peak_power = 50.0
+power_ramp_rate = 0.1
+
+[urashg.safety.thermal]
+max_duty_cycle = 0.8
+cooling_time = 60.0
+temperature_limit = 50.0
+
 [urashg.system]
 # System-wide settings
 
@@ -136,3 +159,88 @@ max_log_size = "10MB"
 thread_count = 4
 buffer_size = 1000
 acquisition_timeout = 30.0 # seconds
+
+# Additional configuration sections from current setup
+
+[urashg.logging]
+level = "INFO"
+log_to_file = true
+log_file = "urashg_plugin.log"
+max_log_size = 10
+backup_count = 5
+
+[urashg.calibration]
+# Calibration data storage and management
+
+[urashg.calibration.paths]
+base_dir = "~/pymodaq_data/urashg_calibrations"
+eom_calibration = "eom_calibration.h5"
+elliptec_calibration = "elliptec_calibration.h5"
+variable_attenuator = "variable_attenuator_calibration.h5"
+
+[urashg.calibration.eom]
+voltage_range_min = 0.0
+voltage_range_max = 10.0
+power_control_tolerance = 0.001
+pid_kp = 24.0
+pid_ki = 3.0
+pid_kd = 0.0125
+
+[urashg.calibration.elliptec]
+angle_range = 360.0
+angle_step = 1.0
+malus_fit_points = 180
+
+[urashg.experiments]
+# Experiment-specific settings
+
+[urashg.experiments.pdshg]
+power_points = 20
+angle_points = 180
+angle_range = 360.0
+power_spacing = "logarithmic"
+integration_time = 1.0
+background_subtraction = true
+
+[urashg.experiments.wavelength_scan]
+wavelength_step = 5.0
+integration_time = 2.0
+auto_power_adjustment = true
+
+[urashg.gui]
+# GUI configuration
+
+[urashg.gui.plots]
+default_colormap = "viridis"
+auto_scale = true
+grid_enabled = true
+legend_enabled = true
+
+[urashg.gui.layout]
+dock_size = [1200, 800]
+remember_layout = true
+
+[urashg.data.storage]
+base_directory = "~/pymodaq_data/urashg"
+auto_save = true
+compression = "gzip"
+compression_level = 6
+
+[urashg.data.format]
+timestamp_format = "%Y%m%d_%H%M%S"
+filename_template = "urashg_{experiment}_{timestamp}"
+include_metadata = true
+
+
+[urashg.advanced]
+# Advanced system settings
+
+[urashg.advanced.timing]
+measurement_delay = 0.1
+device_settling_time = 0.5
+timeout_multiplier = 2.0
+
+[urashg.advanced.parallel]
+max_workers = 4
+enable_async = true
+queue_size = 100

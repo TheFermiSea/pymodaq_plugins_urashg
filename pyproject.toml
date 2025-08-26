@@ -6,7 +6,7 @@ h5exporters = false # true if plugin contains custom h5 file exporters
 scanners = false    # true if plugin contains custom scan layout (daq_scan extensions)
 
 [urls]
-package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_urashg'
+package-url = 'https://github.com/TheFermiSea/pymodaq_plugins_urashg'
 
 [project]
 name = "pymodaq-plugins-urashg"
@@ -23,12 +23,12 @@ dependencies = [
     "matplotlib>=3.3.0",
     "pyserial>=3.4",
     "elliptec>=0.0.6",
+    "pyvcam",
+    "pyqt6>=6.9.1",
 ]
 
 authors = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
-maintainers = [
-    { name = "PyMoDAQ Plugin Development Team", email = "contact@pymodaq.org" },
-]
+maintainers = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
 
 # nottodo: leave everything below as is!
 
@@ -58,6 +58,9 @@ urashg = "pymodaq_plugins_urashg"
 
 [project.entry-points."pymodaq.move_plugins"]
 DAQ_Move_Elliptec = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
+DAQ_Move_ElliptecHWP_Incident = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ElliptecHWP_Incident:DAQ_Move_ElliptecHWP_Incident"
+DAQ_Move_ElliptecQWP = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ElliptecQWP:DAQ_Move_ElliptecQWP"
+DAQ_Move_ElliptecHWP_Analyzer = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ElliptecHWP_Analyzer:DAQ_Move_ElliptecHWP_Analyzer"
 DAQ_Move_MaiTai = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"
 DAQ_Move_ESP300 = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300:DAQ_Move_ESP300"
 
@@ -66,14 +69,14 @@ DAQ_2DViewer_PrimeBSI = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.da
 DAQ_0DViewer_Newport1830C = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
 
 [project.entry-points."pymodaq.extensions"]
-URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension:URASHGMicroscopyExtension"
+URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension"
 
 [project.optional-dependencies]
 hardware = [
     # Hardware-specific dependencies (optional for basic functionality)
-    "opencv-python>=4.5.0", # Image processing
-    "scikit-image>=0.18.0", # Advanced image analysis
-    "pyvcam>=2.0.0",        # Photometrics camera support
+    "opencv-python>=4.5.0",                                    # Image processing
+    "scikit-image>=0.18.0",                                    # Advanced image analysis
+    "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git", # Photometrics camera support
 ]
 dev = [
     "pytest>=6.0",
@@ -115,8 +118,8 @@ build-backend = "hatchling.build"
 
 # [tool.hatch.metadata.hooks.custom]  # Disabled to use direct entry points
 
-# [tool.hatch.metadata]  # Disabled to use direct entry points
-# allow-direct-references = true
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.version]
 source = "vcs"
@@ -190,3 +193,6 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+
+[tool.uv.sources]
+pyvcam = { git = "https://github.com/Photometrics/PyVCAM.git" }

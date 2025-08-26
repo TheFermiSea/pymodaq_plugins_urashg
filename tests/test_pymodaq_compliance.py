@@ -123,8 +123,8 @@ class TestPyMoDAQCompliance:
         # Create mock parent DockArea
         mock_parent = DockArea()
 
-        # Instantiate extension
-        extension = URASHGMicroscopyExtension(mock_parent, mock_dashboard)
+        # Instantiate extension (CustomApp takes only one argument - the DockArea parent)
+        extension = URASHGMicroscopyExtension(mock_parent)
 
         # Basic instantiation checks
         assert extension is not None

@@ -3,11 +3,28 @@ from pymodaq.control_modules.viewer_utility_classes import (
     DAQ_Viewer_base,
     comon_parameters,
 )
-from pymodaq.utils.daq_utils import ThreadCommand
+from pymodaq_utils.utils import ThreadCommand
 from pymodaq.utils.parameter import Parameter
 
 # Removed unused imports: get_param_path, iter_children
 from pymodaq_data.data import Axis, DataSource, DataToExport, DataWithAxes
+
+# Import URASHG configuration
+try:
+    from pymodaq_plugins_urashg.utils.config import Config
+    from pymodaq_plugins_urashg import get_config
+    config = get_config()
+    camera_config = config.get_hardware_config('camera')
+except ImportError:
+    camera_config = {
+        'exposure_default': 50.0,
+        'cooling_enabled': True,
+        'cooling_temperature': -20,
+        'roi_x': 0,
+        'roi_y': 0,
+        'roi_width': 2048,
+        'roi_height': 2048
+    }
 
 # Try to import PyVCAM and handle the case where it's not installed
 try:
@@ -82,38 +99,51 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                     "title": "Exposure (ms):",
                     "name": "exposure",
                     "type": "float",
-                    "value": 10.0,
+                    "value": camera_config.get('exposure_default', 50.0),
                     "min": 0.01,
+                    "max": 10000.0,
+                    "suffix": "ms",
+                    "tip": "Camera exposure time in milliseconds",
                 },
                 {
                     "title": "Readout Port:",
                     "name": "readout_port",
                     "type": "list",
-                    "limits": [],
+                    "limits": ["Port 1", "Port 2"],
+                    "value": "Port 1",
+                    "tip": "Camera readout port selection",
                 },
                 {
                     "title": "Speed Index:",
                     "name": "speed_index",
                     "type": "list",
-                    "limits": [],
+                    "limits": ["High Speed", "Low Noise"],
+                    "value": "High Speed",
+                    "tip": "Readout speed selection",
                 },
                 {
                     "title": "Gain:",
                     "name": "gain",
                     "type": "list",
-                    "limits": [],
+                    "limits": ["Low", "Medium", "High"],
+                    "value": "Medium",
+                    "tip": "Camera gain setting",
                 },
                 {
                     "title": "Trigger Mode:",
                     "name": "trigger_mode",
                     "type": "list",
-                    "limits": [],
+                    "limits": ["Internal", "External", "Software"],
+                    "value": "Internal",
+                    "tip": "Camera trigger mode",
                 },
                 {
                     "title": "Clear Mode:",
                     "name": "clear_mode",
                     "type": "list",
-                    "limits": [],
+                    "limits": ["Pre-Sequence", "Pre-Exposure", "Never"],
+                    "value": "Pre-Sequence",
+                    "tip": "Sensor clearing mode",
                 },
                 {
                     "title": "Temperature (°C):",
@@ -125,7 +155,11 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                     "title": "Temp. Setpoint (°C):",
                     "name": "temperature_setpoint",
                     "type": "int",
-                    "value": -20,
+                    "value": camera_config.get('cooling_temperature', -20),
+                    "min": -40,
+                    "max": 25,
+                    "suffix": "°C",
+                    "tip": "Camera sensor cooling temperature",
                 },
             ],
         },
@@ -159,17 +193,15 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
     # PyMoDAQ 5 handles common parameters differently
     # Common parameters are automatically added by the base class
 
-    def __init__(self, parent=None, params_state=None):
-        super().__init__(parent, params_state)
+    def ini_attributes(self):
+        """Initialize attributes before __init__ - PyMoDAQ 5.x pattern"""
         self.camera: Camera = None
         self.x_axis = None
         self.y_axis = None
 
     def ini_detector(self, controller=None):
-        """
-        Initializes the camera connection and populates the GUI with all camera-specific parameters.
-        """
-        self.status.update(msg="Initializing Camera...", busy=True)
+        """Initialize the camera - PyMoDAQ 5.x standard method"""
+        self.initialized = False
         try:
             # Check for mock mode
             mock_mode = self.settings.child("camera_settings", "mock_mode").value()
@@ -177,7 +209,6 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             if mock_mode or not PYVCAM_AVAILABLE:
                 # Mock mode - create a mock camera
                 from unittest.mock import Mock
-
                 import numpy as np
 
                 self.camera = Mock()
@@ -528,8 +559,8 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
         Performs ROI integration if enabled.
         """
         try:
-            self.settings.child("camera_settings", "temperature").setValue(
-                self.camera.temp
+            self.settings.child("camera_settings", "camera_name").setValue(
+                self.camera.name
             )
 
             # Get frame from camera

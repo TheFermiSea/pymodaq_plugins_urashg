@@ -196,7 +196,7 @@ Examples:
     python {Path(__file__).name} --check-deps # Check dependencies
 
 For more information, see the documentation at:
-https://github.com/PyMoDAQ/pymodaq_plugins_urashg
+https://github.com/TheFermiSea/pymodaq_plugins_urashg
 """
     print(help_text)
 

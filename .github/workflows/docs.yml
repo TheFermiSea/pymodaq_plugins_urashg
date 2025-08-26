@@ -9,33 +9,33 @@ on:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Full history for proper versioning
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e .
         pip install sphinx sphinx-rtd-theme myst-parser sphinx-autodoc-typehints
-    
+
     - name: Create docs directory structure
       run: |
         mkdir -p docs/{_static,_templates,api,user_guide,developer_guide}
-    
+
     - name: Generate API documentation
       run: |
         python -c "
         import os
         import importlib
-        
+
         # Generate API documentation
         api_content = '''
 API Reference
@@ -51,7 +51,7 @@ Hardware Controllers
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper  
+.. automodule:: pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper
    :members:
    :undoc-members:
    :show-inheritance:
@@ -97,11 +97,11 @@ Viewer Plugins
    :undoc-members:
    :show-inheritance:
 '''
-        
+
         with open('docs/api/index.rst', 'w') as f:
             f.write(api_content)
         "
-    
+
     - name: Generate user guide
       run: |
         python -c "
@@ -122,7 +122,7 @@ For development installation:
 
 .. code-block:: bash
 
-    git clone https://github.com/PyMoDAQ/pymodaq_plugins_urashg.git
+    git clone https://github.com/TheFermiSea/pymodaq_plugins_urashg.git
     cd pymodaq_plugins_urashg
     pip install -e .
 
@@ -202,11 +202,11 @@ Each plugin provides comprehensive configuration options:
 
 For detailed configuration options, see the API reference.
 '''
-        
+
         with open('docs/user_guide/index.rst', 'w') as f:
             f.write(user_guide)
         "
-    
+
     - name: Generate developer guide
       run: |
         python -c "
@@ -294,11 +294,11 @@ Code Style
 - Follow PEP 8 guidelines
 - Include comprehensive docstrings
 '''
-        
+
         with open('docs/developer_guide/index.rst', 'w') as f:
             f.write(dev_guide)
         "
-    
+
     - name: Generate main documentation index
       run: |
         python -c "
@@ -311,7 +311,7 @@ Welcome to the documentation for the URASHG (micro Rotational Anisotropy Second 
 This package provides comprehensive hardware control for URASHG microscopy systems, including:
 
 - **MaiTai Laser**: Wavelength tuning and power control
-- **Elliptec Rotation Mounts**: Polarization control (3 mounts)  
+- **Elliptec Rotation Mounts**: Polarization control (3 mounts)
 - **Newport Power Meter**: Calibration measurements
 - **Newport ESP300**: XYZ sample positioning
 - **PrimeBSI Camera**: 2D SHG detection
@@ -360,11 +360,11 @@ Indices and tables
 * :ref:\`modindex\`
 * :ref:\`search\`
 '''
-        
+
         with open('docs/index.rst', 'w') as f:
             f.write(index_content)
         "
-    
+
     - name: Generate Sphinx configuration
       run: |
         python -c "
@@ -412,22 +412,22 @@ napoleon_include_private_with_doc = False
 
 autosummary_generate = True
 '''
-        
+
         with open('docs/conf.py', 'w') as f:
             f.write(conf_content)
         "
-    
+
     - name: Build documentation
       run: |
         cd docs
         sphinx-build -b html . _build/html -W
-    
+
     - name: Upload documentation artifacts
       uses: actions/upload-artifact@v3
       with:
         name: documentation
         path: docs/_build/html/
-    
+
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: peaceiris/actions-gh-pages@v3

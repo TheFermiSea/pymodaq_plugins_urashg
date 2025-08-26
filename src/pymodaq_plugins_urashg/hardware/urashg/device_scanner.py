@@ -28,6 +28,31 @@ class DeviceScanner:
         "maitai": {
             "test_commands": ["?", "*IDN?", "READ:POW?"],
             "response_patterns": ["MaiTai", "Spectra-Physics", "POWER"],
+            "baudrates": [9600, 19200, 115200],  # ✅ FIXED: 9600 first (correct baudrate)
+            "timeout": 2.0,
+        },
+        "elliptec": {
+            "test_commands": ["2in", "3in", "8in", "0in"],  # Device info commands for different addresses
+            "response_patterns": ["ELL14", "ELL20", "Position"],
+            "baudrates": [9600],  # Standard baudrate for Elliptec
+            "timeout": 1.0,
+        },
+        "newport": {
+            "test_commands": ["*IDN?", "PM:POWER?", "PM:LAMBDA?"],
+            "response_patterns": ["Newport", "1830", "POWER"],
+            "baudrates": [9600],  # Standard baudrate for Newport power meters
+            "timeout": 2.0,
+        },
+        "esp300": {
+            "test_commands": ["*IDN?", "VE?", "ID?"],
+            "response_patterns": ["ESP300", "Newport", "Version"],
+            "baudrates": [19200, 9600, 57600],  # ✅ FIXED: 19200 first (Newport standard)
+            "timeout": 2.0,
+        },
+    } = {
+        "maitai": {
+            "test_commands": ["?", "*IDN?", "READ:POW?"],
+            "response_patterns": ["MaiTai", "Spectra-Physics", "POWER"],
             "baudrates": [115200, 9600, 19200],
             "timeout": 2.0,
         },

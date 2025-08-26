@@ -281,10 +281,10 @@ def test_extension_compliance():
         print("✅ Extension class imported successfully")
 
         # Check inheritance - PyMoDAQ 5.x standards
-        from pymodaq.extensions.utils import CustomExt
+        from pymodaq_gui.utils.custom_app import CustomApp
 
-        if issubclass(URASHGMicroscopyExtension, CustomExt):
-            print("✅ Correct inheritance from CustomExt")
+        if issubclass(URASHGMicroscopyExtension, CustomApp):
+            print("✅ Correct inheritance from CustomApp")
         else:
             print("❌ Incorrect inheritance for extension")
             return False

@@ -16,7 +16,7 @@ auto_load_preset = true
 # Hardware device default configurations
 
 [hardware.elliptec]
-default_port = "/dev/ttyUSB1"
+default_port = "/dev/ttyUSB0"
 baudrate = 9600
 timeout = 2.0
 mount_addresses = "2,3,8"
@@ -24,8 +24,8 @@ home_on_connect = false
 position_tolerance = 0.1      # degrees
 
 [hardware.maitai]
-default_port = "/dev/ttyUSB0"
-baudrate = 115200
+default_port = "/dev/ttyUSB2"
+baudrate = 9600
 timeout = 2.0
 wavelength_min = 700
 wavelength_max = 900
@@ -52,11 +52,12 @@ default_units = "W"
 averaging_count = 3
 
 [hardware.esp300]
-default_host = "192.168.1.100"
-default_port = 5001
+default_port = "/dev/ttyUSB3"
+baudrate = 19200
 timeout = 5.0
 axis_count = 1
 position_tolerance = 0.01      # mm
+mock_mode = true               # Enable until hardware properly configured
 
 [measurement]
 # Default measurement configuration

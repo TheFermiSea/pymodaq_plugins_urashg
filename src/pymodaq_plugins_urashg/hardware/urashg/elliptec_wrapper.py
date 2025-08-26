@@ -61,8 +61,20 @@ class ElliptecController:
         self._connected = False
         self._lock = Lock()
 
-        # Parse mount addresses
-        self.mount_addresses = [addr.strip() for addr in mount_addresses.split(",")]
+        # Parse mount addresses - handle string, list, and string representation of list
+        if isinstance(mount_addresses, str):
+            # Handle string representation of list like '[2, 3, 8]'
+            if mount_addresses.strip().startswith('[') and mount_addresses.strip().endswith(']'):
+                # Remove brackets and split by comma
+                clean_str = mount_addresses.strip()[1:-1]
+                self.mount_addresses = [addr.strip() for addr in clean_str.split(",")]
+            else:
+                # Regular comma-separated string like '2,3,8'
+                self.mount_addresses = [addr.strip() for addr in mount_addresses.split(",")]
+        elif isinstance(mount_addresses, list):
+            self.mount_addresses = [str(addr).strip() for addr in mount_addresses]
+        else:
+            raise ValueError(f"mount_addresses must be string or list, got {type(mount_addresses)}")
         self.axes = [f"Mount_{addr}" for addr in self.mount_addresses]
 
         # Current positions (degrees)
@@ -301,12 +313,17 @@ class ElliptecController:
 
         try:
             with self._lock:
+                # Debug: Log the exact command being sent
+                self.logger.debug(f"Sending command: '{command}' (type: {type(command)}, length: {len(command)})")
+                self.logger.debug(f"Command bytes: {repr(command)}")
+
                 # Clear buffers
                 self._connection.flushInput()
                 self._connection.flushOutput()
 
                 # Send command with proper termination
                 cmd_bytes = (command + "\r").encode("ascii")
+                self.logger.debug(f"Command bytes to send: {cmd_bytes}")
                 self._connection.write(cmd_bytes)
                 time.sleep(0.3)  # Device processing time
 
@@ -344,27 +361,40 @@ class ElliptecController:
                             f"Binary response from mount {mount_address}: {response.hex()}"
                         )
 
-                        # For binary responses, try to extract position from raw bytes
+                        # For binary responses, try multiple parsing methods
                         if len(response) >= 4:
-                            # Some Elliptec devices return position as 4-byte integer
-                            try:
-                                # Try interpreting as little-endian 32-bit signed integer
-                                import struct
+                            # Try different binary formats
+                            import struct
 
-                                pulses = struct.unpack("<i", response[:4])[0]
-                                degrees = (pulses / self._pulses_per_rev) * 360.0
-                                self._positions[mount_address] = degrees
-                                self.logger.debug(
-                                    f"Mount {mount_address} binary position: {degrees:.2f} degrees"
-                                )
-                                return degrees
-                            except:
-                                pass
+                            parsing_methods = [
+                                ("<i", "little-endian 32-bit signed"),
+                                (">i", "big-endian 32-bit signed"),
+                                ("<I", "little-endian 32-bit unsigned"),
+                                (">I", "big-endian 32-bit unsigned"),
+                            ]
 
-                        # If binary parsing fails, return cached position
-                        self.logger.warning(
-                            f"Could not parse binary response from mount {mount_address}"
+                            for fmt, desc in parsing_methods:
+                                try:
+                                    pulses = struct.unpack(fmt, response[:4])[0]
+                                    if pulses > 0x7FFFFFFF:  # Handle unsigned as signed
+                                        pulses -= 0x100000000
+                                    degrees = (pulses / self._pulses_per_rev) * 360.0
+
+                                    # Sanity check: degrees should be reasonable
+                                    if -720 <= degrees <= 720:  # Allow 2 full rotations
+                                        self._positions[mount_address] = degrees
+                                        self.logger.debug(
+                                            f"Mount {mount_address} binary position: {degrees:.2f}° ({desc})"
+                                        )
+                                        return degrees
+                                except (struct.error, ValueError, OverflowError):
+                                    continue
+
+                        # If all binary parsing fails, log and return cached position
+                        self.logger.debug(
+                            f"Binary response from mount {mount_address} (length {len(response)}): {response.hex()}"
                         )
+                        # Return cached position but don't warn every time
                         return self._positions.get(mount_address, 0.0)
                 else:
                     response_str = str(response).strip()
