@@ -6,9 +6,8 @@ This module provides configuration management following PyMoDAQ patterns
 and standards for plugin configuration, preset management, and settings.
 """
 
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict
 
 try:
     from pymodaq_utils.config import BaseConfig
@@ -32,7 +31,9 @@ class Config(BaseConfig if PYMODAQ_CONFIG_AVAILABLE else dict):
     """
 
     # PyMoDAQ configuration attributes
-    config_template_path = Path(__file__).parent.parent / 'resources' / 'config_template.toml'
+    config_template_path = (
+        Path(__file__).parent.parent / "resources" / "config_template.toml"
+    )
     config_name = "config_urashg"
 
     def __init__(self):
@@ -106,25 +107,27 @@ class Config(BaseConfig if PYMODAQ_CONFIG_AVAILABLE else dict):
         """
         if PYMODAQ_CONFIG_AVAILABLE:
             # Use PyMoDAQ's BaseConfig _config dict access
-            return self._config.get('urashg', {}).get('hardware', {}).get(device, {})
+            return self._config.get("urashg", {}).get("hardware", {}).get(device, {})
         else:
             return self.get("urashg", {}).get("hardware", {}).get(device, {})
 
     def get_measurement_config(self) -> Dict[str, Any]:
         """Get measurement configuration."""
         if PYMODAQ_CONFIG_AVAILABLE:
-            return self._config.get('urashg', {}).get('measurement', {})
+            return self._config.get("urashg", {}).get("measurement", {})
         else:
             return self.get("urashg", {}).get("measurement", {})
 
     def get_data_config(self) -> Dict[str, Any]:
         """Get data management configuration."""
         if PYMODAQ_CONFIG_AVAILABLE:
-            return self._config.get('urashg', {}).get('data', {})
+            return self._config.get("urashg", {}).get("data", {})
         else:
             return self.get("urashg", {}).get("data", {})
 
-    def get_hardware_parameter(self, device: str, parameter: str, default: Any = None) -> Any:
+    def get_hardware_parameter(
+        self, device: str, parameter: str, default: Any = None
+    ) -> Any:
         """Get a hardware parameter for a specific device."""
         device_config = self.get_hardware_config(device)
         return device_config.get(parameter, default)
@@ -146,37 +149,37 @@ class Config(BaseConfig if PYMODAQ_CONFIG_AVAILABLE else dict):
                             "settings": {
                                 "connection_group": {
                                     "serial_port": "/dev/ttyUSB0",
-                                    "mount_addresses": "2"
+                                    "mount_addresses": "2",
                                 }
-                            }
+                            },
                         },
                         "elliptec_qwp": {
                             "plugin": "DAQ_Move_Elliptec",
                             "settings": {
                                 "connection_group": {
                                     "serial_port": "/dev/ttyUSB0",
-                                    "mount_addresses": "3"
+                                    "mount_addresses": "3",
                                 }
-                            }
+                            },
                         },
                         "primebsi_camera": {
                             "plugin": "DAQ_2DViewer_PrimeBSI",
                             "settings": {
                                 "camera_settings": {
                                     "exposure": 10.0,
-                                    "mock_mode": False
+                                    "mock_mode": False,
                                 }
-                            }
-                        }
-                    }
+                            },
+                        },
+                    },
                 }
             }
         }
 
         if PYMODAQ_CONFIG_AVAILABLE:
-            return self._config.get('presets', preset_config.get('presets', {}))
+            return self._config.get("presets", preset_config.get("presets", {}))
         else:
-            return preset_config.get('presets', {})
+            return preset_config.get("presets", {})
 
 
 # Lazy configuration instance - removed global initialization to fix PyMoDAQ plugin discovery

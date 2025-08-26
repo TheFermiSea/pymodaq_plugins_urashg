@@ -16,7 +16,6 @@ Usage:
     python test_plugin_compliance.py
 """
 
-import os
 import sys
 import traceback
 from pathlib import Path
@@ -167,7 +166,7 @@ def test_data_format_compliance():
         # Test 2D data structure (for camera)
         x_axis = Axis("x", data=np.arange(100), units="pixels")
         y_axis = Axis("y", data=np.arange(100), units="pixels")
-        image_data = DataWithAxes(
+        DataWithAxes(
             "camera_image",
             data=[np.random.rand(100, 100)],
             axes=[x_axis, y_axis],
@@ -176,9 +175,7 @@ def test_data_format_compliance():
         print("✅ 2D DataWithAxes creation successful")
 
         # Test 0D data structure (for power meter)
-        power_data = DataWithAxes(
-            "power_measurement", data=[np.array([0.5])], source=DataSource.raw
-        )
+        DataWithAxes("power_measurement", data=[np.array([0.5])], source=DataSource.raw)
         print("✅ 0D DataWithAxes creation successful")
 
         return True
@@ -245,7 +242,7 @@ def test_entry_point_compliance():
                 for x in ["ESP300", "Elliptec", "MaiTai", "Newport", "PrimeBSI"]
             ):
                 try:
-                    plugin_class = ep.load()
+                    ep.load()
                     print(f"✅ Plugin loadable: {ep.name}")
                     total_loadable += 1
                 except Exception as e:

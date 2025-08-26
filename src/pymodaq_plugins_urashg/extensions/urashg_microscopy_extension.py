@@ -36,7 +36,7 @@ from pymodaq_utils.config import Config
 
 # DataActuator import moved to measurement worker
 from pymodaq_utils.logger import get_module_name, set_logger
-from qtpy import QtCore, QtWidgets
+from qtpy import QtWidgets
 from qtpy.QtCore import QThread, QTimer, Signal
 
 from pymodaq_plugins_urashg.utils.config import Config as PluginConfig
@@ -393,11 +393,12 @@ class URASHGMicroscopyExtension(CustomApp):
         super().__init__(dockarea)
 
         # Ensure dockarea is properly set (fix for test environment)
-        if hasattr(dockarea, 'addDock') and self.dockarea is None:
+        if hasattr(dockarea, "addDock") and self.dockarea is None:
             self.dockarea = dockarea
 
         # PyMoDAQ 5.x compliance - modules_manager attribute
         from unittest.mock import Mock
+
         self.modules_manager = Mock()
         self.modules_manager.actuators = {}
         self.modules_manager.detectors = {}
@@ -659,7 +660,7 @@ class URASHGMicroscopyExtension(CustomApp):
             if not self._actuators and not self._detectors_2d:
                 self.log_message(
                     "No devices connected. Please connect PyMoDAQ modules first.",
-                    "error"
+                    "error",
                 )
                 return False
 
@@ -856,13 +857,13 @@ def main():
         main_window.setCentralWidget(dock_area)
 
         # Now create the URASHG app (this will create Qt widgets)
-        urashg_app = URASHGMicroscopyExtension(dock_area)
+        URASHGMicroscopyExtension(dock_area)
 
         # Show the main window
         main_window.resize(1200, 800)
         main_window.show()
 
-        print(f"URASHG Custom App launched successfully!")
+        print("URASHG Custom App launched successfully!")
         print(f"Window title: {EXTENSION_NAME}")
 
         # Start the Qt event loop
@@ -871,6 +872,7 @@ def main():
     except Exception as e:
         print(f"Error launching URASHG app: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

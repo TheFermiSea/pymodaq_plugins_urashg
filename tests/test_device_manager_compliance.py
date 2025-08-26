@@ -24,28 +24,19 @@ if app is None:
     app = QApplication(sys.argv)
 
 import json
-import logging
 import threading
-import time
-from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from pymodaq.utils.data import Axis, DataSource, DataWithAxes
 
 # PyMoDAQ imports
 from pymodaq.utils.logger import get_module_name, set_logger
-from pymodaq.utils.parameter import Parameter
 
 # Qt imports
-from qtpy import QtCore, QtTest
-from qtpy.QtCore import QObject, QTimer, Signal
+from qtpy.QtCore import QObject, Signal
 
 # Test utilities
 from tests.mock_modules.mock_devices import (
-    MockDeviceInfo,
-    MockDeviceStatus,
     MockMovePlugin,
     MockViewerPlugin,
 )

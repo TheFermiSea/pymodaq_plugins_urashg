@@ -13,17 +13,18 @@ from pymodaq_data.data import Axis, DataSource, DataToExport, DataWithAxes
 try:
     from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+
     config = get_config()
-    camera_config = config.get_hardware_config('camera')
+    camera_config = config.get_hardware_config("camera")
 except ImportError:
     camera_config = {
-        'exposure_default': 50.0,
-        'cooling_enabled': True,
-        'cooling_temperature': -20,
-        'roi_x': 0,
-        'roi_y': 0,
-        'roi_width': 2048,
-        'roi_height': 2048
+        "exposure_default": 50.0,
+        "cooling_enabled": True,
+        "cooling_temperature": -20,
+        "roi_x": 0,
+        "roi_y": 0,
+        "roi_width": 2048,
+        "roi_height": 2048,
     }
 
 # Try to import PyVCAM and handle the case where it's not installed
@@ -99,7 +100,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                     "title": "Exposure (ms):",
                     "name": "exposure",
                     "type": "float",
-                    "value": camera_config.get('exposure_default', 50.0),
+                    "value": camera_config.get("exposure_default", 50.0),
                     "min": 0.01,
                     "max": 10000.0,
                     "suffix": "ms",
@@ -155,7 +156,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
                     "title": "Temp. Setpoint (°C):",
                     "name": "temperature_setpoint",
                     "type": "int",
-                    "value": camera_config.get('cooling_temperature', -20),
+                    "value": camera_config.get("cooling_temperature", -20),
                     "min": -40,
                     "max": 25,
                     "suffix": "°C",

@@ -9,7 +9,7 @@ import logging
 import random
 import time
 from threading import Lock
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 
 class MaiTaiError(Exception):
@@ -35,7 +35,7 @@ class MaiTaiController:
     ):
         """
         Initialize MaiTai laser controller.
-        
+
         Args:
             port: Serial port path (e.g., '/dev/ttyUSB2', 'COM3')
             baudrate: Communication baudrate (default: 9600)
@@ -47,28 +47,30 @@ class MaiTaiController:
         self.timeout = timeout
         self.mock_mode = mock_mode
         self.serial_connection = None
-        
+
         # Initialize logger
         self.logger = logging.getLogger(__name__)
-        
-        # MaiTai wavelength limits (nm)  
+
+        # MaiTai wavelength limits (nm)
         self.min_wavelength = 700.0
         self.max_wavelength = 1000.0
-        
+
         # Internal connection state
         self._connected = False
         self._serial_connection = None
         self._lock = Lock()
-        
+
         # Mock state variables
         self._mock_wavelength = 780.0  # Default wavelength
         self._mock_power = 2.5  # Default power in watts
         self._mock_shutter = False  # Shutter closed by default
-        
+
         if mock_mode:
             self.logger.info("MaiTai controller initialized in mock mode")
         else:
-            self.logger.info(f"MaiTai controller initialized for {port} at {baudrate} baud")
+            self.logger.info(
+                f"MaiTai controller initialized for {port} at {baudrate} baud"
+            )
 
     def connect(self) -> bool:
         """
@@ -398,7 +400,7 @@ class MaiTaiController:
                 response = self._send_command(command, expect_response=False)
 
                 if response is not None:
-                    self.logger.info(f"Wavelength set command sent successfully")
+                    self.logger.info("Wavelength set command sent successfully")
                     return True
                 else:
                     self.logger.error("Failed to send wavelength command")

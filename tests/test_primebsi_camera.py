@@ -7,8 +7,7 @@ Tests both real hardware functionality and mock modes for CI/CD integration.
 
 import sys
 from pathlib import Path
-from typing import List, Optional
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -419,7 +418,7 @@ class TestPrimeBSIHardware:
             )
 
             plugin = DAQ_2DViewer_PrimeBSI()
-            status = plugin.ini_detector()
+            plugin.ini_detector()
 
             if plugin.initialized:
                 # Hardware successfully initialized

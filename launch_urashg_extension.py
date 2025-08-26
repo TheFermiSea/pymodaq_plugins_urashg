@@ -131,7 +131,7 @@ def launch_standalone():
         dashboard = DashBoard(dockarea)
 
         # Initialize extension directly
-        extension = URASHGMicroscopyExtension(dockarea, dashboard)
+        URASHGMicroscopyExtension(dockarea, dashboard)
 
         # Show main window
         main_window.show()

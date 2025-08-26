@@ -23,7 +23,6 @@ This test validates:
 5. PyMoDAQ 5.x standards compliance
 """
 
-import os
 import sys
 import traceback
 from pathlib import Path
@@ -113,7 +112,7 @@ def test_esp300_plugin():
 def test_elliptec_plugin():
     """Test Elliptec plugin with real hardware on /dev/ttyUSB0."""  # ✅ FIXED: Correct port
     print("\n=== Testing Elliptec PyMoDAQ Plugin ===")
-    
+
     try:
         from pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec import (
             DAQ_Move_Elliptec,
@@ -133,7 +132,9 @@ def test_elliptec_plugin():
             print("✅ Connection group parameter exists")
 
             # Configure for the detected hardware
-            connection_group.child("serial_port").setValue("/dev/ttyUSB0")  # ✅ FIXED: Correct port
+            connection_group.child("serial_port").setValue(
+                "/dev/ttyUSB0"
+            )  # ✅ FIXED: Correct port
             connection_group.child("baudrate").setValue(9600)
             connection_group.child("timeout").setValue(5000)
             print("✅ Hardware parameters configured")
@@ -144,7 +145,7 @@ def test_elliptec_plugin():
             timeout = connection_group.child("timeout").value()
 
             print(f"   Port: {port}")
-            print(f"   Baudrate: {baudrate}")  
+            print(f"   Baudrate: {baudrate}")
             print(f"   Timeout: {timeout}")
 
             assert port == "/dev/ttyUSB0"  # ✅ FIXED: Correct port assertion
@@ -161,7 +162,7 @@ def test_elliptec_plugin():
             info, success = plugin.ini_actuator(controller=None)
             print(f"   Initialization info: {info}")
             print(f"   Success: {success}")
-            
+
             # Don't assert success as hardware might not be available
             print("✅ Plugin initialization completed (mock mode)")
 
@@ -172,11 +173,13 @@ def test_elliptec_plugin():
         # Test parameter tree structure
         if hasattr(plugin, "params"):
             print("✅ Plugin has parameter structure")
-            
+
         print("\n=== Elliptec Plugin Test Summary ===")
         print("✅ Plugin class works correctly")
         print("✅ Parameters are properly structured")
-        print("✅ Ready for hardware connection on /dev/ttyUSB0")  # ✅ FIXED: Correct port
+        print(
+            "✅ Ready for hardware connection on /dev/ttyUSB0"
+        )  # ✅ FIXED: Correct port
 
         return True
 
@@ -256,7 +259,7 @@ def test_newport_plugin():
 def test_maitai_plugin():
     """Test MaiTai laser plugin with real hardware on /dev/ttyUSB2."""  # ✅ FIXED: Correct port
     print("\n=== Testing MaiTai Laser PyMoDAQ Plugin ===")
-    
+
     try:
         from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
             DAQ_Move_MaiTai,
@@ -276,8 +279,12 @@ def test_maitai_plugin():
             print("✅ Connection group parameter exists")
 
             # Configure for the detected hardware
-            connection_group.child("serial_port").setValue("/dev/ttyUSB2")  # ✅ FIXED: Correct port
-            connection_group.child("baudrate").setValue(9600)  # ✅ FIXED: Correct baudrate
+            connection_group.child("serial_port").setValue(
+                "/dev/ttyUSB2"
+            )  # ✅ FIXED: Correct port
+            connection_group.child("baudrate").setValue(
+                9600
+            )  # ✅ FIXED: Correct baudrate
             connection_group.child("timeout").setValue(5000)
             print("✅ Hardware parameters configured")
 
@@ -298,13 +305,13 @@ def test_maitai_plugin():
         except Exception as e:
             print(f"⚠️ Warning: Could not access connection parameters: {e}")
 
-        # Test mock initialization (safe without hardware)  
+        # Test mock initialization (safe without hardware)
         try:
             # This should work in mock mode
             info, success = plugin.ini_actuator(controller=None)
             print(f"   Initialization info: {info}")
             print(f"   Success: {success}")
-            
+
             # Don't assert success as hardware might not be available
             print("✅ Plugin initialization completed (mock mode)")
 
@@ -315,11 +322,13 @@ def test_maitai_plugin():
         # Test parameter tree structure
         if hasattr(plugin, "params"):
             print("✅ Plugin has parameter structure")
-            
+
         print("\n=== MaiTai Plugin Test Summary ===")
         print("✅ Plugin class works correctly")
-        print("✅ Parameters are properly structured") 
-        print("✅ Ready for hardware connection on /dev/ttyUSB2 at 9600 baud")  # ✅ FIXED: Correct info
+        print("✅ Parameters are properly structured")
+        print(
+            "✅ Ready for hardware connection on /dev/ttyUSB2 at 9600 baud"
+        )  # ✅ FIXED: Correct info
 
         return True
 
@@ -342,11 +351,11 @@ def test_pymodaq_compliance():
         from pymodaq.utils.data import DataActuator
 
         # Test DataActuator creation
-        test_data = DataActuator(data=[np.array([800.0])])
+        DataActuator(data=[np.array([800.0])])
         print("✅ DataActuator creation successful")
 
         # Test multi-axis DataActuator
-        multi_data = DataActuator(data=[np.array([1.0, 2.0, 3.0])])
+        DataActuator(data=[np.array([1.0, 2.0, 3.0])])
         print("✅ Multi-axis DataActuator creation successful")
 
         # Test DataWithAxes import
@@ -354,7 +363,7 @@ def test_pymodaq_compliance():
             from pymodaq_data import Axis, DataSource, DataWithAxes
 
             test_axis = Axis("wavelength", data=np.linspace(700, 900, 100), units="nm")
-            test_image = DataWithAxes(
+            DataWithAxes(
                 "test_image",
                 data=[np.random.rand(100, 100)],
                 axes=[test_axis, test_axis],

@@ -19,9 +19,8 @@ can run in any environment without hardware dependencies.
 
 import time
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-from unittest.mock import MagicMock, Mock
+from typing import Any, Dict, List, Union
+from unittest.mock import Mock
 
 import numpy as np
 

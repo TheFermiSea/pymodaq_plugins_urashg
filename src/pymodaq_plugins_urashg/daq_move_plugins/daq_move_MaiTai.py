@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
@@ -14,15 +12,16 @@ from pymodaq_utils.utils import ThreadCommand
 try:
     from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+
     config = get_config()
-    maitai_config = config.get_hardware_config('maitai')
+    maitai_config = config.get_hardware_config("maitai")
 except ImportError:
     maitai_config = {
-        'serial_port': '/dev/ttyUSB2',
-        'baudrate': 9600,
-        'timeout': 2.0,
-        'wavelength_range_min': 700.0,
-        'wavelength_range_max': 1000.0
+        "serial_port": "/dev/ttyUSB2",
+        "baudrate": 9600,
+        "timeout": 2.0,
+        "wavelength_range_min": 700.0,
+        "wavelength_range_max": 1000.0,
     }
 
 
@@ -79,7 +78,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": maitai_config.get('serial_port', '/dev/ttyUSB2'),
+                    "value": maitai_config.get("serial_port", "/dev/ttyUSB2"),
                     "tip": "Serial port for MaiTai laser (e.g. /dev/ttyUSB2 or COM3)",
                 },
                 {
@@ -87,14 +86,14 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "name": "baudrate",
                     "type": "list",
                     "limits": [9600, 19200, 38400, 57600, 115200],
-                    "value": maitai_config.get('baudrate', 9600),
+                    "value": maitai_config.get("baudrate", 9600),
                     "tip": "Serial communication baud rate for MaiTai laser",
                 },
                 {
                     "title": "Timeout (s):",
                     "name": "timeout",
                     "type": "float",
-                    "value": maitai_config.get('timeout', 2.0),
+                    "value": maitai_config.get("timeout", 2.0),
                     "min": 0.1,
                     "max": 10.0,
                     "tip": "Communication timeout in seconds",
@@ -132,7 +131,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                             "title": "Min Wavelength (nm):",
                             "name": "min_wavelength",
                             "type": "float",
-                            "value": maitai_config.get('wavelength_range_min', 700.0),
+                            "value": maitai_config.get("wavelength_range_min", 700.0),
                             "min": 700.0,
                             "max": 1000.0,
                             "readonly": True,
@@ -142,7 +141,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                             "title": "Max Wavelength (nm):",
                             "name": "max_wavelength",
                             "type": "float",
-                            "value": maitai_config.get('wavelength_range_max', 1000.0),
+                            "value": maitai_config.get("wavelength_range_max", 1000.0),
                             "min": 700.0,
                             "max": 1000.0,
                             "readonly": True,
@@ -197,7 +196,9 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         """Initialize the MaiTai laser controller."""
         self.initialized = False
         try:
-            self.emit_status(ThreadCommand("show_splash", "Initializing MaiTai Laser..."))
+            self.emit_status(
+                ThreadCommand("show_splash", "Initializing MaiTai Laser...")
+            )
 
             # Get connection parameters
             port = self.settings.child("connection_group", "serial_port").value()
@@ -216,12 +217,12 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
             # Real hardware initialization
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+                from pymodaq_plugins_urashg.hardware.urashg.maitai_control import (
+                    MaiTaiController,
+                )
+
                 self.controller = MaiTaiController(
-                    port=port,
-                    baudrate=baudrate,
-                    timeout=timeout,
-                    mock_mode=False
+                    port=port, baudrate=baudrate, timeout=timeout, mock_mode=False
                 )
 
                 if self.controller.connect():
@@ -250,21 +251,23 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
     def check_bound(self, wavelength):
         """Ensure wavelength is within valid range"""
-        min_wl = self.settings.child('bounds_group', 'min_position').value()
-        max_wl = self.settings.child('bounds_group', 'max_position').value()
+        min_wl = self.settings.child("bounds_group", "min_position").value()
+        max_wl = self.settings.child("bounds_group", "max_position").value()
         return max(min_wl, min(max_wl, wavelength))
 
     def get_actuator_value(self):
         """Get current wavelength position."""
         try:
-            if self.controller and hasattr(self.controller, 'get_wavelength'):
+            if self.controller and hasattr(self.controller, "get_wavelength"):
                 wavelength = self.controller.get_wavelength()
                 # PyMoDAQ expects raw numpy arrays - framework wraps in DataActuator
                 return [np.array([wavelength])]
             # Default wavelength as raw numpy arrays
             return [np.array([800.0])]
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error reading position: {e}"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error reading position: {e}"])
+            )
             # Return default wavelength as raw numpy arrays
             return [np.array([800.0])]
 
@@ -280,19 +283,29 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
 
             target_wavelength = self.check_bound(target_wavelength)
 
-            if self.controller and hasattr(self.controller, 'set_wavelength'):
+            if self.controller and hasattr(self.controller, "set_wavelength"):
                 success = self.controller.set_wavelength(target_wavelength)
                 if success:
-                    self.emit_status(ThreadCommand("Update_Status",
-                                                 [f"Moved to {target_wavelength} nm"]))
+                    self.emit_status(
+                        ThreadCommand(
+                            "Update_Status", [f"Moved to {target_wavelength} nm"]
+                        )
+                    )
                     self.move_done()  # Signal completion
                 else:
-                    self.emit_status(ThreadCommand("Update_Status",
-                                                 [f"Failed to move to {target_wavelength} nm"]))
+                    self.emit_status(
+                        ThreadCommand(
+                            "Update_Status",
+                            [f"Failed to move to {target_wavelength} nm"],
+                        )
+                    )
             else:
                 # Mock successful move
-                self.emit_status(ThreadCommand("Update_Status",
-                                             [f"Mock moved to {target_wavelength} nm"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", [f"Mock moved to {target_wavelength} nm"]
+                    )
+                )
                 self.move_done()  # Signal completion
 
         except Exception as e:
@@ -303,7 +316,11 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
         try:
             # Get current wavelength
             current_arrays = self.get_actuator_value()
-            current_wavelength = float(current_arrays[0][0]) if len(current_arrays) > 0 and len(current_arrays[0]) > 0 else 800.0
+            current_wavelength = (
+                float(current_arrays[0][0])
+                if len(current_arrays) > 0 and len(current_arrays[0]) > 0
+                else 800.0
+            )
 
             if isinstance(position, DataActuator):
                 relative_wavelength = position.value()
@@ -317,16 +334,24 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             self.move_abs(target_wavelength)
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error in relative move: {e}"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error in relative move: {e}"])
+            )
 
     def move_home(self):
         """Move to home wavelength position (800nm)."""
         try:
             home_wavelength = 800.0
             self.move_abs(home_wavelength)
-            self.emit_status(ThreadCommand("Update_Status", [f"Moved to home position: {home_wavelength} nm"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status", [f"Moved to home position: {home_wavelength} nm"]
+                )
+            )
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error moving home: {e}"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error moving home: {e}"])
+            )
 
     def stop_motion(self):
         """Stop wavelength movement."""
@@ -335,18 +360,22 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             self.emit_status(ThreadCommand("Update_Status", ["Motion stopped"]))
             self.move_done()
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error stopping motion: {e}"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error stopping motion: {e}"])
+            )
 
     def close(self):
         """Close the laser controller."""
         try:
             if self.controller:
-                if hasattr(self.controller, 'close'):
+                if hasattr(self.controller, "close"):
                     self.controller.close()
-                elif hasattr(self.controller, 'disconnect'):
+                elif hasattr(self.controller, "disconnect"):
                     self.controller.disconnect()
                 self.controller = None
-            self.emit_status(ThreadCommand("Update_Status", ["MaiTai connection closed"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", ["MaiTai connection closed"])
+            )
         except Exception as e:
             self.emit_status(ThreadCommand("Update_Status", [f"Error closing: {e}"]))
 
@@ -361,41 +390,61 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 wavelength = param.value()
                 self.move_abs(wavelength)
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error in commit_settings: {e}"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error in commit_settings: {e}"])
+            )
 
     def open_shutter(self):
         """Open the laser shutter."""
         try:
-            if self.controller and hasattr(self.controller, 'open_shutter'):
+            if self.controller and hasattr(self.controller, "open_shutter"):
                 success = self.controller.open_shutter()
                 if success:
-                    self.settings.child("shutter_group", "shutter_status").setValue("Open")
+                    self.settings.child("shutter_group", "shutter_status").setValue(
+                        "Open"
+                    )
                     self.emit_status(ThreadCommand("Update_Status", ["Shutter opened"]))
                 else:
-                    self.emit_status(ThreadCommand("Update_Status", ["Failed to open shutter"]))
+                    self.emit_status(
+                        ThreadCommand("Update_Status", ["Failed to open shutter"])
+                    )
             else:
                 # Mock shutter operation
                 self.settings.child("shutter_group", "shutter_status").setValue("Open")
-                self.emit_status(ThreadCommand("Update_Status", ["Mock shutter opened"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Mock shutter opened"])
+                )
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error opening shutter: {e}"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error opening shutter: {e}"])
+            )
 
     def close_shutter(self):
         """Close the laser shutter."""
         try:
-            if self.controller and hasattr(self.controller, 'close_shutter'):
+            if self.controller and hasattr(self.controller, "close_shutter"):
                 success = self.controller.close_shutter()
                 if success:
-                    self.settings.child("shutter_group", "shutter_status").setValue("Closed")
+                    self.settings.child("shutter_group", "shutter_status").setValue(
+                        "Closed"
+                    )
                     self.emit_status(ThreadCommand("Update_Status", ["Shutter closed"]))
                 else:
-                    self.emit_status(ThreadCommand("Update_Status", ["Failed to close shutter"]))
+                    self.emit_status(
+                        ThreadCommand("Update_Status", ["Failed to close shutter"])
+                    )
             else:
                 # Mock shutter operation
-                self.settings.child("shutter_group", "shutter_status").setValue("Closed")
-                self.emit_status(ThreadCommand("Update_Status", ["Mock shutter closed"]))
+                self.settings.child("shutter_group", "shutter_status").setValue(
+                    "Closed"
+                )
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Mock shutter closed"])
+                )
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error closing shutter: {e}"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error closing shutter: {e}"])
+            )
 
 
 class MockMaiTaiController:

@@ -35,13 +35,11 @@ import importlib.metadata
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
 from unittest.mock import Mock, patch
 
 import pytest
 
 # Qt imports
-from qtpy import QtCore, QtWidgets
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -225,7 +223,6 @@ class TestExtensionArchitectureCompliance:
 
     def test_extension_signal_architecture(self, extension_class):
         """Test extension signal architecture follows PyMoDAQ patterns."""
-        from qtpy.QtCore import Signal
 
         required_signals = [
             "measurement_started",
@@ -516,7 +513,7 @@ class TestErrorHandlingCompliance:
             )
 
             if not QtWidgets.QApplication.instance():
-                app = QtWidgets.QApplication([])
+                QtWidgets.QApplication([])
 
             parent = QtWidgets.QWidget()
             extension = URASHGMicroscopyExtension(parent)
@@ -539,9 +536,6 @@ class TestErrorHandlingCompliance:
             side_effect=ImportError,
         ):
             try:
-                from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import (
-                    URASHGMicroscopyExtension,
-                )
 
                 # Should still be importable even if device manager fails
                 logger.info("✓ Graceful degradation is working")
@@ -564,7 +558,7 @@ class TestConfigurationManagement:
             )
 
             if not QtWidgets.QApplication.instance():
-                app = QtWidgets.QApplication([])
+                QtWidgets.QApplication([])
 
             parent = QtWidgets.QWidget()
             extension = URASHGMicroscopyExtension(parent)

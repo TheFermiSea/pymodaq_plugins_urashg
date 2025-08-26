@@ -15,9 +15,9 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -441,7 +441,7 @@ class PyRPLConnection:
                     logger.debug(f"Ignoring PyRPL ZeroDivisionError: {e}")
                     if self._pyrpl and self._redpitaya:
                         logger.info(
-                            f"PyRPL connection successful despite ZeroDivisionError"
+                            "PyRPL connection successful despite ZeroDivisionError"
                         )
                         self.state = ConnectionState.CONNECTED
                         self.connected_at = time.time()

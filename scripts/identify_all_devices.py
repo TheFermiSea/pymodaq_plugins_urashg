@@ -65,7 +65,7 @@ def identify_esp300(port):
                     return True, baud
         except serial.SerialException:
             pass
-        except Exception as e:
+        except Exception:
             continue
     return False, None
 
@@ -87,69 +87,71 @@ if __name__ == "__main__":
     newport_found = False
     elliptec_found = False
     esp300_found = False
-    
+
     # Track found configurations
     found_configs = {}
 
     print("=== DEVICE IDENTIFICATION SCAN ===")
-    
+
     for port in ports:
         print(f"\nScanning {port}...")
-        
+
         if not maitai_found:
             for baud in baudrates:
                 found, working_baud = identify_maitai(port, baud)
                 if found:
                     maitai_found = True
-                    found_configs['maitai'] = {'port': port, 'baudrate': working_baud}
+                    found_configs["maitai"] = {"port": port, "baudrate": working_baud}
                     break
         if not newport_found:
             if identify_newport(port):
                 newport_found = True
-                found_configs['newport'] = {'port': port, 'baudrate': 9600}
+                found_configs["newport"] = {"port": port, "baudrate": 9600}
         if not elliptec_found:
             if identify_elliptec(port):
                 elliptec_found = True
-                found_configs['elliptec'] = {'port': port, 'baudrate': 9600}
+                found_configs["elliptec"] = {"port": port, "baudrate": 9600}
         if not esp300_found:
             found, baud = identify_esp300(port)
             if found:
                 esp300_found = True
-                found_configs['esp300'] = {'port': port, 'baudrate': baud}
+                found_configs["esp300"] = {"port": port, "baudrate": baud}
 
     print("\n=== FINAL RESULTS ===")
-    
+
     # Display found devices with their configurations
     if maitai_found:
-        config = found_configs['maitai']
+        config = found_configs["maitai"]
         print(f"✅ MaiTai: {config['port']} at {config['baudrate']} baud")
     else:
         print("❌ MaiTai laser not found on any port/baud combination.")
-        
+
     if newport_found:
-        config = found_configs['newport']
+        config = found_configs["newport"]
         print(f"✅ Newport: {config['port']} at {config['baudrate']} baud")
     else:
         print("❌ Newport power meter not found on any port.")
-        
+
     if elliptec_found:
-        config = found_configs['elliptec']
+        config = found_configs["elliptec"]
         print(f"✅ Elliptec: {config['port']} at {config['baudrate']} baud")
     else:
         print("❌ Elliptec controller not found on any port.")
-        
+
     if esp300_found:
-        config = found_configs['esp300']
+        config = found_configs["esp300"]
         print(f"✅ ESP300: {config['port']} at {config['baudrate']} baud")
     else:
         print("❌ ESP300 motion controller not found on any port.")
-    
+
     # Summary
     found_devices = sum([maitai_found, newport_found, elliptec_found, esp300_found])
     print(f"\n✅ Found {found_devices}/4 devices")
-    
+
     # Configuration recommendations
     if found_devices > 0:
         print("\n=== CONFIGURATION RECOMMENDATIONS ===")
         for device, config in found_configs.items():
-            print(f"{device.upper()}: port={config['port']}, baudrate={config['baudrate']}")
+            print(
+                f"{device.upper()}: port={config['port']}, baudrate={config['baudrate']}"
+            )

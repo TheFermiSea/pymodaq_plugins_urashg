@@ -19,29 +19,21 @@ Test Categories:
 
 import importlib.metadata
 import json
-import logging
-import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
 from unittest.mock import MagicMock, Mock, patch
 
-import pyqtgraph as pg
 import pytest
 from pymodaq_gui.utils.custom_app import CustomApp
-from pymodaq.utils.config import Config
-from pymodaq.utils.data import Axis, DataSource, DataWithAxes
 from pymodaq.utils.logger import get_module_name, set_logger
 
 # PyMoDAQ imports
-from pymodaq.utils.parameter import Parameter
 
 # Qt imports
-from qtpy import QtCore, QtTest, QtWidgets
-from qtpy.QtCore import QTimer, Signal
+from qtpy import QtCore, QtWidgets
+from qtpy.QtCore import Signal
 
 # Test utilities
-from tests.mock_modules.mock_devices import MockDeviceManager, MockDeviceStatus
 
 logger = set_logger(get_module_name(__file__))
 
@@ -343,7 +335,7 @@ class TestExtensionDeviceIntegration:
                     )
 
                     if not QtWidgets.QApplication.instance():
-                        app = QtWidgets.QApplication([])
+                        QtWidgets.QApplication([])
 
                     # Create mock parent and dashboard for PyMoDAQ CustomExt pattern
                     mock_parent = Mock(spec=QtWidgets.QWidget)
@@ -431,7 +423,7 @@ class TestExtensionMeasurementCompliance:
                     )
 
                     if not QtWidgets.QApplication.instance():
-                        app = QtWidgets.QApplication([])
+                        QtWidgets.QApplication([])
 
                     # Create mock parent and dashboard for PyMoDAQ CustomExt pattern
                     mock_parent = Mock(spec=QtWidgets.QWidget)
@@ -526,7 +518,7 @@ class TestExtensionConfigurationCompliance:
                     )
 
                     if not QtWidgets.QApplication.instance():
-                        app = QtWidgets.QApplication([])
+                        QtWidgets.QApplication([])
 
                     # Create mock parent and dashboard for PyMoDAQ CustomExt pattern
                     mock_parent = Mock(spec=QtWidgets.QWidget)
@@ -621,7 +613,7 @@ class TestExtensionErrorHandling:
                     )
 
                     if not QtWidgets.QApplication.instance():
-                        app = QtWidgets.QApplication([])
+                        QtWidgets.QApplication([])
 
                     # Create mock parent and dashboard for PyMoDAQ CustomExt pattern
                     mock_parent = Mock(spec=QtWidgets.QWidget)
@@ -720,7 +712,7 @@ class TestExtensionThreadSafety:
                     )
 
                     if not QtWidgets.QApplication.instance():
-                        app = QtWidgets.QApplication([])
+                        QtWidgets.QApplication([])
 
                     # Create mock parent and dashboard for PyMoDAQ CustomExt pattern
                     mock_parent = Mock(spec=QtWidgets.QWidget)
@@ -823,7 +815,6 @@ class TestExtensionIntegrationCompliance:
     def test_package_metadata_compliance(self):
         """Test package metadata follows PyMoDAQ standards."""
         try:
-            import pymodaq_plugins_urashg
 
             metadata = importlib.metadata.metadata("pymodaq-plugins-urashg")
         except importlib.metadata.PackageNotFoundError:

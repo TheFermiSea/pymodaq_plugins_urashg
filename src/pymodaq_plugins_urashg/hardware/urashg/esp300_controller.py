@@ -11,7 +11,7 @@ Based on PyMeasure ESP300 implementation with URASHG-specific adaptations.
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import serial
 

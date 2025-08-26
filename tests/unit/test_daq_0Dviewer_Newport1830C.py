@@ -5,7 +5,7 @@ Unit tests for the DAQ_0DViewer_Newport1830C plugin.
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 

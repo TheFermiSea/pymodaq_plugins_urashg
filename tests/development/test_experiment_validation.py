@@ -5,7 +5,6 @@ Tests core functionality and parameter validation
 """
 
 import logging
-import os
 import sys
 
 # Set up logging
@@ -59,7 +58,7 @@ def test_experiment_imports():
     for name, module_path, class_name in experiments:
         try:
             module = __import__(module_path, fromlist=[class_name])
-            experiment_class = getattr(module, class_name)
+            getattr(module, class_name)
             print(f"✅ {name}: Import successful")
             success_count += 1
         except Exception as e:

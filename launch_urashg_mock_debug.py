@@ -89,7 +89,6 @@ def patch_pymodaq_imports():
 def create_mock_dashboard():
     """Create a mock PyMoDAQ dashboard with DockArea for the extension."""
     from pyqtgraph.dockarea import DockArea
-    from qtpy.QtCore import QObject
     from qtpy.QtCore import Signal as pyqtSignal
     from qtpy.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget
 
@@ -165,7 +164,6 @@ def launch_extension_mock_mode():
         logger.info("Starting μRASHG Extension Mock Debug Launcher")
 
         # Import Qt components
-        from qtpy.QtCore import Qt
         from qtpy.QtWidgets import QApplication
 
         # Create QApplication

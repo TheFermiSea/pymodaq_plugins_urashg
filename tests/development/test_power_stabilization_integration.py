@@ -32,12 +32,9 @@ import sys
 import time
 import traceback
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 # Add the source directory to the path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
-
-import numpy as np
 
 
 def setup_logging(verbose: bool = False):
@@ -64,21 +61,19 @@ def test_pyrpl_wrapper_import():
             PYRPL_WRAPPER_AVAILABLE,
             InputChannel,
             OutputChannel,
-            PIDChannel,
             PIDConfiguration,
-            PyRPLConnection,
             PyRPLManager,
             get_pyrpl_manager,
         )
 
-        print(f"✓ PyRPL wrapper import successful")
+        print("✓ PyRPL wrapper import successful")
         print(f"✓ PyRPL hardware support available: {PYRPL_WRAPPER_AVAILABLE}")
 
         # Test manager singleton
         manager1 = get_pyrpl_manager()
         manager2 = PyRPLManager.get_instance()
         assert manager1 is manager2, "Manager singleton not working"
-        print(f"✓ Manager singleton pattern working")
+        print("✓ Manager singleton pattern working")
 
         # Test configuration classes
         pid_config = PIDConfiguration(
@@ -127,7 +122,7 @@ def test_power_stabilization_controller(use_hardware: bool = False):
 
         # Test controller initialization
         controller = PowerStabilizationController(config)
-        print(f"✓ Controller initialized")
+        print("✓ Controller initialized")
 
         # Test connection
         if controller.connect():
@@ -144,7 +139,7 @@ def test_power_stabilization_controller(use_hardware: bool = False):
 
                 # Test power stabilization
                 if controller.start_stabilization():
-                    print(f"✓ Power stabilization started")
+                    print("✓ Power stabilization started")
 
                     # Wait a bit and check power
                     time.sleep(2)
@@ -164,25 +159,25 @@ def test_power_stabilization_controller(use_hardware: bool = False):
                     # Test context manager
                     with controller.power_stabilization_context(target) as stable:
                         if stable:
-                            print(f"✓ Power stabilization context working")
+                            print("✓ Power stabilization context working")
                         else:
                             print(
-                                f"⚠ Power stabilization context failed (expected in mock mode)"
+                                "⚠ Power stabilization context failed (expected in mock mode)"
                             )
 
                     controller.stop_stabilization()
-                    print(f"✓ Power stabilization stopped")
+                    print("✓ Power stabilization stopped")
                 else:
-                    print(f"✗ Failed to start power stabilization")
+                    print("✗ Failed to start power stabilization")
                     return False
             else:
-                print(f"✗ Failed to set power target")
+                print("✗ Failed to set power target")
                 return False
 
             controller.disconnect()
-            print(f"✓ Disconnected from Red Pitaya")
+            print("✓ Disconnected from Red Pitaya")
         else:
-            print(f"✗ Failed to connect to Red Pitaya")
+            print("✗ Failed to connect to Red Pitaya")
             return False
 
         return True
@@ -208,7 +203,7 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
             DAQ_Move_URASHG_PyRPL_PID,
         )
 
-        print(f"✓ URASHG PyRPL PID plugin imported successfully")
+        print("✓ URASHG PyRPL PID plugin imported successfully")
 
         # Create plugin instance
         plugin = DAQ_Move_URASHG_PyRPL_PID()
@@ -227,9 +222,7 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
                     f"✓ Plugin configured for {'hardware' if use_hardware else 'mock'} mode"
                 )
             except:
-                print(
-                    f"⚠ Could not configure plugin settings (expected during testing)"
-                )
+                print("⚠ Could not configure plugin settings (expected during testing)")
 
         # Test basic attributes
         print(f"✓ Plugin units: {plugin._controller_units}")
@@ -258,15 +251,15 @@ def test_urashg_pyrpl_pid_plugin(use_hardware: bool = False):
 
                 # Test home position
                 plugin.move_home()
-                print(f"✓ Move to home completed")
+                print("✓ Move to home completed")
 
                 # Test stop motion
                 plugin.stop_motion()
-                print(f"✓ Stop motion completed")
+                print("✓ Stop motion completed")
 
                 # Cleanup
                 plugin.close()
-                print(f"✓ Plugin closed successfully")
+                print("✓ Plugin closed successfully")
 
             else:
                 print(
@@ -301,7 +294,7 @@ def test_wavelength_dependent_experiment(use_hardware: bool = False):
             WavelengthDependentRASHGExperiment,
         )
 
-        print(f"✓ Wavelength-dependent experiment imported successfully")
+        print("✓ Wavelength-dependent experiment imported successfully")
 
         # Create experiment instance (without PyMoDAQ dashboard)
         experiment = WavelengthDependentRASHGExperiment(dashboard=None)
@@ -350,13 +343,13 @@ def test_wavelength_dependent_experiment(use_hardware: bool = False):
         # Test hardware initialization (mock mode)
         try:
             if experiment.initialize_hardware():
-                print(f"✓ Hardware initialized successfully")
+                print("✓ Hardware initialized successfully")
 
                 # Test cleanup
                 experiment.cleanup_hardware()
-                print(f"✓ Hardware cleanup completed")
+                print("✓ Hardware cleanup completed")
             else:
-                print(f"⚠ Hardware initialization failed (expected without full setup)")
+                print("⚠ Hardware initialization failed (expected without full setup)")
         except Exception as e:
             print(f"⚠ Hardware test skipped: {e}")
 
@@ -377,7 +370,6 @@ def test_error_handling_and_safety():
     try:
         from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import (
             PowerStabilizationController,
-            PowerStabilizationError,
             PowerTarget,
             StabilizationConfiguration,
         )

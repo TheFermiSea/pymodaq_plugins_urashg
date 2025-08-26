@@ -11,7 +11,6 @@ Usage:
 
 import logging
 import sys
-from typing import Dict, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

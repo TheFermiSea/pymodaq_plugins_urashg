@@ -21,7 +21,7 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -35,8 +35,6 @@ from ...utils import (
     PIDConfiguration,
     PyRPLConnection,
     PyRPLManager,
-    connect_redpitaya,
-    disconnect_redpitaya,
     get_pyrpl_manager,
 )
 

@@ -58,7 +58,7 @@ def test_plugin_loading():
                     ]
 
                 if ep_list:
-                    plugin_class = ep_list[0].load()
+                    ep_list[0].load()
                     print(f"✅ {plugin_name}: Loaded successfully")
                 else:
                     print(f"❌ {plugin_name}: Entry point not found")
@@ -222,7 +222,6 @@ def test_maitai_laser():
     print("\n=== Testing MaiTai Laser ===")
 
     try:
-        from pymodaq.utils.data import DataActuator
 
         from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
             DAQ_Move_MaiTai,
@@ -269,7 +268,6 @@ def test_esp300_controller():
     print("\n=== Testing ESP300 Controller ===")
 
     try:
-        from pymodaq.utils.data import DataActuator
 
         from pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300 import (
             DAQ_Move_ESP300,

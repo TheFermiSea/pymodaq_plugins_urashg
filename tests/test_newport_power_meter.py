@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 from typing import List, Optional
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
@@ -206,11 +206,9 @@ def mock_newport_controller():
 def mock_pymodaq_environment():
     """Fixture to setup mock PyMoDAQ environment."""
     from tests.mock_modules.mock_pymodaq import (
-        MockAxis,
         MockDAQViewerBase,
         MockDataToExport,
         MockDataWithAxes,
-        MockParameter,
         MockThreadCommand,
     )
 
@@ -249,7 +247,6 @@ def newport_plugin(mock_serial_environment, mock_pymodaq_environment):
     plugin = DAQ_0DViewer_Newport1830C()
 
     # Replace the controller creation with our mock
-    original_init = plugin.ini_detector
 
     def mock_ini_detector(controller=None):
         """Mock initialization that always succeeds."""

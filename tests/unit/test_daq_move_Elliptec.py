@@ -13,7 +13,7 @@ Tests all the fixes implemented including:
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
@@ -47,7 +47,7 @@ def elliptec_plugin_with_mock_controller():
 
     # Create comprehensive mock controller
     mock_controller = Mock()
-    mock_controller.mount_addresses = ['2', '3', '8']
+    mock_controller.mount_addresses = ["2", "3", "8"]
     mock_controller.connect.return_value = True
     mock_controller.disconnect.return_value = True
     mock_controller.is_connected.return_value = True
@@ -55,9 +55,7 @@ def elliptec_plugin_with_mock_controller():
     mock_controller.home.return_value = True
     mock_controller.move_absolute.return_value = True
     mock_controller.move_relative.return_value = True
-    mock_controller.get_all_positions.return_value = {
-        '2': 10.0, '3': 20.0, '8': 30.0
-    }
+    mock_controller.get_all_positions.return_value = {"2": 10.0, "3": 20.0, "8": 30.0}
 
     plugin.controller = mock_controller
     plugin.initialized = True
@@ -133,9 +131,9 @@ def test_move_abs_with_list(elliptec_plugin_with_mock_controller):
     assert elliptec_plugin_with_mock_controller.controller.move_absolute.call_count == 3
 
     calls = elliptec_plugin_with_mock_controller.controller.move_absolute.call_args_list
-    assert calls[0][0] == ('2', 30.0)
-    assert calls[1][0] == ('3', 60.0)
-    assert calls[2][0] == ('8', 120.0)
+    assert calls[0][0] == ("2", 30.0)
+    assert calls[1][0] == ("3", 60.0)
+    assert calls[2][0] == ("8", 120.0)
 
 
 def test_move_abs_bounds_checking(elliptec_plugin_with_mock_controller):
@@ -146,9 +144,9 @@ def test_move_abs_bounds_checking(elliptec_plugin_with_mock_controller):
     elliptec_plugin_with_mock_controller.move_abs(target_positions)
 
     calls = elliptec_plugin_with_mock_controller.controller.move_absolute.call_args_list
-    assert calls[0][0] == ('2', 180.0)  # Clamped to max
-    assert calls[1][0] == ('3', -180.0) # Clamped to min
-    assert calls[2][0] == ('8', 45.0)   # Within bounds
+    assert calls[0][0] == ("2", 180.0)  # Clamped to max
+    assert calls[1][0] == ("3", -180.0)  # Clamped to min
+    assert calls[2][0] == ("8", 45.0)  # Within bounds
 
 
 def test_move_abs_insufficient_positions(elliptec_plugin_with_mock_controller):
@@ -159,9 +157,9 @@ def test_move_abs_insufficient_positions(elliptec_plugin_with_mock_controller):
 
     # Should pad with 0.0 for missing axes
     calls = elliptec_plugin_with_mock_controller.controller.move_absolute.call_args_list
-    assert calls[0][0] == ('2', 45.0)
-    assert calls[1][0] == ('3', 0.0)
-    assert calls[2][0] == ('8', 0.0)
+    assert calls[0][0] == ("2", 45.0)
+    assert calls[1][0] == ("3", 0.0)
+    assert calls[2][0] == ("8", 0.0)
 
 
 def test_move_abs_no_controller(elliptec_plugin):
@@ -184,9 +182,9 @@ def test_move_rel(elliptec_plugin_with_mock_controller):
     # With mock returning {2: 10.0, 3: 20.0, 8: 30.0}
     # Expected targets: [15.0, 10.0, 45.0]
     calls = elliptec_plugin_with_mock_controller.controller.move_absolute.call_args_list
-    assert calls[0][0] == ('2', 15.0)  # 10.0 + 5.0
-    assert calls[1][0] == ('3', 10.0)  # 20.0 + (-10.0)
-    assert calls[2][0] == ('8', 45.0)  # 30.0 + 15.0
+    assert calls[0][0] == ("2", 15.0)  # 10.0 + 5.0
+    assert calls[1][0] == ("3", 10.0)  # 20.0 + (-10.0)
+    assert calls[2][0] == ("8", 45.0)  # 30.0 + 15.0
 
 
 def test_move_home(elliptec_plugin_with_mock_controller):
@@ -206,15 +204,15 @@ def test_home_axis(elliptec_plugin_with_mock_controller):
     """Test home_axis method for individual axis control."""
     # Test homing axis 0 (HWP_Incident)
     elliptec_plugin_with_mock_controller.home_axis(0)
-    elliptec_plugin_with_mock_controller.controller.home.assert_called_with('2')
+    elliptec_plugin_with_mock_controller.controller.home.assert_called_with("2")
 
     # Test homing axis 1 (QWP)
     elliptec_plugin_with_mock_controller.home_axis(1)
-    elliptec_plugin_with_mock_controller.controller.home.assert_called_with('3')
+    elliptec_plugin_with_mock_controller.controller.home.assert_called_with("3")
 
     # Test homing axis 2 (HWP_Analyzer)
     elliptec_plugin_with_mock_controller.home_axis(2)
-    elliptec_plugin_with_mock_controller.controller.home.assert_called_with('8')
+    elliptec_plugin_with_mock_controller.controller.home.assert_called_with("8")
 
 
 def test_move_axis(elliptec_plugin_with_mock_controller):
@@ -222,7 +220,9 @@ def test_move_axis(elliptec_plugin_with_mock_controller):
     # Test moving axis 1 to 75 degrees
     elliptec_plugin_with_mock_controller.move_axis(1, 75.0)
 
-    elliptec_plugin_with_mock_controller.controller.move_absolute.assert_called_with('3', 75.0)
+    elliptec_plugin_with_mock_controller.controller.move_absolute.assert_called_with(
+        "3", 75.0
+    )
 
 
 def test_move_axis_bounds_checking(elliptec_plugin_with_mock_controller):
@@ -231,7 +231,9 @@ def test_move_axis_bounds_checking(elliptec_plugin_with_mock_controller):
     elliptec_plugin_with_mock_controller.move_axis(0, 250.0)
 
     # Should be clamped to 180.0
-    elliptec_plugin_with_mock_controller.controller.move_absolute.assert_called_with('2', 180.0)
+    elliptec_plugin_with_mock_controller.controller.move_absolute.assert_called_with(
+        "2", 180.0
+    )
 
 
 def test_jog_axis(elliptec_plugin_with_mock_controller):
@@ -245,11 +247,11 @@ def test_jog_axis(elliptec_plugin_with_mock_controller):
 
     # Test positive jog on axis 0
     plugin.jog_axis(0, True)
-    plugin.controller.move_relative.assert_called_with('2', 5.0)
+    plugin.controller.move_relative.assert_called_with("2", 5.0)
 
     # Test negative jog on axis 1
     plugin.jog_axis(1, False)
-    plugin.controller.move_relative.assert_called_with('3', -2.5)
+    plugin.controller.move_relative.assert_called_with("3", -2.5)
 
 
 def test_test_hardware_connection(elliptec_plugin_with_mock_controller):
@@ -279,7 +281,7 @@ def test_mount_address_string_conversion(elliptec_plugin_with_mock_controller):
     plugin.move_axis(0, 45.0)
 
     # Should convert integer to string
-    plugin.controller.move_absolute.assert_called_with('2', 45.0)
+    plugin.controller.move_absolute.assert_called_with("2", 45.0)
 
 
 def test_invalid_axis_index(elliptec_plugin_with_mock_controller):
@@ -394,7 +396,7 @@ def test_move_done_signal_integration():
     # Mock controller
     mock_controller = Mock()
     mock_controller.move_absolute.return_value = True
-    mock_controller.mount_addresses = ['2', '3', '8']
+    mock_controller.mount_addresses = ["2", "3", "8"]
     plugin.controller = mock_controller
 
     # Test that move_done is called after successful move
@@ -413,7 +415,7 @@ def test_error_handling_in_methods():
     # Configure controller to raise exceptions
     mock_controller = Mock()
     mock_controller.move_absolute.side_effect = Exception("Test error")
-    mock_controller.mount_addresses = ['2', '3', '8']
+    mock_controller.mount_addresses = ["2", "3", "8"]
     plugin.controller = mock_controller
 
     # Should not raise exception, should handle gracefully

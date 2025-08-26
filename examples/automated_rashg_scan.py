@@ -25,8 +25,6 @@ import numpy as np
 
 # PyMoDAQ imports
 from pymodaq.dashboard import DashBoard
-from pymodaq.utils.daq_utils import ThreadCommand
-from pymodaq.utils.data import Axis, DataFromPlugins, DataToExport
 
 from pymodaq_plugins_urashg.analysis import rashg_analysis
 
@@ -557,7 +555,7 @@ def main():
         # Run measurement
         results = scanner.run_polarization_scan(angles=angles, save_path=args.output)
 
-        print(f"Measurement completed successfully!")
+        print("Measurement completed successfully!")
         print(f"Measured {len(results['polarization_angles'])} angles")
         print(f"Results saved to {args.output}")
 

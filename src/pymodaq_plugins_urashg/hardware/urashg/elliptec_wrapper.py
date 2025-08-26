@@ -9,7 +9,6 @@ import logging
 import random
 import time
 from threading import Lock
-from typing import Dict, List, Optional
 
 
 class ElliptecError(Exception):
@@ -64,17 +63,23 @@ class ElliptecController:
         # Parse mount addresses - handle string, list, and string representation of list
         if isinstance(mount_addresses, str):
             # Handle string representation of list like '[2, 3, 8]'
-            if mount_addresses.strip().startswith('[') and mount_addresses.strip().endswith(']'):
+            if mount_addresses.strip().startswith(
+                "["
+            ) and mount_addresses.strip().endswith("]"):
                 # Remove brackets and split by comma
                 clean_str = mount_addresses.strip()[1:-1]
                 self.mount_addresses = [addr.strip() for addr in clean_str.split(",")]
             else:
                 # Regular comma-separated string like '2,3,8'
-                self.mount_addresses = [addr.strip() for addr in mount_addresses.split(",")]
+                self.mount_addresses = [
+                    addr.strip() for addr in mount_addresses.split(",")
+                ]
         elif isinstance(mount_addresses, list):
             self.mount_addresses = [str(addr).strip() for addr in mount_addresses]
         else:
-            raise ValueError(f"mount_addresses must be string or list, got {type(mount_addresses)}")
+            raise ValueError(
+                f"mount_addresses must be string or list, got {type(mount_addresses)}"
+            )
         self.axes = [f"Mount_{addr}" for addr in self.mount_addresses]
 
         # Current positions (degrees)
@@ -314,7 +319,9 @@ class ElliptecController:
         try:
             with self._lock:
                 # Debug: Log the exact command being sent
-                self.logger.debug(f"Sending command: '{command}' (type: {type(command)}, length: {len(command)})")
+                self.logger.debug(
+                    f"Sending command: '{command}' (type: {type(command)}, length: {len(command)})"
+                )
                 self.logger.debug(f"Command bytes: {repr(command)}")
 
                 # Clear buffers

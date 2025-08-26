@@ -27,15 +27,16 @@ try:
 
     # Lazy import config to avoid BaseConfig initialization issues during plugin discovery
     config = None
-    
+
     def get_config():
         """Lazy loader for URASHG configuration."""
         global config
         if config is None:
             from .utils import Config
+
             config = Config()
         return config
-    
+
     try:
         __version__ = get_version(__package__)
     except PackageNotFoundError:

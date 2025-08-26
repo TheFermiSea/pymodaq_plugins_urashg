@@ -23,16 +23,17 @@ from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
 try:
     from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+
     config = get_config()
-    newport_config = config.get_hardware_config('newport')
+    newport_config = config.get_hardware_config("newport")
 except ImportError:
     newport_config = {
-        'serial_port': '/dev/ttyS0',
-        'baudrate': 9600,
-        'timeout': 2.0,
-        'default_wavelength': 780.0,
-        'default_units': 'W',
-        'averaging_count': 3
+        "serial_port": "/dev/ttyS0",
+        "baudrate": 9600,
+        "timeout": 2.0,
+        "default_wavelength": 780.0,
+        "default_units": "W",
+        "averaging_count": 3,
     }
 
 
@@ -56,7 +57,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": newport_config.get('serial_port', '/dev/ttyS0'),
+                    "value": newport_config.get("serial_port", "/dev/ttyS0"),
                     "tip": "Serial port for Newport 1830-C power meter",
                 },
                 {
@@ -64,14 +65,14 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "name": "baudrate",
                     "type": "list",
                     "limits": [1200, 2400, 4800, 9600, 19200],
-                    "value": newport_config.get('baudrate', 9600),
+                    "value": newport_config.get("baudrate", 9600),
                     "tip": "Serial communication baud rate",
                 },
                 {
                     "title": "Timeout (s):",
                     "name": "timeout",
                     "type": "float",
-                    "value": newport_config.get('timeout', 2.0),
+                    "value": newport_config.get("timeout", 2.0),
                     "min": 0.1,
                     "max": 10.0,
                     "tip": "Communication timeout in seconds",
@@ -95,7 +96,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "title": "Wavelength (nm):",
                     "name": "wavelength",
                     "type": "float",
-                    "value": newport_config.get('default_wavelength', 780.0),
+                    "value": newport_config.get("default_wavelength", 780.0),
                     "min": 400.0,
                     "max": 1100.0,
                     "suffix": "nm",
@@ -106,7 +107,7 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
                     "name": "units",
                     "type": "list",
                     "limits": ["W", "mW", "μW", "nW", "dBm"],
-                    "value": newport_config.get('default_units', 'W'),
+                    "value": newport_config.get("default_units", "W"),
                     "tip": "Power measurement units",
                 },
                 {

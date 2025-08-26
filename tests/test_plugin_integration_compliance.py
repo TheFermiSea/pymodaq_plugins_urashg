@@ -20,26 +20,20 @@ Test Categories:
 
 import importlib.metadata
 import json
-import logging
-import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
-from pymodaq.utils.config import Config
-from pymodaq.utils.data import Axis, DataSource, DataWithAxes
+from pymodaq.utils.data import DataSource, DataWithAxes
 from pymodaq.utils.logger import get_module_name, set_logger
 
 # PyMoDAQ imports
 from pymodaq.utils.parameter import Parameter
 
 # Qt imports
-from qtpy import QtCore, QtTest, QtWidgets
-from qtpy.QtCore import QObject, QTimer, Signal
+from qtpy import QtWidgets
 
 # Test utilities
 from tests.mock_modules.mock_devices import (
@@ -497,9 +491,9 @@ class TestPluginLifecycleIntegration:
 
             try:
                 if hasattr(plugin, "get_actuator_value"):
-                    value = plugin.get_actuator_value()
+                    plugin.get_actuator_value()
                 elif hasattr(plugin, "grab_data"):
-                    data = plugin.grab_data()
+                    plugin.grab_data()
 
                 # Should not raise unhandled exceptions
             except Exception as e:
@@ -545,7 +539,7 @@ class TestExtensionPluginCommunication:
                 )
 
                 if not QtWidgets.QApplication.instance():
-                    app = QtWidgets.QApplication([])
+                    QtWidgets.QApplication([])
 
                 extension = URASHGMicroscopyExtension(mock_dm)
                 extension.device_manager = mock_dm
@@ -578,7 +572,7 @@ class TestExtensionPluginCommunication:
             # Should coordinate all devices for measurement
             try:
                 extension.start_measurement()
-            except Exception as e:
+            except Exception:
                 # Expected if mock devices don't fully implement everything
                 pass
 
@@ -623,7 +617,7 @@ class TestExtensionPluginCommunication:
 
         # Changes should propagate to relevant plugins
         if "Newport1830C" in plugins:
-            power_meter = plugins["Newport1830C"]
+            plugins["Newport1830C"]
             # Check if wavelength was synchronized (implementation dependent)
 
 
@@ -820,13 +814,6 @@ class TestPluginPyMoDAQStandardsCompliance:
         ]
 
         # Required methods for viewer plugins
-        viewer_methods = [
-            "ini_attributes",
-            "grab_data",
-            "close",
-            "commit_settings",
-            "ini_detector",
-        ]
 
         # Test move plugins
         move_plugin_classes = []
@@ -882,7 +869,7 @@ class TestPluginPyMoDAQStandardsCompliance:
 
             for signal_name in expected_signals:
                 if hasattr(plugin, signal_name):
-                    signal_attr = getattr(plugin, signal_name)
+                    getattr(plugin, signal_name)
                     # May or may not be Qt signals depending on mock implementation
 
 

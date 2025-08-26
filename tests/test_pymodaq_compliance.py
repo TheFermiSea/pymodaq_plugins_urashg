@@ -9,7 +9,6 @@ All tests use standard pytest patterns with proper assertions and fixtures.
 
 import importlib.metadata
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
 from pyqtgraph.dockarea import DockArea

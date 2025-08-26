@@ -1,6 +1,5 @@
 from typing import List, Union
 
-import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     comon_parameters_fun,
@@ -13,14 +12,15 @@ from pymodaq_utils.utils import ThreadCommand
 try:
     from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+
     config = get_config()
-    elliptec_config = config.get_hardware_config('elliptec')
+    elliptec_config = config.get_hardware_config("elliptec")
 except ImportError:
     elliptec_config = {
-        'serial_port': '/dev/ttyUSB0',
-        'baudrate': 9600,
-        'timeout': 2.0,
-        'mount_addresses': '2,3,8'
+        "serial_port": "/dev/ttyUSB0",
+        "baudrate": 9600,
+        "timeout": 2.0,
+        "mount_addresses": "2,3,8",
     }
 
 
@@ -42,9 +42,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
     # Plugin parameters following PyMoDAQ 5.x standards
     params = comon_parameters_fun(
-        is_multiaxes=True,
-        axis_names=_axis_names,
-        epsilon=_epsilon
+        is_multiaxes=True, axis_names=_axis_names, epsilon=_epsilon
     ) + [
         # Position bounds for each axis (degrees)
         {
@@ -82,7 +80,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": elliptec_config.get('serial_port', '/dev/ttyUSB0'),
+                    "value": elliptec_config.get("serial_port", "/dev/ttyUSB0"),
                     "tip": "Serial port for Elliptec controller (e.g. /dev/ttyUSB0 or COM1)",
                 },
                 {
@@ -90,14 +88,14 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     "name": "baudrate",
                     "type": "list",
                     "limits": [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200],
-                    "value": elliptec_config.get('baudrate', 9600),
+                    "value": elliptec_config.get("baudrate", 9600),
                     "tip": "Serial communication baud rate",
                 },
                 {
                     "title": "Timeout (s):",
                     "name": "timeout",
                     "type": "float",
-                    "value": elliptec_config.get('timeout', 2.0),
+                    "value": elliptec_config.get("timeout", 2.0),
                     "min": 0.1,
                     "max": 10.0,
                     "tip": "Communication timeout in seconds",
@@ -106,7 +104,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     "title": "Mount Addresses:",
                     "name": "mount_addresses",
                     "type": "str",
-                    "value": elliptec_config.get('mount_addresses', '2,3,8'),
+                    "value": elliptec_config.get("mount_addresses", "2,3,8"),
                     "tip": "Comma-separated Elliptec addresses: HWP_Incident(2), QWP(3), HWP_Analyzer(8)",
                 },
                 {
@@ -300,8 +298,8 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
     def check_bound(self, position):
         """Ensure position is within valid range for rotation mounts"""
-        min_pos = self.settings.child('bounds_group', 'min_position').value()
-        max_pos = self.settings.child('bounds_group', 'max_position').value()
+        min_pos = self.settings.child("bounds_group", "min_position").value()
+        max_pos = self.settings.child("bounds_group", "max_position").value()
         return max(min_pos, min(max_pos, float(position)))
 
     def get_actuator_value(self):
@@ -310,6 +308,7 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             if self.controller is None:
                 # Return raw numpy arrays - PyMoDAQ framework wraps in DataActuator
                 import numpy as np
+
                 return [np.array([0.0]) for _ in self._axis_names]
 
             # Use get_all_positions() instead of get_positions()
@@ -319,10 +318,16 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 position_list = []
                 for i, axis_name in enumerate(self._axis_names):
                     # Ensure mount address is string - fix for "8]gp" error
-                    mount_addr = str(self.controller.mount_addresses[i]) if i < len(self.controller.mount_addresses) else "2"
+                    mount_addr = (
+                        str(self.controller.mount_addresses[i])
+                        if i < len(self.controller.mount_addresses)
+                        else "2"
+                    )
                     position_list.append(positions.get(mount_addr, 0.0))
             else:
-                position_list = positions if isinstance(positions, list) else [positions]
+                position_list = (
+                    positions if isinstance(positions, list) else [positions]
+                )
 
             # Ensure we have the right number of values
             while len(position_list) < len(self._axis_names):
@@ -330,8 +335,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
             # Convert to numpy arrays for PyMoDAQ framework
             import numpy as np
+
             # Ensure we have valid positions and create non-empty numpy arrays
-            position_list = position_list[:len(self._axis_names)]
+            position_list = position_list[: len(self._axis_names)]
             if not position_list:  # If empty, fill with zeros
                 position_list = [0.0] * len(self._axis_names)
 
@@ -340,15 +346,22 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 if isinstance(pos, (int, float)):
                     numpy_arrays.append(np.array([float(pos)]))
                 else:
-                    numpy_arrays.append(np.array([0.0]))  # Fallback for invalid positions
+                    numpy_arrays.append(
+                        np.array([0.0])
+                    )  # Fallback for invalid positions
 
             # Return raw numpy arrays - PyMoDAQ framework handles DataActuator wrapping
             return numpy_arrays
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error getting position: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status", [f"Error getting position: {str(e)}", "log"]
+                )
+            )
             # Return raw numpy arrays - PyMoDAQ framework wraps in DataActuator
             import numpy as np
+
             return [np.array([0.0]) for _ in self._axis_names]
 
     def close(self):
@@ -357,9 +370,13 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             if self.controller is not None:
                 self.controller.disconnect()
                 self.controller = None
-            self.emit_status(ThreadCommand("Update_Status", ["Elliptec disconnected", "log"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", ["Elliptec disconnected", "log"])
+            )
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error closing: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error closing: {str(e)}", "log"])
+            )
 
     def commit_settings(self, param):
         """Handle parameter changes"""
@@ -369,7 +386,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 self.home_all_mounts()
             elif param.name() == "get_positions":
                 self.get_actuator_value()
-                self.emit_status(ThreadCommand("Update_Status", ["Positions updated", "log"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Positions updated", "log"])
+                )
             elif param.name() == "test_connection":
                 self.test_hardware_connection()
 
@@ -407,11 +426,25 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 self.jog_axis(2, False)
 
             # Configuration changes
-            elif param.name() in ["serial_port", "baudrate", "timeout", "mount_addresses", "mock_mode"]:
-                self.emit_status(ThreadCommand("Update_Status", ["Settings updated - restart to apply", "log"]))
+            elif param.name() in [
+                "serial_port",
+                "baudrate",
+                "timeout",
+                "mount_addresses",
+                "mock_mode",
+            ]:
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Settings updated - restart to apply", "log"]
+                    )
+                )
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error in commit_settings: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status", [f"Error in commit_settings: {str(e)}", "log"]
+                )
+            )
 
     def ini_stage(self, controller=None):
         """Initialize the hardware stage - PyMoDAQ 5.x standard method"""
@@ -426,7 +459,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             port = self.settings.child("connection_group", "serial_port").value()
             baudrate = self.settings.child("connection_group", "baudrate").value()
             timeout = self.settings.child("connection_group", "timeout").value()
-            mount_addresses = self.settings.child("connection_group", "mount_addresses").value()
+            mount_addresses = self.settings.child(
+                "connection_group", "mount_addresses"
+            ).value()
             mock_mode = self.settings.child("connection_group", "mock_mode").value()
 
             # Use existing controller if provided (slave mode)
@@ -444,17 +479,28 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
             # Connect to hardware
             if self.controller.connect():
-                self.settings.child("status_group", "connection_status").setValue("Connected")
-                self.emit_status(ThreadCommand("Update_Status", ["Elliptec mounts connected.", "log"]))
+                self.settings.child("status_group", "connection_status").setValue(
+                    "Connected"
+                )
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Elliptec mounts connected.", "log"]
+                    )
+                )
 
                 # Set units for all axes
                 for axis in self._axis_names:
-                    self.settings.child('units').setValue(self._controller_units)
+                    self.settings.child("units").setValue(self._controller_units)
 
                 self.initialized = True
                 return "Elliptec mounts initialized successfully", True
             else:
-                self.emit_status(ThreadCommand("Update_Status", ["Failed to connect to Elliptec mounts.", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status",
+                        ["Failed to connect to Elliptec mounts.", "log"],
+                    )
+                )
                 return "Failed to connect to Elliptec mounts", False
 
         except ImportError as e:
@@ -470,7 +516,11 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         """Move to absolute positions"""
         try:
             if self.controller is None:
-                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Controller not initialized", "log"]
+                    )
+                )
                 return
 
             # Handle DataActuator input (PyMoDAQ 5.x pattern)
@@ -480,7 +530,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 if not isinstance(target_positions, list):
                     target_positions = [target_positions]
             else:
-                target_positions = positions if isinstance(positions, list) else [positions]
+                target_positions = (
+                    positions if isinstance(positions, list) else [positions]
+                )
 
             # Ensure we have the right number of positions
             while len(target_positions) < len(self._axis_names):
@@ -497,16 +549,30 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                     mount_addr = str(self.controller.mount_addresses[i])
                     if not self.controller.move_absolute(mount_addr, pos):
                         success = False
-                        self.emit_status(ThreadCommand("Update_Status", [f"Failed to move {self._axis_names[i]} to {pos}°", "log"]))
+                        self.emit_status(
+                            ThreadCommand(
+                                "Update_Status",
+                                [
+                                    f"Failed to move {self._axis_names[i]} to {pos}°",
+                                    "log",
+                                ],
+                            )
+                        )
 
             if success:
-                self.emit_status(ThreadCommand("Update_Status", ["Move completed", "log"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Move completed", "log"])
+                )
                 self.move_done()  # Signal completion
             else:
-                self.emit_status(ThreadCommand("Update_Status", ["Some moves failed", "log"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Some moves failed", "log"])
+                )
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error in move_abs: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error in move_abs: {str(e)}", "log"])
+            )
 
     def move_rel(self, positions: Union[List[float], DataActuator]):
         """Move relative positions"""
@@ -528,7 +594,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 if not isinstance(rel_positions, list):
                     rel_positions = [rel_positions]
             else:
-                rel_positions = positions if isinstance(positions, list) else [positions]
+                rel_positions = (
+                    positions if isinstance(positions, list) else [positions]
+                )
 
             # Calculate absolute target positions
             target_positions = []
@@ -540,24 +608,36 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             self.move_abs(target_positions)
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error in move_rel: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error in move_rel: {str(e)}", "log"])
+            )
 
     def move_home(self):
         """Move all axes to home position"""
         try:
             if self.controller is None:
-                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Controller not initialized", "log"]
+                    )
+                )
                 return
 
             success = self.controller.home_all()
             if success:
-                self.emit_status(ThreadCommand("Update_Status", ["All axes homed", "log"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["All axes homed", "log"])
+                )
                 self.move_done()  # Signal completion
             else:
-                self.emit_status(ThreadCommand("Update_Status", ["Homing failed", "log"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Homing failed", "log"])
+                )
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error in move_home: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand("Update_Status", [f"Error in move_home: {str(e)}", "log"])
+            )
 
     def stop_motion(self):
         """Stop all motion"""
@@ -567,7 +647,11 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
             self.emit_status(ThreadCommand("Update_Status", ["Motion stopped", "log"]))
             self.move_done()  # Signal that motion is complete
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error stopping motion: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status", [f"Error stopping motion: {str(e)}", "log"]
+                )
+            )
 
     def home_all_mounts(self):
         """Home all mounts - convenience method"""
@@ -577,23 +661,39 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         """Test hardware connection"""
         try:
             if self.controller is None:
-                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Controller not initialized", "log"]
+                    )
+                )
                 return
 
             # Use is_connected instead of test_connection
             if self.controller.is_connected():
-                self.emit_status(ThreadCommand("Update_Status", ["Connection test passed", "log"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Connection test passed", "log"])
+                )
             else:
-                self.emit_status(ThreadCommand("Update_Status", ["Connection test failed", "log"]))
+                self.emit_status(
+                    ThreadCommand("Update_Status", ["Connection test failed", "log"])
+                )
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Connection test error: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status", [f"Connection test error: {str(e)}", "log"]
+                )
+            )
 
     def home_axis(self, axis_index):
         """Home a specific axis"""
         try:
             if self.controller is None:
-                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Controller not initialized", "log"]
+                    )
+                )
                 return
 
             if axis_index < len(self._axis_names):
@@ -603,20 +703,41 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 axis_name = self._axis_names[axis_index]
 
                 if success:
-                    self.emit_status(ThreadCommand("Update_Status", [f"{axis_name} homed successfully", "log"]))
+                    self.emit_status(
+                        ThreadCommand(
+                            "Update_Status", [f"{axis_name} homed successfully", "log"]
+                        )
+                    )
                 else:
-                    self.emit_status(ThreadCommand("Update_Status", [f"Failed to home {axis_name}", "log"]))
+                    self.emit_status(
+                        ThreadCommand(
+                            "Update_Status", [f"Failed to home {axis_name}", "log"]
+                        )
+                    )
             else:
-                self.emit_status(ThreadCommand("Update_Status", [f"Invalid axis index: {axis_index}", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", [f"Invalid axis index: {axis_index}", "log"]
+                    )
+                )
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error homing axis {axis_index}: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status",
+                    [f"Error homing axis {axis_index}: {str(e)}", "log"],
+                )
+            )
 
     def move_axis(self, axis_index, angle):
         """Move a specific axis to an angle"""
         try:
             if self.controller is None:
-                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Controller not initialized", "log"]
+                    )
+                )
                 return
 
             if axis_index < len(self._axis_names):
@@ -629,20 +750,42 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 axis_name = self._axis_names[axis_index]
 
                 if success:
-                    self.emit_status(ThreadCommand("Update_Status", [f"{axis_name} moved to {angle}°", "log"]))
+                    self.emit_status(
+                        ThreadCommand(
+                            "Update_Status", [f"{axis_name} moved to {angle}°", "log"]
+                        )
+                    )
                 else:
-                    self.emit_status(ThreadCommand("Update_Status", [f"Failed to move {axis_name} to {angle}°", "log"]))
+                    self.emit_status(
+                        ThreadCommand(
+                            "Update_Status",
+                            [f"Failed to move {axis_name} to {angle}°", "log"],
+                        )
+                    )
             else:
-                self.emit_status(ThreadCommand("Update_Status", [f"Invalid axis index: {axis_index}", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", [f"Invalid axis index: {axis_index}", "log"]
+                    )
+                )
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error moving axis {axis_index}: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status",
+                    [f"Error moving axis {axis_index}: {str(e)}", "log"],
+                )
+            )
 
     def jog_axis(self, axis_index, positive_direction):
         """Jog a specific axis by the step amount"""
         try:
             if self.controller is None:
-                self.emit_status(ThreadCommand("Update_Status", ["Controller not initialized", "log"]))
+                self.emit_status(
+                    ThreadCommand(
+                        "Update_Status", ["Controller not initialized", "log"]
+                    )
+                )
                 return
 
             if axis_index < len(self._axis_names):
@@ -651,7 +794,9 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
                 step_names = ["axis1_jog_step", "axis2_jog_step", "axis3_jog_step"]
 
                 if axis_index < len(group_names):
-                    jog_step = self.settings.child(group_names[axis_index], step_names[axis_index]).value()
+                    jog_step = self.settings.child(
+                        group_names[axis_index], step_names[axis_index]
+                    ).value()
                     if not positive_direction:
                         jog_step = -jog_step
 
@@ -662,15 +807,37 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
 
                     direction = "+" if positive_direction else "-"
                     if success:
-                        self.emit_status(ThreadCommand("Update_Status", [f"{axis_name} jogged {direction}{abs(jog_step)}°", "log"]))
+                        self.emit_status(
+                            ThreadCommand(
+                                "Update_Status",
+                                [
+                                    f"{axis_name} jogged {direction}{abs(jog_step)}°",
+                                    "log",
+                                ],
+                            )
+                        )
                     else:
-                        self.emit_status(ThreadCommand("Update_Status", [f"Failed to jog {axis_name}", "log"]))
+                        self.emit_status(
+                            ThreadCommand(
+                                "Update_Status", [f"Failed to jog {axis_name}", "log"]
+                            )
+                        )
                 else:
-                    self.emit_status(ThreadCommand("Update_Status", [f"Invalid axis index: {axis_index}", "log"]))
+                    self.emit_status(
+                        ThreadCommand(
+                            "Update_Status",
+                            [f"Invalid axis index: {axis_index}", "log"],
+                        )
+                    )
 
         except Exception as e:
-            self.emit_status(ThreadCommand("Update_Status", [f"Error jogging axis {axis_index}: {str(e)}", "log"]))
+            self.emit_status(
+                ThreadCommand(
+                    "Update_Status",
+                    [f"Error jogging axis {axis_index}: {str(e)}", "log"],
+                )
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(__file__)

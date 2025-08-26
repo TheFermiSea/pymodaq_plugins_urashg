@@ -99,64 +99,66 @@ def test_newport_power_meter():
 
 def test_maitai_laser():
     """Test direct communication with MaiTai Ti:Sapphire laser."""
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Testing MaiTai Ti:Sapphire Laser")
-    print("="*50)
-    
+    print("=" * 50)
+
     # Try Silicon Labs port first (user suggested), then others
     ports_to_try = [
         "/dev/ttyUSB2",  # ✅ FIXED: Actual detected port first
         "/dev/ttyUSB0",
         "/dev/ttyUSB4",
-        "/dev/ttyUSB5", 
+        "/dev/ttyUSB5",
         "/dev/ttyUSB6",
     ]
     baud_rates = [9600, 19200, 115200]  # ✅ FIXED: 9600 first (actual working baudrate)
 
     # SCPI commands from MaiTai manual
     test_commands = [
-        "?",           # Simple query
-        "*IDN?",       # Identification
-        "READ:POW?",   # Read power
+        "?",  # Simple query
+        "*IDN?",  # Identification
+        "READ:POW?",  # Read power
         "READ:WAVE?",  # Read wavelength
     ]
-    
+
     for port in ports_to_try:
         for baud in baud_rates:
             print(f"\n--- Testing {port} at {baud} baud ---")
-            
+
             result = test_serial_device(
                 port=port,
                 baudrate=baud,
                 test_command="*IDN?",
                 expected_response="MaiTai",
-                timeout=2.0
+                timeout=2.0,
             )
-            
+
             if result:
                 print(f"✅ MaiTai CONFIRMED on {port} at {baud} baud")
-                
-                # Test additional commands  
+
+                # Test additional commands
                 print("Testing additional commands...")
                 for cmd in test_commands[1:]:  # Skip "?" as it might not work
                     cmd_result = test_serial_device(
                         port=port,
-                        baudrate=baud, 
+                        baudrate=baud,
                         test_command=cmd,
                         expected_response=None,  # Accept any response
-                        timeout=1.0
+                        timeout=1.0,
                     )
                     if cmd_result:
                         print(f"   ✅ {cmd} -> Response received")
                     else:
                         print(f"   ⚠️ {cmd} -> No response")
-                        
+
                 return True
             else:
                 print(f"   ❌ No response from {port} at {baud}")
-    
+
     print("\n❌ MaiTai not found on any tested port/baud combination")
-    print("   Expected: Working MaiTai on /dev/ttyUSB2 at 9600 baud")  # ✅ FIXED: Correct expectation
+    print(
+        "   Expected: Working MaiTai on /dev/ttyUSB2 at 9600 baud"
+    )  # ✅ FIXED: Correct expectation
     return False
 
 
@@ -260,7 +262,7 @@ def test_device_permissions():
         if os.path.exists(device):
             try:
                 # Try to open device for reading
-                with open(device, "rb") as f:
+                with open(device, "rb"):
                     accessible_devices.append(device)
                     print(f"✅ {device}: Readable")
             except PermissionError:

@@ -15,13 +15,9 @@ Test Categories:
 - Performance & Resource Management
 """
 
-import json
-import logging
 import threading
 import time
-from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, Mock, PropertyMock, patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
@@ -29,17 +25,13 @@ from pymodaq.utils.data import Axis, DataSource, DataWithAxes
 
 # PyMoDAQ imports
 from pymodaq.utils.logger import get_module_name, set_logger
-from pymodaq.utils.parameter import Parameter
 
 # Qt imports
-from qtpy import QtCore, QtTest
-from qtpy.QtCore import QEventLoop, QObject, QThread, QTimer, Signal
+from qtpy.QtCore import QObject, Signal
 
 # Test utilities
 from tests.mock_modules.mock_devices import (
     MockDeviceManager,
-    MockMovePlugin,
-    MockViewerPlugin,
 )
 
 logger = set_logger(get_module_name(__file__))
@@ -457,7 +449,7 @@ class TestMultiWavelengthMeasurements:
 
             # Should synchronize power meter if available
             if "Newport1830C" in worker.device_manager.devices:
-                mock_power_meter = worker.device_manager.devices["Newport1830C"]
+                worker.device_manager.devices["Newport1830C"]
                 # Check if power meter wavelength was set (implementation dependent)
 
 
@@ -497,7 +489,7 @@ class TestErrorHandlingCompliance:
                 data = worker._acquire_camera_image()
                 # Should return None or default data on error
                 assert data is None or isinstance(data, (np.ndarray, DataWithAxes))
-            except Exception as e:
+            except Exception:
                 # Should emit error signal
                 worker.measurement_error.emit.assert_called()
 
@@ -657,7 +649,7 @@ class TestPerformanceCompliance:
 
         # Should not accumulate unbounded data
         if hasattr(worker, "measurement_data"):
-            initial_size = len(getattr(worker, "measurement_data", []))
+            len(getattr(worker, "measurement_data", []))
 
             # Simulate data accumulation
             for i in range(10):

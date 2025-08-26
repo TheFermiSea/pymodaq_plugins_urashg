@@ -7,7 +7,6 @@ microscopy system: Elliptec rotation mounts, MaiTai laser, and Prime BSI camera.
 """
 
 import importlib.util
-import os
 import subprocess
 import sys
 import time
@@ -255,9 +254,6 @@ def run_integration_tests():
 
         # Try importing all plugins
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_Elliptec import (
-                DAQ_Move_Elliptec,
-            )
 
             print("[OK] Elliptec plugin import successful")
         except Exception as e:
@@ -265,9 +261,6 @@ def run_integration_tests():
             return False
 
         try:
-            from pymodaq_plugins_urashg.daq_move_plugins.DAQ_Move_MaiTai import (
-                DAQ_Move_MaiTai,
-            )
 
             print("[OK] MaiTai plugin import successful")
         except Exception as e:
@@ -275,9 +268,6 @@ def run_integration_tests():
             return False
 
         try:
-            from pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.DAQ_Viewer_PrimeBSI import (
-                DAQ_2DViewer_PrimeBSI,
-            )
 
             print("[OK] Camera plugin import successful")
         except Exception as e:

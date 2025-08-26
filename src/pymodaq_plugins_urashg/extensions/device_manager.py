@@ -7,13 +7,10 @@ This module provides centralized device management and coordination for the
 control of all hardware devices through PyMoDAQ's dashboard framework.
 """
 
-import logging
 import time
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-import numpy as np
-from pymodaq.utils.data import Axis, DataWithAxes
 from pymodaq.utils.logger import get_module_name, set_logger
 from qtpy.QtCore import QObject, Signal
 

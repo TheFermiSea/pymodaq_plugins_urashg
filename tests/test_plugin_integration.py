@@ -15,7 +15,6 @@ Run this after installing the plugin package to verify everything is working.
 
 import sys
 import traceback
-from pathlib import Path
 
 
 def test_package_import():
@@ -27,7 +26,7 @@ def test_package_import():
     try:
         import pymodaq_plugins_urashg
 
-        print(f"✓ Package imported successfully")
+        print("✓ Package imported successfully")
         print(f"✓ Version: {pymodaq_plugins_urashg.__version__}")
 
         # Test config
@@ -131,7 +130,7 @@ def test_plugin_imports():
 
             # Test if it has required PyMoDAQ plugin attributes
             if hasattr(plugin_class, "params"):
-                print(f"  - Has params definition")
+                print("  - Has params definition")
             if hasattr(plugin_class, "_controller_units"):
                 print(f"  - Has controller units: {plugin_class._controller_units}")
 
@@ -164,7 +163,7 @@ def test_extension_discovery():
         if urashg_extensions:
             ext = urashg_extensions[0]
             try:
-                extension_class = ext.load()
+                ext.load()
                 print(f"✓ Extension {ext.name} loaded successfully")
                 return True
             except Exception as e:
@@ -197,7 +196,7 @@ def test_configuration():
         print(f"✓ Config template path: {template_path}")
 
         if template_path.exists():
-            print(f"✓ Config template file exists")
+            print("✓ Config template file exists")
         else:
             print(f"⚠ Config template file not found: {template_path}")
 

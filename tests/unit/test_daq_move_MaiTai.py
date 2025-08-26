@@ -13,7 +13,7 @@ Tests all the fixes implemented including:
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
@@ -62,7 +62,7 @@ def maitai_plugin_mock_mode():
     """Fixture to create a MaiTai plugin in mock mode."""
     from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
         DAQ_Move_MaiTai,
-        MockMaiTaiController
+        MockMaiTaiController,
     )
 
     plugin = DAQ_Move_MaiTai()
@@ -133,7 +133,9 @@ def test_move_abs_with_list(maitai_plugin_with_mock_controller):
 
     maitai_plugin_with_mock_controller.move_abs(target_wavelength)
 
-    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(900.0)
+    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+        900.0
+    )
 
 
 def test_move_abs_with_scalar(maitai_plugin_with_mock_controller):
@@ -142,7 +144,9 @@ def test_move_abs_with_scalar(maitai_plugin_with_mock_controller):
 
     maitai_plugin_with_mock_controller.move_abs(target_wavelength)
 
-    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(750.0)
+    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+        750.0
+    )
 
 
 def test_move_abs_with_array(maitai_plugin_with_mock_controller):
@@ -151,7 +155,9 @@ def test_move_abs_with_array(maitai_plugin_with_mock_controller):
 
     maitai_plugin_with_mock_controller.move_abs(target_wavelength)
 
-    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(880.0)
+    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+        880.0
+    )
 
 
 def test_move_abs_empty_list(maitai_plugin_with_mock_controller):
@@ -160,7 +166,9 @@ def test_move_abs_empty_list(maitai_plugin_with_mock_controller):
 
     maitai_plugin_with_mock_controller.move_abs(target_wavelength)
 
-    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(800.0)  # Default
+    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+        800.0
+    )  # Default
 
 
 def test_move_abs_controller_failure(maitai_plugin_with_mock_controller):
@@ -170,7 +178,9 @@ def test_move_abs_controller_failure(maitai_plugin_with_mock_controller):
     target_wavelength = 850.0
     maitai_plugin_with_mock_controller.move_abs(target_wavelength)
 
-    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(850.0)
+    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+        850.0
+    )
 
 
 def test_move_abs_no_controller(maitai_plugin):
@@ -184,26 +194,36 @@ def test_move_abs_no_controller(maitai_plugin):
 def test_move_rel(maitai_plugin_with_mock_controller):
     """Test move_rel method."""
     # Mock current wavelength through get_actuator_value
-    with patch.object(maitai_plugin_with_mock_controller, 'get_actuator_value',
-                      return_value=[np.array([800.0])]):
+    with patch.object(
+        maitai_plugin_with_mock_controller,
+        "get_actuator_value",
+        return_value=[np.array([800.0])],
+    ):
 
         relative_wavelength = 50.0  # Move +50nm
         maitai_plugin_with_mock_controller.move_rel(relative_wavelength)
 
         # Should call move_abs with current + relative = 800 + 50 = 850
-        maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(850.0)
+        maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+            850.0
+        )
 
 
 def test_move_rel_with_list(maitai_plugin_with_mock_controller):
     """Test move_rel method with list input."""
-    with patch.object(maitai_plugin_with_mock_controller, 'get_actuator_value',
-                      return_value=[np.array([850.0])]):
+    with patch.object(
+        maitai_plugin_with_mock_controller,
+        "get_actuator_value",
+        return_value=[np.array([850.0])],
+    ):
 
         relative_wavelength = [30.0]
         maitai_plugin_with_mock_controller.move_rel(relative_wavelength)
 
         # Should call move_abs with 850 + 30 = 880
-        maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(880.0)
+        maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+            880.0
+        )
 
 
 def test_move_home(maitai_plugin_with_mock_controller):
@@ -211,7 +231,9 @@ def test_move_home(maitai_plugin_with_mock_controller):
     maitai_plugin_with_mock_controller.move_home()
 
     # Should move to default 800nm
-    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(800.0)
+    maitai_plugin_with_mock_controller.controller.set_wavelength.assert_called_once_with(
+        800.0
+    )
 
 
 def test_stop_motion(maitai_plugin_with_mock_controller):
@@ -234,7 +256,9 @@ def test_open_shutter_success(maitai_plugin_with_mock_controller):
     maitai_plugin_with_mock_controller.open_shutter()
 
     # Check that status parameter is updated
-    status = maitai_plugin_with_mock_controller.settings.child("shutter_group", "shutter_status").value()
+    status = maitai_plugin_with_mock_controller.settings.child(
+        "shutter_group", "shutter_status"
+    ).value()
     assert status == "Open"
 
 
@@ -261,7 +285,9 @@ def test_close_shutter_success(maitai_plugin_with_mock_controller):
     maitai_plugin_with_mock_controller.close_shutter()
 
     # Check that status parameter is updated
-    status = maitai_plugin_with_mock_controller.settings.child("shutter_group", "shutter_status").value()
+    status = maitai_plugin_with_mock_controller.settings.child(
+        "shutter_group", "shutter_status"
+    ).value()
     assert status == "Closed"
 
 
@@ -354,7 +380,9 @@ def test_close_no_controller(maitai_plugin):
 
 def test_mock_controller_functionality():
     """Test MockMaiTaiController functionality."""
-    from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import MockMaiTaiController
+    from pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai import (
+        MockMaiTaiController,
+    )
 
     mock_controller = MockMaiTaiController()
 
@@ -392,7 +420,9 @@ def test_plugin_parameters(maitai_plugin):
     assert "shutter_group" in param_names
 
     # Check connection group parameters
-    connection_group = next(p for p in maitai_plugin.params if p["name"] == "connection_group")
+    connection_group = next(
+        p for p in maitai_plugin.params if p["name"] == "connection_group"
+    )
     connection_param_names = [child["name"] for child in connection_group["children"]]
 
     assert "serial_port" in connection_param_names
@@ -421,13 +451,17 @@ def test_wavelength_range_parameters(maitai_plugin):
 def test_error_handling_in_methods(maitai_plugin_with_mock_controller):
     """Test error handling in various methods."""
     # Configure controller to raise exceptions
-    maitai_plugin_with_mock_controller.controller.set_wavelength.side_effect = Exception("Test error")
+    maitai_plugin_with_mock_controller.controller.set_wavelength.side_effect = (
+        Exception("Test error")
+    )
 
     # Should not raise exception, should handle gracefully
     maitai_plugin_with_mock_controller.move_abs(850.0)
 
     # Configure controller to raise exception in shutter operations
-    maitai_plugin_with_mock_controller.controller.open_shutter.side_effect = Exception("Shutter error")
+    maitai_plugin_with_mock_controller.controller.open_shutter.side_effect = Exception(
+        "Shutter error"
+    )
 
     # Should not raise exception
     maitai_plugin_with_mock_controller.open_shutter()
