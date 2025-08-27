@@ -23,8 +23,8 @@ dependencies = [
     "matplotlib>=3.3.0",
     "pyserial>=3.4",
     "elliptec>=0.0.6",
-    "pyvcam",
     "pyqt6>=6.9.1",
+    "pyvcam; sys_platform != 'darwin' or platform_machine != 'arm64'",
 ]
 
 authors = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
