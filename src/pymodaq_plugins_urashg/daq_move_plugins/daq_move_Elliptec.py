@@ -26,6 +26,7 @@ except ImportError:
 
 from pymodaq_plugins_urashg.daq_move_plugins.elliptec_ui import ElliptecUI
 
+
 class DAQ_Move_Elliptec(DAQ_Move_base):
     widget = ElliptecUI
     """
