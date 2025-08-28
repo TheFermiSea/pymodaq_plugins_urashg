@@ -44,16 +44,23 @@ try:
 
     # Hardware abstraction layers
     from .hardware import urashg
-    
+
     # Import CustomApp for easy access
     try:
         from .app.urashg_microscopy_app import URASHGMicroscopyApp
+
         APP_AVAILABLE = True
     except ImportError:
         URASHGMicroscopyApp = None
         APP_AVAILABLE = False
 
-    __all__ = ["__version__", "get_config", "urashg", "URASHGMicroscopyApp", "APP_AVAILABLE"]
+    __all__ = [
+        "__version__",
+        "get_config",
+        "urashg",
+        "URASHGMicroscopyApp",
+        "APP_AVAILABLE",
+    ]
 
 except ImportError as e:
     # PyMoDAQ not available - minimal fallback for CI/testing
