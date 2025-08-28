@@ -25,10 +25,9 @@ except ImportError:
 
 
 from pymodaq_plugins_urashg.daq_move_plugins.elliptec_ui import ElliptecUI
-
+from qtpy import QtWidgets
 
 class DAQ_Move_Elliptec(DAQ_Move_base):
-    widget = ElliptecUI
     """
     PyMoDAQ plugin for Thorlabs Elliptec rotation mounts (ELL14).
 
@@ -37,6 +36,17 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
     - QWP quarter wave plate (address 3)
     - HWP analyzer (address 8)
     """
+    def __init__(self, parent=None, params_state=None):
+        super().__init__(parent, params_state)
+        self.ui = ElliptecUI()
+        self.ui.test_button.clicked.connect(self.on_test_button_clicked)
+
+    def get_widget(self):
+        return self.ui
+
+    def on_test_button_clicked(self):
+        QtWidgets.QMessageBox.information(self.ui, "Button Clicked", "The test button was clicked!")
+
 
     # Plugin metadata
     _controller_units = "degrees"
