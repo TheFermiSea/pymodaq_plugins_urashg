@@ -1,88 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-PyMoDAQ Plugin Package for URASHG
-(micro Rotational Anisotropy Second Harmonic Generation) Microscopy
+from pathlib import Path
+from .utils import Config
+from pymodaq_utils.utils import get_version, PackageNotFoundError
+from pymodaq_utils.logger import set_logger, get_module_name
 
-This package provides PyMoDAQ plugins for controlling a complete μRASHG
-microscope system including:
-- MaiTai laser with EOM power control
-- Red Pitaya FPGA-based PID control for laser stabilization
-- Thorlabs ELL14 motorized rotation mounts for polarization control
-- Photometrics Prime BSI sCMOS camera for SHG detection
-- Galvo mirrors for beam scanning (future integration)
-
-The package follows PyMoDAQ's modular architecture with separate plugins for:
-- DAQ_Move: Actuators (laser power, polarization optics, sample positioning)
-- DAQ_Viewer: Detectors (camera, photodiodes)
-- Hardware: Low-level device control libraries
-
-Author: PyMoDAQ Plugin Development Team
-License: MIT
-"""
-
-# Handle missing PyMoDAQ dependencies gracefully for CI/test environments
+config = Config()
 try:
-    from pymodaq_utils.logger import get_module_name, set_logger
-    from pymodaq_utils.utils import PackageNotFoundError, get_version
-
-    # Lazy import config to avoid BaseConfig initialization issues during plugin discovery
-    config = None
-
-    def get_config():
-        """Lazy loader for URASHG configuration."""
-        global config
-        if config is None:
-            from .utils import Config
-
-            config = Config()
-        return config
-
-    try:
-        __version__ = get_version(__package__)
-    except PackageNotFoundError:
-        __version__ = "0.0.0dev"
-
-    # Hardware abstraction layers
-    from .hardware import urashg
-
-    # Import CustomApp for easy access
-    try:
-        from .app.urashg_microscopy_app import URASHGMicroscopyApp
-
-        APP_AVAILABLE = True
-    except ImportError:
-        URASHGMicroscopyApp = None
-        APP_AVAILABLE = False
-
-    __all__ = [
-        "__version__",
-        "get_config",
-        "urashg",
-        "URASHGMicroscopyApp",
-        "APP_AVAILABLE",
-    ]
-
-except ImportError as e:
-    # PyMoDAQ not available - minimal fallback for CI/testing
-    import logging
-
-    logging.warning(f"PyMoDAQ not available: {e}. Using minimal fallback.")
-
-    __version__ = "0.0.0dev"
-    config = None
-    urashg = None
-
-    # Mock logger functions
-    def get_module_name(name):
-        return name.split(".")[-1] if "." in name else name
-
-    def set_logger(name, level=logging.INFO, add_to_console=True, **kwargs):
-        return logging.getLogger(name)
-
-    __all__ = [
-        "__version__",
-        "config",
-        "urashg",
-        "get_module_name",
-        "set_logger",
-    ]
+    __version__ = get_version(__package__)
+except PackageNotFoundError:
+    __version__ = '0.0.0dev'

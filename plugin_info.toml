@@ -1,74 +1,18 @@
 [plugin-info]
 name = "pymodaq_plugins_urashg"
-version = "1.0.0"
-description = "Production-ready PyMoDAQ plugin package for URASHG microscopy systems with unified GUI interface"
+description = "PyMoDAQ plugin package for URASHG microscopy systems"
 author = "TheFermiSea"
 author-email = "squires.b@gmail.com"
 homepage = "https://github.com/TheFermiSea/pymodaq_plugins_urashg"
-package-url = "https://github.com/TheFermiSea/pymodaq_plugins_urashg"
-bugtrack-url = "https://github.com/TheFermiSea/pymodaq_plugins_urashg/issues"
-
-[features]
-instruments = true
-extensions = true
-models = false
-h5exporters = false
-scanners = false
-
-[plugin-info.classifiers]
-development-status = "Production/Stable"
-environment = "X11"
-intended-audience = ["Science/Research", "Developers"]
-license = "MIT"
-operating-system = ["Microsoft :: Windows", "POSIX :: Linux", "MacOS"]
-programming-language = "Python :: 3"
-topic = [
-    "Scientific/Engineering :: Physics",
-    "Scientific/Engineering :: Visualization",
-]
-
-# Entry points are now defined in pyproject.toml following PyMoDAQ 5.x standards
-# This file maintains hardware compatibility and feature information
 
 [hardware-compatibility]
-manufacturers = ["Thorlabs", "Photometrics", "Newport", "Spectra-Physics"]
+manufacturers = ["Thorlabs", "Photometrics", "Newport"]
 
 [hardware-compatibility.actuators]
-"Thorlabs ELL14" = { plugin = "DAQ_Move_Elliptec", communication = "Serial/USB", description = "Motorized rotation mount for polarization control" }
-"Newport ESP300" = { plugin = "DAQ_Move_ESP300", communication = "Serial", description = "Multi-axis motion controller for sample positioning" }
-"MaiTai Laser" = { plugin = "DAQ_Move_MaiTai", communication = "Serial", description = "Ti:Sapphire laser with wavelength and power control" }
+"Thorlabs ELL14" = { plugin = "DAQ_Move_Elliptec", communication = "Serial" }
+"Newport ESP300" = { plugin = "DAQ_Move_ESP300", communication = "Serial" }
+"MaiTai Laser" = { plugin = "DAQ_Move_MaiTai", communication = "Serial" }
 
 [hardware-compatibility.detectors]
-"Photometrics Prime BSI" = { plugin = "DAQ_2DViewer_PrimeBSI", communication = "USB 3.0", description = "Scientific CMOS camera for SHG detection" }
-"Newport 1830-C" = { plugin = "DAQ_0DViewer_Newport1830C", communication = "Serial/RS232", description = "Optical power meter for calibration" }
-
-tested_models = ["Prime BSI", "Prime BSI Express", "ESP300", "1830-C", "ELL14", "MaiTai HP"]
-[software-dependencies]
-pymodaq = ">=5.0.0"
-pymodaq-gui = ">=5.0.0"
-pymodaq-data = ">=5.0.0"
-pymodaq-utils = ">=0.0.14"
-numpy = ">=1.20.0"
-pyside6 = ">=6.0.0"
-pyqtgraph = ">=0.12.0"
-h5py = ">=3.0.0"
-scipy = ">=1.7.0"
-matplotlib = ">=3.3.0"
-pyserial = ">=3.4"
-
-[software-dependencies.hardware-specific]
-pyvcam = { git = "https://github.com/Photometrics/PyVCAM.git", description = "Photometrics camera control" }
-elliptec = { git = "https://github.com/roesel/elliptec.git", description = "Thorlabs ELL14 rotation mount control" }
-
-[software-dependencies.optional]
-opencv-python = { version = ">=4.5.0", description = "Advanced image processing" }
-scikit-image = { version = ">=0.18.0", description = "Image analysis tools" }
-pymodaq-plugins-mock = { version = ">=1.0.0", description = "Mock devices for testing" }
-pymodaq-plugins-daqmx = { version = ">=1.0.0", description = "Future galvo mirror integration" }
-
-[documentation]
-user-guide = "https://pymodaq-plugins-urashg.readthedocs.io/en/latest/user_guide.html"
-api-reference = "https://pymodaq-plugins-urashg.readthedocs.io/en/latest/api.html"
-hardware-setup = "https://pymodaq-plugins-urashg.readthedocs.io/en/latest/hardware_setup.html"
-examples = "https://github.com/TheFermiSea/pymodaq_plugins_urashg/tree/main/examples"
-troubleshooting = "https://pymodaq-plugins-urashg.readthedocs.io/en/latest/troubleshooting.html"
+"Photometrics Prime BSI" = { plugin = "DAQ_2DViewer_PrimeBSI", communication = "USB 3.0" }
+"Newport 1830-C" = { plugin = "DAQ_0DViewer_Newport1830C", communication = "Serial" }

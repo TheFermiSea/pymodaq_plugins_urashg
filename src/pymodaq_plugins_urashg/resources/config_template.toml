@@ -1,5 +1,4 @@
 # Configuration template for PyMoDAQ URASHG Plugin Package
-# This file defines the default configuration values for the μRASHG microscopy plugin
 
 [urashg]
 # Main configuration section for URASHG microscopy
@@ -9,238 +8,30 @@
 
 [urashg.hardware.elliptec]
 # Elliptec rotation mounts configuration
-# Note: Adjust serial port based on actual hardware connection
-serial_port = "/dev/ttyUSB0" # Updated based on device identification
+serial_port = "/dev/ttyUSB0"
 baudrate = 9600
 timeout = 2.0
 
-# Specific mount addresses for URASHG setup
-hwp_incident_address = 2    # Half-wave plate before sample
-qwp_address = 3            # Quarter-wave plate  
-hwp_analyzer_address = 8   # Half-wave plate after sample
-mount_addresses = [2, 3, 8] # All mount addresses
-
-# Motion control settings
-home_on_startup = false
-position_tolerance = 0.1    # degrees
-home_timeout = 30.0        # seconds
-max_rotation_speed = 100   # degrees per second
-
-[urashg.hardware.redpitaya]
-# Red Pitaya FPGA-based PID controller
-# Note: Adjust IP address based on actual hardware network configuration
-ip_address = "rp-f08d6c.local" # or use direct IP like "192.168.1.100"
-timeout = 5.0
-
-# PID controller settings
-pid_enabled = true
-setpoint_default = 0.5 # volts
-kp_default = 0.1
-ki_default = 0.01
-kd_default = 0.001
-
 [urashg.hardware.camera]
 # Photometrics Prime BSI camera configuration
-simulation_mode = false
 exposure_time = 100       # milliseconds
-exposure_default = 100.0  # milliseconds
 gain = 1
-gain_default = 1
-binning = 1
-cooling_enabled = true
 cooling_temperature = -20 # Celsius
-
-# ROI settings
-roi_enabled = false
-roi_x = 0
-roi_y = 0
-roi_width = 2048
-roi_height = 2048
 
 [urashg.hardware.maitai]
 # MaiTai laser configuration
-# Note: Adjust serial port based on actual hardware connection
-serial_port = "/dev/ttyUSB2"  # Updated based on device identification  
+serial_port = "/dev/ttyUSB1"
 baudrate = 9600
 timeout = 5.0
-wavelength_range_min = 700.0  # nm
-wavelength_range_max = 1000.0 # nm
-power_range_min = 0.1         # watts
-power_range_max = 3.5         # watts
 
 [urashg.hardware.newport]
 # Newport 1830-C power meter configuration
-# Note: Adjust GPIB address based on actual hardware configuration
-gpib_address = 1    # Updated to match current working configuration
+gpib_address = 1
 timeout = 5.0
-wavelength = 800.0 # nm - default measurement wavelength
-auto_range = true
-range_value = 1.0  # watts - manual range if auto_range = false
-
-[urashg.hardware.esp300]
-# Newport ESP300 motion controller
-# Note: Adjust serial port based on actual hardware connection
-serial_port = "/dev/ttyUSB3" # Updated based on device identification
-baudrate = 19200
-timeout = 10.0
-axis_count = 3
-mock_mode = true           # Enable until hardware properly configured
-
-# Axis configuration (X, Y, Z)
-axis_units = ["mm", "mm", "mm"]
-axis_limits_min = [-25.0, -25.0, -12.5]
-axis_limits_max = [25.0, 25.0, 12.5]
+wavelength = 800.0 # nm
 
 [urashg.measurement]
 # Default measurement parameters
-
-[urashg.measurement.rashg]
-# Rotational Anisotropy SHG measurement defaults
-polarization_start = -45.0 # degrees
-polarization_end = 45.0    # degrees
-polarization_step = 5.0    # degrees
 averaging_frames = 3
-laser_power = 100.0        # milliwatts
-exposure_time = 100.0      # milliseconds
-
-[urashg.measurement.calibration]
-# Calibration measurement settings
-calibration_points = 36   # number of calibration angles
-calibration_range = 180.0 # degrees
-reference_power = 50.0    # milliwatts for calibration
-
-[urashg.data]
-# Data handling and storage settings
-
-[urashg.data.acquisition]
-auto_save = true
-save_format = "hdf5"
-compression = true
-metadata_include = ["timestamp", "settings", "hardware_config"]
-
-[urashg.data.processing]
-background_subtraction = true
-roi_integration = true
-real_time_analysis = false
-
-[urashg.safety]
-# Safety and interlock settings
-
-[urashg.safety.limits]
-max_laser_power = 200.0       # milliwatts - software limit
-max_exposure_time = 10000.0   # milliseconds
-emergency_stop_enabled = true
-
-[urashg.safety.interlocks]
-temperature_monitoring = true
-beam_block_required = false
-user_confirmation = true
-
-[urashg.safety.power]
-max_average_power = 2.0
-max_peak_power = 50.0
-power_ramp_rate = 0.1
-
-[urashg.safety.thermal]
-max_duty_cycle = 0.8
-cooling_time = 60.0
-temperature_limit = 50.0
-
-[urashg.system]
-# System-wide settings
-
-[urashg.system.logging]
-log_level = "INFO"
-log_file_enabled = true
-log_rotation = true
-max_log_size = "10MB"
-
-[urashg.system.performance]
-thread_count = 4
-buffer_size = 1000
-acquisition_timeout = 30.0 # seconds
-
-# Additional configuration sections from current setup
-
-[urashg.logging]
-level = "INFO"
-log_to_file = true
-log_file = "urashg_plugin.log"
-max_log_size = 10
-backup_count = 5
-
-[urashg.calibration]
-# Calibration data storage and management
-
-[urashg.calibration.paths]
-base_dir = "~/pymodaq_data/urashg_calibrations"
-eom_calibration = "eom_calibration.h5"
-elliptec_calibration = "elliptec_calibration.h5"
-variable_attenuator = "variable_attenuator_calibration.h5"
-
-[urashg.calibration.eom]
-voltage_range_min = 0.0
-voltage_range_max = 10.0
-power_control_tolerance = 0.001
-pid_kp = 24.0
-pid_ki = 3.0
-pid_kd = 0.0125
-
-[urashg.calibration.elliptec]
-angle_range = 360.0
-angle_step = 1.0
-malus_fit_points = 180
-
-[urashg.experiments]
-# Experiment-specific settings
-
-[urashg.experiments.pdshg]
-power_points = 20
-angle_points = 180
-angle_range = 360.0
-power_spacing = "logarithmic"
-integration_time = 1.0
-background_subtraction = true
-
-[urashg.experiments.wavelength_scan]
-wavelength_step = 5.0
-integration_time = 2.0
-auto_power_adjustment = true
-
-[urashg.gui]
-# GUI configuration
-
-[urashg.gui.plots]
-default_colormap = "viridis"
-auto_scale = true
-grid_enabled = true
-legend_enabled = true
-
-[urashg.gui.layout]
-dock_size = [1200, 800]
-remember_layout = true
-
-[urashg.data.storage]
-base_directory = "~/pymodaq_data/urashg"
-auto_save = true
-compression = "gzip"
-compression_level = 6
-
-[urashg.data.format]
-timestamp_format = "%Y%m%d_%H%M%S"
-filename_template = "urashg_{experiment}_{timestamp}"
-include_metadata = true
-
-
-[urashg.advanced]
-# Advanced system settings
-
-[urashg.advanced.timing]
-measurement_delay = 0.1
-device_settling_time = 0.5
-timeout_multiplier = 2.0
-
-[urashg.advanced.parallel]
-max_workers = 4
-enable_async = true
-queue_size = 100
+laser_power = 100.0   # milliwatts
+exposure_time = 100.0 # milliseconds

@@ -1,5 +1,4 @@
 import numpy as np
-import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
     DataActuator,
@@ -8,7 +7,6 @@ from pymodaq.control_modules.move_utility_classes import (
 )
 from pymodaq_utils.utils import ThreadCommand
 from qtpy.QtCore import Signal
-from pymodaq_plugins_urashg.daq_move_plugins.maitai_ui import MaiTaiUI
 
 # Import URASHG configuration
 try:
@@ -19,11 +17,11 @@ try:
     maitai_config = config.get_hardware_config("maitai")
 except ImportError:
     maitai_config = {
-        "serial_port": "/dev/ttyUSB2",
+        "serial_port": "/dev/ttyUSB1",
         "baudrate": 9600,
         "timeout": 2.0,
-        "wavelength_range_min": 700.0,
-        "wavelength_range_max": 1000.0,
+        "wavelength_range_min": 690.0,
+        "wavelength_range_max": 1040.0,
     }
 
 
@@ -35,18 +33,11 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     for Spectra-Physics MaiTai femtosecond laser systems.
     """
 
-    # Custom UI for shutter control
-    _ui_file = "maitai_ui.py"
-    _ui_class_name = "MaiTaiUI"
-    
     # PyMoDAQ 5.x required attributes
     _controller_units = "nm"
     is_multiaxes = False
     _axis_names = ["Wavelength"]
     _epsilon = 0.1  # nm precision
-
-    # Signals for UI interaction
-    shutter_status_signal = Signal(str)
 
     params = comon_parameters_fun(
         is_multiaxes=False, axis_names=_axis_names, epsilon=_epsilon
@@ -86,8 +77,8 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     "title": "Serial Port:",
                     "name": "serial_port",
                     "type": "str",
-                    "value": maitai_config.get("serial_port", "/dev/ttyUSB2"),
-                    "tip": "Serial port for MaiTai laser (e.g. /dev/ttyUSB2 or COM3)",
+                    "value": maitai_config.get("serial_port", "/dev/ttyUSB1"),
+                    "tip": "Serial port for MaiTai laser (e.g. /dev/ttyUSB1 or COM3)",
                 },
                 {
                     "title": "Baudrate:",
@@ -173,11 +164,24 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             "type": "group",
             "children": [
                 {
+                    "title": "Open Shutter",
+                    "name": "open_shutter",
+                    "type": "action",
+                    "tip": "Open the laser shutter",
+                },
+                {
+                    "title": "Close Shutter",
+                    "name": "close_shutter",
+                    "type": "action",
+                    "tip": "Close the laser shutter",
+                },
+                {
                     "title": "Shutter Status:",
                     "name": "shutter_status",
                     "type": "str",
                     "value": "Unknown",
                     "readonly": True,
+                    "tip": "Current shutter status",
                 }
             ],
         },
@@ -186,6 +190,7 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     def ini_attributes(self):
         """Initialize attributes before __init__ - PyMoDAQ 5.x pattern"""
         self.controller = None
+        self.initialized = False
 
     def ini_stage(self, controller=None):
         """Initialize the MaiTai laser controller."""
@@ -238,12 +243,6 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 self.initialized = True
                 return info, True
 
-            # Connect UI signals
-            if self.ui:
-                self.ui.open_shutter_signal.connect(self.open_shutter)
-                self.ui.close_shutter_signal.connect(self.close_shutter)
-                self.shutter_status_signal.connect(self.ui.update_shutter_status)
-
         except Exception as e:
             self.emit_status(ThreadCommand("close_splash"))
             self.emit_status(ThreadCommand("Update_Status", [f"Initialization failed: {e}"]))
@@ -258,10 +257,25 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
     def get_actuator_value(self):
         """Get current wavelength position."""
         try:
-            if self.controller and hasattr(self.controller, "get_wavelength"):
+            # Check if we're initialized and have a valid controller
+            if not self.initialized or not self.controller:
+                return [np.array([800.0])]
+                
+            if hasattr(self.controller, "get_wavelength"):
                 wavelength = self.controller.get_wavelength()
-                # PyMoDAQ expects raw numpy arrays - framework wraps in DataActuator
-                return [np.array([wavelength])]
+                # Ensure wavelength is not None and is a valid number
+                if wavelength is not None and isinstance(wavelength, (int, float)):
+                    # Ensure wavelength is within reasonable bounds
+                    if 600.0 <= wavelength <= 1200.0:  # Extended range for safety
+                        return [np.array([float(wavelength)])]
+                    else:
+                        self.emit_status(
+                            ThreadCommand("Update_Status", [f"Wavelength out of range: {wavelength} nm, using default"])
+                        )
+                        return [np.array([800.0])]
+                else:
+                    # If wavelength is None or invalid, use default
+                    return [np.array([800.0])]
             # Default wavelength as raw numpy arrays
             return [np.array([800.0])]
         except Exception as e:
@@ -373,7 +387,6 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                 elif hasattr(self.controller, "disconnect"):
                     self.controller.disconnect()
             self.controller = None
-            self.ui = None
             self.emit_status(
                 ThreadCommand("Update_Status", ["MaiTai connection closed"])
             )
@@ -401,7 +414,6 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             if self.controller and hasattr(self.controller, "open_shutter"):
                 success = self.controller.open_shutter()
                 if success:
-                    self.shutter_status_signal.emit("Open")
                     self.settings.child("shutter_group", "shutter_status").setValue("Open")
                     self.emit_status(ThreadCommand("Update_Status", ["Shutter opened"]))
                 else:
@@ -410,7 +422,6 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     )
             else:
                 # Mock shutter operation
-                self.shutter_status_signal.emit("Open")
                 self.settings.child("shutter_group", "shutter_status").setValue("Open")
                 self.emit_status(
                     ThreadCommand("Update_Status", ["Mock shutter opened"])
@@ -426,7 +437,6 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
             if self.controller and hasattr(self.controller, "close_shutter"):
                 success = self.controller.close_shutter()
                 if success:
-                    self.shutter_status_signal.emit("Closed")
                     self.settings.child("shutter_group", "shutter_status").setValue("Closed")
                     self.emit_status(ThreadCommand("Update_Status", ["Shutter closed"]))
                 else:
@@ -435,7 +445,6 @@ class DAQ_Move_MaiTai(DAQ_Move_base):
                     )
             else:
                 # Mock shutter operation
-                self.shutter_status_signal.emit("Closed")
                 self.settings.child("shutter_group", "shutter_status").setValue("Closed")
                 self.emit_status(
                     ThreadCommand("Update_Status", ["Mock shutter closed"])
