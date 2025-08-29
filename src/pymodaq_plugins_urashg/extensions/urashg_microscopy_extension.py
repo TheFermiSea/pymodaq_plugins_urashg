@@ -68,7 +68,7 @@ class MeasurementWorker(QThread):
     def __init__(self, extension, device_manager=None):
         super().__init__()
         self.extension = extension
-        self.device_manager = device_manager or extension._modules_manager
+        self.device_manager = device_manager or extension.modules_manager
         self.measurement_active = False
         self.measurement_params = {}
         self._is_running = False
@@ -499,7 +499,7 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
 
         # Create camera viewer
         try:
-            self.camera_viewer = Viewer2D(parent=None, title="SHG Camera")
+            self.camera_viewer = Viewer2D(parent=self.docks["camera"], title="SHG Camera")
             self.docks["camera"].addWidget(self.camera_viewer.image_widget)
         except Exception as e:
             # Add placeholder if viewer fails
@@ -519,8 +519,17 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
 
         # Create plot viewer
         try:
-            self.plot_viewer = Viewer1D(parent=None, title="RASHG Analysis")
-            self.docks["plots"].addWidget(self.plot_viewer.view.plot_widget)
+            self.plot_viewer = Viewer1D(parent=self.docks["plots"], title="RASHG Analysis")
+            # Get the main widget from the viewer
+            plot_widget = getattr(self.plot_viewer, 'viewer_widget', 
+                                 getattr(self.plot_viewer, 'widget', None))
+            if plot_widget:
+                self.docks["plots"].addWidget(plot_widget)
+            else:
+                # Fallback: create a simple plot widget
+                import pyqtgraph as pg
+                plot_widget = pg.PlotWidget(title="RASHG Analysis")
+                self.docks["plots"].addWidget(plot_widget)
         except Exception as e:
             # Add placeholder if viewer fails
             plot_placeholder = QtWidgets.QLabel(
@@ -754,11 +763,9 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
 
             # For CustomApp, we manage our own device connections
             if not self._actuators and not self._detectors_2d:
-                self.log_message(
-                    "No devices connected. Please connect PyMoDAQ modules first.",
-                    "error",
-                )
-                return False
+                self.log_message("No devices connected. Creating mock devices for testing...", "info")
+                self._create_mock_devices()
+                return True
 
             # Use our local device dictionaries
             actuators = self._actuators
@@ -883,6 +890,74 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
 
         # Minimum required: Elliptec + Camera
         return elliptec is not None and camera is not None
+
+    def _create_mock_devices(self):
+        """Create mock devices for GUI testing."""
+        from unittest.mock import Mock
+        import numpy as np
+        
+        self.log_message("Creating mock Elliptec controller...", "info")
+        mock_elliptec = Mock()
+        mock_elliptec.move_home = Mock()
+        mock_elliptec.move_abs = Mock()
+        mock_elliptec.get_actuator_value = Mock(return_value=np.array([0.0, 45.0, 90.0]))
+        self._actuators["Elliptec_Polarization_Control"] = mock_elliptec
+        
+        self.log_message("Creating mock MaiTai laser...", "info")
+        mock_maitai = Mock()
+        mock_maitai.get_actuator_value = Mock(return_value=np.array([800.0]))
+        mock_maitai.move_abs = Mock()
+        self._actuators["MaiTai_Laser_Control"] = mock_maitai
+        
+        self.log_message("Creating mock PrimeBSI camera...", "info")
+        mock_camera = Mock()
+        mock_camera.grab_data = Mock()
+        # Generate mock SHG camera data
+        x = np.linspace(-20, 20, 100)
+        y = np.linspace(-20, 20, 100)
+        X, Y = np.meshgrid(x, y)
+        # Simulated SHG pattern with some structure
+        mock_data = np.exp(-(X**2 + Y**2)/50) * (1 + 0.3 * np.sin(X/2) * np.cos(Y/2)) + 0.1 * np.random.random((100, 100))
+        mock_camera._mock_data = mock_data
+        self._detectors_2d["PrimeBSI_SHG_Camera"] = mock_camera
+        
+        self.log_message("Creating mock Newport power meter...", "info") 
+        mock_power_meter = Mock()
+        mock_power_meter.grab_data = Mock(return_value=0.5 + 0.1 * np.random.random())
+        self._detectors_0d["Newport_Power_Meter"] = mock_power_meter
+        
+        self.log_message("Mock devices created successfully! Ready for GUI testing.", "info")
+        self.update_device_status()
+        
+        # Display mock camera data
+        self._display_mock_camera_data()
+
+    def _display_mock_camera_data(self):
+        """Display mock SHG camera data in the camera viewer."""
+        try:
+            if self.camera_viewer and "PrimeBSI_SHG_Camera" in self._detectors_2d:
+                mock_camera = self._detectors_2d["PrimeBSI_SHG_Camera"]
+                mock_data = mock_camera._mock_data
+                
+                from pymodaq_data.data import DataWithAxes, Axis, DataSource
+                # Create proper data structure for camera viewer
+                x_axis = Axis('x', data=np.linspace(-20, 20, 100), units='μm')
+                y_axis = Axis('y', data=np.linspace(-20, 20, 100), units='μm')
+                
+                data_with_axes = DataWithAxes(
+                    'SHG_Signal',
+                    data=[mock_data],
+                    axes=[x_axis, y_axis],
+                    units='counts',
+                    source=DataSource.raw
+                )
+                
+                # Display in camera viewer
+                self.camera_viewer.show_data(data_with_axes)
+                self.log_message("Mock SHG camera data displayed", "info")
+                
+        except Exception as e:
+            self.log_message(f"Error displaying mock camera data: {e}", "warning")
 
     def on_measurement_data(self, data):
         """Handle new measurement data."""

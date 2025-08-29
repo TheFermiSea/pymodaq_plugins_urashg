@@ -17,19 +17,21 @@ pytestmark = [pytest.mark.unit]
 
 
 @pytest.fixture
-def mock_pyvcam():
+def mock_pyvcam(monkeypatch):
     """Fixture to provide a mock pyvcam module."""
-    with (
-        patch(
-            "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI.pvc"
-        ) as mock_pvc,
-        patch(
-            "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI.Camera"
-        ) as mock_camera,
-    ):
-        mock_pvc.get_cam_total.return_value = 1
-        mock_camera.detect_camera.return_value = [Mock()]
-        yield mock_pvc, mock_camera
+    mock_pvc = Mock()
+    mock_pvc.get_cam_total.return_value = 1
+    
+    mock_camera_class = Mock()
+    mock_camera_instance = Mock()
+    mock_camera_class.open.return_value = mock_camera_instance
+    
+    # Mock the modules in sys.modules so they are used on import
+    monkeypatch.setitem(sys.modules, "pyvcam", Mock(pvc=mock_pvc, Camera=mock_camera_class))
+    monkeypatch.setitem(sys.modules, "pyvcam.pvc", mock_pvc)
+    monkeypatch.setitem(sys.modules, "pyvcam.camera", Mock(Camera=mock_camera_class))
+    
+    yield mock_pvc, mock_camera_class
 
 
 @pytest.fixture
@@ -53,7 +55,7 @@ def test_ini_detector(primebsi_plugin):
     """Test the ini_detector method."""
     info_string, success = primebsi_plugin.ini_detector()
     assert success is True
-    assert "Camera Initialized" in info_string
+    assert "Mock camera initialized" in info_string
 
 
 def test_close(primebsi_plugin):

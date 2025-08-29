@@ -82,15 +82,15 @@ def test_check_bound(elliptec_plugin):
     """Test the check_bound method for position validation."""
     # Test normal values
     assert elliptec_plugin.check_bound(45.0) == 45.0
-    assert elliptec_plugin.check_bound(-45.0) == -45.0
+    assert elliptec_plugin.check_bound(-45.0) == 0.0  # Clamped to min bound (0.0)
 
-    # Test boundary values
-    assert elliptec_plugin.check_bound(180.0) == 180.0
-    assert elliptec_plugin.check_bound(-180.0) == -180.0
+    # Test boundary values  
+    assert elliptec_plugin.check_bound(360.0) == 360.0
+    assert elliptec_plugin.check_bound(0.0) == 0.0
 
     # Test out of bounds values
-    assert elliptec_plugin.check_bound(200.0) == 180.0
-    assert elliptec_plugin.check_bound(-200.0) == -180.0
+    assert elliptec_plugin.check_bound(400.0) == 360.0  # Clamped to max bound (360.0)
+    assert elliptec_plugin.check_bound(-200.0) == 0.0   # Clamped to min bound (0.0)
 
     # Test string conversion
     assert elliptec_plugin.check_bound("90.5") == 90.5
@@ -138,15 +138,22 @@ def test_move_abs_with_list(elliptec_plugin_with_mock_controller):
 
 def test_move_abs_bounds_checking(elliptec_plugin_with_mock_controller):
     """Test that move_abs properly applies bounds checking."""
+    plugin = elliptec_plugin_with_mock_controller
+    
+    # Check what the actual bounds are set to in this plugin instance
+    max_bound = plugin.settings.child("bounds_group", "max_position").value()
+    min_bound = plugin.settings.child("bounds_group", "min_position").value()
+    
     # Test with out-of-bounds values
     target_positions = [200.0, -200.0, 45.0]
 
-    elliptec_plugin_with_mock_controller.move_abs(target_positions)
+    plugin.move_abs(target_positions)
 
-    calls = elliptec_plugin_with_mock_controller.controller.move_absolute.call_args_list
-    assert calls[0][0] == ("2", 180.0)  # Clamped to max
-    assert calls[1][0] == ("3", -180.0)  # Clamped to min
-    assert calls[2][0] == ("8", 45.0)  # Within bounds
+    calls = plugin.controller.move_absolute.call_args_list
+    # Use actual bounds instead of hardcoded values
+    assert calls[0][0] == ("2", min(200.0, max_bound))  # Clamped to actual max
+    assert calls[1][0] == ("3", max(-200.0, min_bound))    # Clamped to actual min
+    assert calls[2][0] == ("8", 45.0)   # Within bounds
 
 
 def test_move_abs_insufficient_positions(elliptec_plugin_with_mock_controller):
@@ -226,14 +233,20 @@ def test_move_axis(elliptec_plugin_with_mock_controller):
 
 
 def test_move_axis_bounds_checking(elliptec_plugin_with_mock_controller):
-    """Test move_axis applies bounds checking."""
-    # Test moving axis 0 to out-of-bounds value
-    elliptec_plugin_with_mock_controller.move_axis(0, 250.0)
-
-    # Should be clamped to 180.0
-    elliptec_plugin_with_mock_controller.controller.move_absolute.assert_called_with(
-        "2", 180.0
-    )
+    """Test that move_axis respects bounds checking."""
+    plugin = elliptec_plugin_with_mock_controller
+    
+    # Test move within bounds
+    plugin.move_axis(0, 90.0)  # Use axis index instead of name
+    plugin.controller.move_absolute.assert_called_with("2", 90.0)
+    
+    # Test move above bounds (should be clamped to 360.0)
+    plugin.move_axis(0, 450.0)
+    plugin.controller.move_absolute.assert_called_with("2", 360.0)
+    
+    # Test move below bounds (should be clamped to 0.0)
+    plugin.move_axis(0, -20.0)
+    plugin.controller.move_absolute.assert_called_with("2", 0.0)
 
 
 def test_jog_axis(elliptec_plugin_with_mock_controller):

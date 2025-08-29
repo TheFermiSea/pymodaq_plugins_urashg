@@ -45,7 +45,7 @@ license = { text = "MIT" }
 requires-python = ">=3.9"
 
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -155,34 +155,44 @@ known_third_party = ["pymodaq", "numpy", "PyQt6", "pyqtgraph"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --strict-markers --cov=pymodaq_plugins_urashg --cov-report=term-missing"
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
+python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+addopts = [
+    "--cov=pymodaq_plugins_urashg",
+    "--cov-report=term",
+    "--cov-config=pyproject.toml",
+    "--tb=short",
+]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "hardware: marks tests that require hardware (deselect with '-m \"not hardware\"')",
-    "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-    "camera: marks tests for camera functionality",
-    "device_manager: marks tests for device manager functionality",
-    "plugin: marks tests for plugin functionality",
-    "extension: marks tests for extension functionality",
-    "measurement_worker: marks tests for measurement worker functionality",
-    "threading: marks tests for threading functionality",
-    "performance: marks tests for performance",
-    "pymodaq_standards: marks tests for PyMoDAQ standards compliance",
-    "plugin_integration: marks tests for plugin integration",
-    "suite_overview: marks test suite overview tests",
-    "compliance_critical: marks critical compliance tests",
-    "integration_full: marks full integration tests",
-    "timeout: mark a test as subject to timeout",
+    "integration: marks tests as integration tests",
+    "hardware: marks tests as requires hardware",
+    "slow: marks tests as slow running",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore:Parameter has no default value:DeprecationWarning:pyqtgraph.*",
+    "ignore:Importing Parameter stuff from pymodaq is deprecated:DeprecationWarning:pymodaq.*",
+    "ignore:Importing math_utils stuff from pymodaq is deprecated:DeprecationWarning:pymodaq.*",
 ]
 
 [tool.coverage.run]
-source = ["src/pymodaq_plugins_urashg"]
-omit = ["*/tests/*", "*/examples/*", "*/docs/*", "*/__pycache__/*"]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py", 
+    "*/__pycache__/*",
+    "*/build/*",
+    "*/dist/*",
+    "examples/*",
+    "*/pyrpl_mock.py",  # Mock files don't need testing
+    "*/mock_*.py",
+    "*/device_scanner.py",  # Hardware discovery tool - tested manually
+    "*/parameter_utils.py", # Utility functions - tested indirectly
+]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -197,6 +207,9 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+precision = 1
+skip_covered = false
+skip_empty = true
 
 [tool.uv.sources]
 pyvcam = { git = "https://github.com/Photometrics/PyVCAM.git" }

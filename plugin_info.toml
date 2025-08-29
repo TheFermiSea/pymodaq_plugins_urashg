@@ -1,7 +1,7 @@
 [plugin-info]
 name = "pymodaq_plugins_urashg"
-version = "0.1.0"
-description = "PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems"
+version = "1.0.0"
+description = "Production-ready PyMoDAQ plugin package for URASHG microscopy systems with unified GUI interface"
 author = "TheFermiSea"
 author-email = "squires.b@gmail.com"
 homepage = "https://github.com/TheFermiSea/pymodaq_plugins_urashg"
@@ -16,11 +16,11 @@ h5exporters = false
 scanners = false
 
 [plugin-info.classifiers]
-development-status = "Beta"
+development-status = "Production/Stable"
 environment = "X11"
 intended-audience = ["Science/Research", "Developers"]
 license = "MIT"
-operating-system = ["Microsoft :: Windows", "POSIX :: Linux"]
+operating-system = ["Microsoft :: Windows", "POSIX :: Linux", "MacOS"]
 programming-language = "Python :: 3"
 topic = [
     "Scientific/Engineering :: Physics",

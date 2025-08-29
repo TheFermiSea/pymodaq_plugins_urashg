@@ -79,7 +79,7 @@ def test_plugin_instantiation(maitai_plugin):
     assert maitai_plugin.is_multiaxes is False
     assert len(maitai_plugin._axis_names) == 1
     assert maitai_plugin._axis_names == ["Wavelength"]
-    assert maitai_plugin._epsilon == 1.0
+    assert maitai_plugin._epsilon == 0.1
 
 
 def test_ini_attributes(maitai_plugin):
@@ -469,7 +469,7 @@ def test_error_handling_in_methods(maitai_plugin_with_mock_controller):
 
 def test_wavelength_epsilon_value(maitai_plugin):
     """Test that epsilon value is correctly set."""
-    assert maitai_plugin._epsilon == 1.0  # 1nm resolution
+    assert maitai_plugin._epsilon == 0.1  # 1nm resolution
 
 
 def test_move_abs_with_mock_controller(maitai_plugin_mock_mode):
