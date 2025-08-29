@@ -11,9 +11,8 @@ from pymodaq.control_modules.viewer_utility_classes import (
     DAQ_Viewer_base,
     comon_parameters,
 )
+from pymodaq_data.data import DataSource, DataToExport, DataWithAxes
 from pymodaq_utils.utils import ThreadCommand
-from pymodaq_data.data import DataToExport, DataWithAxes
-from pymodaq_data.data import DataSource
 
 from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
     Newport1830CController,
@@ -21,8 +20,8 @@ from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
 
 # Import URASHG configuration
 try:
-    from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+    from pymodaq_plugins_urashg.utils.config import Config
 
     config = get_config()
     newport_config = config.get_hardware_config("newport")
@@ -181,18 +180,14 @@ class DAQ_0DViewer_Newport1830C(DAQ_Viewer_base):
         },
     ]
 
-    def __init__(self, parent=None, params_state=None):
-        super().__init__(parent, params_state)
-
-        # Hardware controller
+    def ini_attributes(self):
+        """Initialize attributes before __init__ (PyMoDAQ 5.x pattern)"""
         self.controller: Newport1830CController = None
-
-        # Plugin state
-        self.initialized = False
-
-        # Data configuration
         self.x_axis = None
         self.ind_data = 0
+
+    def __init__(self, parent=None, params_state=None):
+        super().__init__(parent, params_state)
 
     def ini_detector(self, controller=None):
         """Initialize the Newport 1830-C power meter."""

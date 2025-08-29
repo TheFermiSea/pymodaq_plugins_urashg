@@ -48,17 +48,43 @@ try:
         np.complex = complex
         np.complex_ = complex
 
+    # PyQtGraph compatibility fix for GraphicsWindow
+    try:
+        import pyqtgraph as pg
+
+        if not hasattr(pg, "GraphicsWindow"):
+            pg.GraphicsWindow = pg.GraphicsLayoutWidget
+            logger.info("Applied pyqtgraph.GraphicsWindow compatibility fix")
+    except ImportError:
+        pass  # pyqtgraph not available, skip patch
+
     # Qt timer compatibility fix - patch before importing pyrpl
     try:
-        from qtpy.QtCore import QTimer
+        # Try different Qt backends
+        QTimer = None
+        for qt_backend in ["qtpy.QtCore", "PyQt5.QtCore", "PyQt6.QtCore"]:
+            try:
+                if qt_backend == "qtpy.QtCore":
+                    from qtpy.QtCore import QTimer
+                elif qt_backend == "PyQt5.QtCore":
+                    from PyQt5.QtCore import QTimer
+                elif qt_backend == "PyQt6.QtCore":
+                    from PyQt6.QtCore import QTimer
+                break
+            except ImportError:
+                continue
 
-        original_setInterval = QTimer.setInterval
+        if QTimer:
+            original_setInterval = QTimer.setInterval
 
-        def setInterval_patched(self, msec):
-            """Patched setInterval to handle float inputs properly."""
-            return original_setInterval(self, int(msec))
+            def setInterval_patched(self, msec):
+                """Patched setInterval to handle float inputs properly."""
+                return original_setInterval(self, int(msec))
 
-        QTimer.setInterval = setInterval_patched
+            QTimer.setInterval = setInterval_patched
+            logger.info(
+                f"Applied QTimer.setInterval compatibility fix using {qt_backend}"
+            )
     except ImportError:
         pass  # Qt not available, skip timer patch
 
@@ -97,7 +123,7 @@ except (ImportError, TypeError, AttributeError) as e:
 
         pyrpl = type("MockPyrplModule", (), {"Pyrpl": _MockPyrpl})()
 
-from pymodaq.utils.daq_utils import ThreadCommand
+from pymodaq_utils.utils import ThreadCommand
 
 
 class ConnectionState(Enum):

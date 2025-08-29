@@ -3,16 +3,16 @@ from pymodaq.control_modules.viewer_utility_classes import (
     DAQ_Viewer_base,
     comon_parameters,
 )
-from pymodaq_utils.utils import ThreadCommand
-from pymodaq.utils.parameter import Parameter
 
 # Removed unused imports: get_param_path, iter_children
 from pymodaq_data.data import Axis, DataSource, DataToExport, DataWithAxes
+from pymodaq_gui.parameter import Parameter
+from pymodaq_utils.utils import ThreadCommand
 
 # Import URASHG configuration
 try:
-    from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+    from pymodaq_plugins_urashg.utils.config import Config
 
     config = get_config()
     camera_config = config.get_hardware_config("camera")
@@ -210,6 +210,7 @@ class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
             if mock_mode or not PYVCAM_AVAILABLE:
                 # Mock mode - create a mock camera
                 from unittest.mock import Mock
+
                 import numpy as np
 
                 self.camera = Mock()

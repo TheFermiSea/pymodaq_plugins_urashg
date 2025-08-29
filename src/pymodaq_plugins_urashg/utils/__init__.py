@@ -3,7 +3,7 @@
 Utilities for URASHG plugins.
 """
 
-from pymodaq.utils.logger import get_module_name, set_logger
+from pymodaq_utils.logger import get_module_name, set_logger
 
 # Configuration management
 try:

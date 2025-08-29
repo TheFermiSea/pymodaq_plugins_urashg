@@ -5,9 +5,10 @@ Provides camera control interface for Photometrics PrimeBSI camera
 with support for both real hardware and mock operation.
 """
 
-import numpy as np
 import time
 from typing import Optional, Tuple
+
+import numpy as np
 
 
 class CameraError(Exception):

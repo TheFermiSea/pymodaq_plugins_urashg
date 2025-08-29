@@ -27,15 +27,16 @@ from pathlib import Path
 from typing import Any, Dict
 
 import numpy as np
-from qtpy import QtWidgets
-from qtpy.QtCore import QThread, QTimer, Signal, Qt
-
+from pymodaq.control_modules.move_utility_classes import (  # Import for measurement worker
+    DataActuator,
+)
 from pymodaq.utils import gui_utils as gutils
-from pymodaq.utils.config import Config, get_set_preset_path, ConfigError
-from pymodaq.control_modules.move_utility_classes import DataActuator  # Import for measurement worker
+from pymodaq.utils.config import Config, ConfigError, get_set_preset_path
 from pymodaq_gui.plotting.data_viewers.viewer1D import Viewer1D
 from pymodaq_gui.plotting.data_viewers.viewer2D import Viewer2D
 from pymodaq_utils.logger import get_module_name, set_logger
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt, QThread, QTimer, Signal
 
 from pymodaq_plugins_urashg.utils.config import Config as PluginConfig
 
@@ -390,17 +391,18 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
             dashboard: Dashboard instance for module management (optional)
         """
         super().__init__(parent)
-        
+
         # Store dashboard reference if provided
         self.dashboard = dashboard
 
-        # Access to PyMoDAQ modules through dashboard 
+        # Access to PyMoDAQ modules through dashboard
         # Create modules_manager from dashboard if available
-        if dashboard and hasattr(dashboard, 'modules_manager'):
+        if dashboard and hasattr(dashboard, "modules_manager"):
             self.modules_manager = dashboard.modules_manager
         else:
             # Create mock modules_manager for standalone use
             from unittest.mock import Mock
+
             self.modules_manager = Mock()
             self.modules_manager.actuators = {}
             self.modules_manager.detectors = {}
@@ -427,13 +429,16 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
         print("🔧 Setting up URASHG CustomApp UI...")
         try:
             self.setup_ui()
-        print("✅ CustomApp UI setup completed successfully!")
-        print(f"📋 Docks created: {list(self.docks.keys()) if hasattr(self, 'docks') else 'None yet'}")
-        print("\n💡 For advanced multi-mode functionality, try:")
-        print("   python launch_urashg_multimode.py")
+            print("✅ CustomApp UI setup completed successfully!")
+            print(
+                f"📋 Docks created: {list(self.docks.keys()) if hasattr(self, 'docks') else 'None yet'}"
+            )
+            print("\n💡 For advanced multi-mode functionality, try:")
+            print("   python launch_urashg_multimode.py")
         except Exception as e:
             print(f"❌ Error during UI setup: {e}")
             import traceback
+
             traceback.print_exc()
 
     def connect_actuator(self, name: str, actuator_module):
@@ -465,7 +470,7 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
     def setup_docks(self):
         """Setup the extension docks layout (mandatory method from template)."""
         print("🏗️ Setting up docks...")
-        
+
         # Main control dock
         print("📋 Creating control dock...")
         self.docks["control"] = gutils.Dock("URASHG Control", size=(400, 600))
@@ -477,9 +482,13 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
             self.docks["control"].addWidget(self.settings_tree)
         else:
             # Add a placeholder widget if settings tree isn't available
-            placeholder_widget = QtWidgets.QLabel("URASHG Control Panel\n\nHardware controls will be added here.")
+            placeholder_widget = QtWidgets.QLabel(
+                "URASHG Control Panel\n\nHardware controls will be added here."
+            )
             placeholder_widget.setAlignment(Qt.AlignCenter)
-            placeholder_widget.setStyleSheet("QLabel { background-color: #f0f0f0; padding: 20px; }")
+            placeholder_widget.setStyleSheet(
+                "QLabel { background-color: #f0f0f0; padding: 20px; }"
+            )
             self.docks["control"].addWidget(placeholder_widget)
 
         # Camera data viewer dock
@@ -494,9 +503,13 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
             self.docks["camera"].addWidget(self.camera_viewer.image_widget)
         except Exception as e:
             # Add placeholder if viewer fails
-            camera_placeholder = QtWidgets.QLabel("SHG Camera Viewer\n\nCamera data will be displayed here.")
+            camera_placeholder = QtWidgets.QLabel(
+                "SHG Camera Viewer\n\nCamera data will be displayed here."
+            )
             camera_placeholder.setAlignment(Qt.AlignCenter)
-            camera_placeholder.setStyleSheet("QLabel { background-color: #e0e0ff; padding: 20px; }")
+            camera_placeholder.setStyleSheet(
+                "QLabel { background-color: #e0e0ff; padding: 20px; }"
+            )
             self.docks["camera"].addWidget(camera_placeholder)
             print(f"Warning: Camera viewer creation failed: {e}")
 
@@ -510,9 +523,13 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
             self.docks["plots"].addWidget(self.plot_viewer.view.plot_widget)
         except Exception as e:
             # Add placeholder if viewer fails
-            plot_placeholder = QtWidgets.QLabel("RASHG Analysis Plots\n\nAnalysis results will be displayed here.")
-            plot_placeholder.setAlignment(Qt.AlignCenter)  
-            plot_placeholder.setStyleSheet("QLabel { background-color: #e0ffe0; padding: 20px; }")
+            plot_placeholder = QtWidgets.QLabel(
+                "RASHG Analysis Plots\n\nAnalysis results will be displayed here."
+            )
+            plot_placeholder.setAlignment(Qt.AlignCenter)
+            plot_placeholder.setStyleSheet(
+                "QLabel { background-color: #e0ffe0; padding: 20px; }"
+            )
             self.docks["plots"].addWidget(plot_placeholder)
             print(f"Warning: Plot viewer creation failed: {e}")
 
@@ -528,17 +545,22 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
 
         # Elliptec custom UI dock
         self.docks["elliptec"] = gutils.Dock("Elliptec Control", size=(400, 200))
-        self.dockarea.addDock(self.docks["elliptec"], 'bottom', self.docks["control"])
-        
+        self.dockarea.addDock(self.docks["elliptec"], "bottom", self.docks["control"])
+
         try:
             from pymodaq_plugins_urashg.daq_move_plugins.elliptec_ui import ElliptecUI
+
             self.elliptec_ui = ElliptecUI()
             self.docks["elliptec"].addWidget(self.elliptec_ui)
         except ImportError as e:
             # Add placeholder if ElliptecUI import fails
-            elliptec_placeholder = QtWidgets.QLabel("Elliptec Rotation Mount Control\n\nHardware controls will be loaded here.")
+            elliptec_placeholder = QtWidgets.QLabel(
+                "Elliptec Rotation Mount Control\n\nHardware controls will be loaded here."
+            )
             elliptec_placeholder.setAlignment(Qt.AlignCenter)
-            elliptec_placeholder.setStyleSheet("QLabel { background-color: #ffe0e0; padding: 20px; }")
+            elliptec_placeholder.setStyleSheet(
+                "QLabel { background-color: #ffe0e0; padding: 20px; }"
+            )
             self.docks["elliptec"].addWidget(elliptec_placeholder)
             print(f"Warning: ElliptecUI import failed: {e}")
             self.elliptec_ui = None
@@ -547,9 +569,11 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
         """Setup extension actions (mandatory method from template)."""
 
         # File actions
-        self.add_action('quit', 'Quit', 'close2', "Quit program")
-        self.add_action('save_data', 'Save Data', 'SaveAs', "Save current measurement data")
-        self.add_action('load_config', 'Load Config', 'Open', "Load configuration file")
+        self.add_action("quit", "Quit", "close2", "Quit program")
+        self.add_action(
+            "save_data", "Save Data", "SaveAs", "Save current measurement data"
+        )
+        self.add_action("load_config", "Load Config", "Open", "Load configuration file")
 
         # Measurement actions
         self.add_action(
@@ -624,9 +648,13 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
         if elliptec_plugin:
             # This is just an example. You can call any method on the plugin.
             elliptec_plugin.move_home()
-            QtWidgets.QMessageBox.information(self.elliptec_ui, "Button Clicked", "Homing command sent to Elliptec!")
+            QtWidgets.QMessageBox.information(
+                self.elliptec_ui, "Button Clicked", "Homing command sent to Elliptec!"
+            )
         else:
-            QtWidgets.QMessageBox.warning(self.elliptec_ui, "Device not found", "Elliptec plugin not connected.")
+            QtWidgets.QMessageBox.warning(
+                self.elliptec_ui, "Device not found", "Elliptec plugin not connected."
+            )
 
     def connect_things(self):
         """Connect actions and widgets to methods (mandatory template method)."""
@@ -910,9 +938,9 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
         if self.measurement_worker and self.measurement_worker.isRunning():
             self.stop_measurement()
         self.status_timer.stop()
-        if hasattr(self, 'parent') and hasattr(self.parent, 'close'):
+        if hasattr(self, "parent") and hasattr(self.parent, "close"):
             self.parent.close()
-        
+
     def load_config(self):
         """Load configuration from file."""
         self.log_message("Loading configuration...", "info")
@@ -923,11 +951,16 @@ class URASHGMicroscopyExtension(gutils.CustomApp):
 def main():
     """Main function for standalone testing (simplified version without dashboard)."""
     import sys
-    from qtpy.QtWidgets import QApplication, QMainWindow
     from unittest.mock import Mock
-    
+
+    from qtpy.QtWidgets import QApplication, QMainWindow
+
     # Create Qt application
-    app = QApplication(sys.argv) if not QApplication.instance() else QApplication.instance()
+    app = (
+        QApplication(sys.argv)
+        if not QApplication.instance()
+        else QApplication.instance()
+    )
 
     try:
         # Create main window with dock area
@@ -962,6 +995,7 @@ def main():
     except Exception as e:
         print(f"Error launching URASHG app: {e}")
         import traceback
+
         traceback.print_exc()
         if __name__ == "__main__":
             sys.exit(1)

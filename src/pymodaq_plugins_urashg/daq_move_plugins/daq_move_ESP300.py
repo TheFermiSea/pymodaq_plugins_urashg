@@ -13,11 +13,11 @@ from typing import List, Union
 import numpy as np
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
-    comon_parameters_fun,
     DataActuator,
+    comon_parameters_fun,
 )
+from pymodaq_gui.parameter import Parameter
 from pymodaq_utils.utils import ThreadCommand
-from pymodaq.utils.parameter import Parameter
 
 from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
     AxisConfig,
@@ -353,15 +353,14 @@ class DAQ_Move_ESP300(DAQ_Move_base):
         },
     ]
 
-    def __init__(self, parent=None, params_state=None):
-        super().__init__(parent, params_state)
-
-        # Hardware controller
+    def ini_attributes(self):
+        """Initialize attributes before __init__ (PyMoDAQ 5.x pattern)"""
         self.controller: ESP300Controller = None
-
-        # Current configuration
         self._current_axes = []
         self._position_poll_timer = None
+
+    def __init__(self, parent=None, params_state=None):
+        super().__init__(parent, params_state)
 
     def ini_stage(self, controller=None):
         """Initialize the ESP300 motion controller."""

@@ -11,7 +11,7 @@ import time
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from pymodaq.utils.logger import get_module_name, set_logger
+from pymodaq_utils.logger import get_module_name, set_logger
 from qtpy.QtCore import QObject, Signal
 
 logger = set_logger(get_module_name(__file__))
@@ -542,7 +542,7 @@ class URASHGDeviceManager(QObject):
                 return False
 
             # Prepare position data for multi-axis movement
-            from pymodaq.utils.data import DataActuator
+            from pymodaq.control_modules.move_utility_classes import DataActuator
 
             # Convert positions dict to list format expected by Elliptec
             position_list = [0.0, 0.0, 0.0]  # Initialize all axes

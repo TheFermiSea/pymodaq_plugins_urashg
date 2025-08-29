@@ -2,16 +2,16 @@ from typing import List, Union
 
 from pymodaq.control_modules.move_utility_classes import (
     DAQ_Move_base,
-    comon_parameters_fun,
     DataActuator,
+    comon_parameters_fun,
     main,
 )
 from pymodaq_utils.utils import ThreadCommand
 
 # Import URASHG configuration
 try:
-    from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+    from pymodaq_plugins_urashg.utils.config import Config
 
     config = get_config()
     elliptec_config = config.get_hardware_config("elliptec")
@@ -24,8 +24,9 @@ except ImportError:
     }
 
 
-from pymodaq_plugins_urashg.daq_move_plugins.elliptec_ui import ElliptecUI
 from qtpy import QtWidgets
+
+from pymodaq_plugins_urashg.daq_move_plugins.elliptec_ui import ElliptecUI
 
 
 class DAQ_Move_Elliptec(DAQ_Move_base):

@@ -5,13 +5,12 @@ from pymodaq.control_modules.move_utility_classes import (
     comon_parameters_fun,
     main,
 )
-
 from pymodaq_utils.utils import ThreadCommand
 
 # Import URASHG configuration
 try:
-    from pymodaq_plugins_urashg.utils.config import Config
     from pymodaq_plugins_urashg import get_config
+    from pymodaq_plugins_urashg.utils.config import Config
 
     config = get_config()
     maitai_config = config.get_hardware_config("maitai")
