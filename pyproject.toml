@@ -9,7 +9,7 @@ scanners = false    # true if plugin contains custom scan layout (daq_scan exten
 package-url = 'https://github.com/TheFermiSea/pymodaq_plugins_urashg'
 
 [project]
-name = "pymodaq-plugins-urashg"
+name = "pymodaq_plugins_urashg"
 description = 'PyMoDAQ plugin package for URASHG (micro Rotational Anisotropy Second Harmonic Generation) microscopy systems'
 dependencies = [
     "pymodaq>=5.0.0",
@@ -29,7 +29,6 @@ dependencies = [
     "pandas>=2.3.2",
     "paramiko>=4.0.0",
     "rpyc>=6.0.2",
-    "pyqt5>=5.15.11",
     "quamash>=0.6.1",
     "scp>=0.15.0",
 ]
@@ -39,7 +38,7 @@ maintainers = [{ name = "TheFermiSea", email = "squires.b@gmail.com" }]
 
 # nottodo: leave everything below as is!
 
-dynamic = ["version", "urls"]
+dynamic = ["version", "urls", "entry-points"]
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
@@ -60,67 +59,11 @@ classifiers = [
     "Topic :: Software Development :: User Interfaces",
 ]
 
-[project.entry-points."pymodaq.plugins"]
-urashg = "pymodaq_plugins_urashg"
-
-[project.entry-points."pymodaq.move_plugins"]
-DAQ_Move_Elliptec = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_Elliptec:DAQ_Move_Elliptec"
-DAQ_Move_MaiTai = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_MaiTai:DAQ_Move_MaiTai"
-DAQ_Move_ESP300 = "pymodaq_plugins_urashg.daq_move_plugins.daq_move_ESP300:DAQ_Move_ESP300"
-
-[project.entry-points."pymodaq.viewer_plugins"]
-DAQ_2DViewer_PrimeBSI = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_2D.daq_2Dviewer_PrimeBSI:DAQ_2DViewer_PrimeBSI"
-DAQ_0DViewer_Newport1830C = "pymodaq_plugins_urashg.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Newport1830C:DAQ_0DViewer_Newport1830C"
-
-[project.entry-points."pymodaq.extensions"]
-URASHGMicroscopyExtension = "pymodaq_plugins_urashg.extensions.urashg_microscopy_extension"
-
-[project.optional-dependencies]
-hardware = [
-    # Hardware-specific dependencies (optional for basic functionality)
-    "opencv-python>=4.5.0",                                    # Image processing
-    "scikit-image>=0.18.0",                                    # Advanced image analysis
-    "pyvcam @ git+https://github.com/Photometrics/PyVCAM.git", # Photometrics camera support
-]
-dev = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
-    "pytest-qt>=4.0",
-    "pytest-mock>=3.0",
-    "pytest-xvfb>=3.0",
-    "black>=21.0",
-    "flake8>=3.9",
-    "isort>=5.0",
-    "pre-commit>=2.15",
-    "sphinx>=4.0",
-    "sphinx-rtd-theme>=1.0",
-    "myst-parser>=0.15",
-]
-test = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
-    "pytest-qt>=4.0",
-    "pytest-mock>=3.0",
-    "pytest-xvfb>=3.0",
-    "pytest-benchmark>=4.0",
-]
-pyrpl = [
-    # PyRPL Red Pitaya control integration (optional - under development)
-    "pyrpl>=0.9.3", # PyRPL library for advanced features
-]
-mock = [
-    "pymodaq-plugins-mock>=1.0.0", # For testing without hardware
-]
-galvo = [
-    "pymodaq-plugins-daqmx>=1.0.0", # Future galvo mirror integration
-    "nidaqmx>=0.6.0",               # National Instruments DAQ
-]
-
 [build-system]
 requires = ["hatchling>=1.9.0", "hatch-vcs", "toml", "pymodaq_utils>=0.0.14"]
 build-backend = "hatchling.build"
 
-# [tool.hatch.metadata.hooks.custom]  # Disabled to use direct entry points
+[tool.hatch.metadata.hooks.custom]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -159,12 +102,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = [
-    "--cov=pymodaq_plugins_urashg",
-    "--cov-report=term",
-    "--cov-config=pyproject.toml",
-    "--tb=short",
-]
 markers = [
     "unit: marks tests as unit tests",
     "integration: marks tests as integration tests",
@@ -217,4 +154,7 @@ pyvcam = { git = "https://github.com/Photometrics/PyVCAM.git" }
 [dependency-groups]
 dev = [
     "pytest-cov>=6.2.1",
+    "pyserial",
+    "pymodaq",
+    "pyqt6",
 ]

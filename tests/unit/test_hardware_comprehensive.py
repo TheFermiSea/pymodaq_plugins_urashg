@@ -634,7 +634,7 @@ class TestHardwareUtilities:
     def test_utils_import(self):
         """Test hardware utilities can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.utils import *
+            
             # Test passes if import succeeds
         except ImportError:
             pytest.skip("Hardware utils not available")

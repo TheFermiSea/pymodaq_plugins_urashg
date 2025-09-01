@@ -14,7 +14,7 @@ from pymodaq.control_modules.viewer_utility_classes import (
 from pymodaq_data.data import DataSource, DataToExport, DataWithAxes
 from pymodaq_utils.utils import ThreadCommand
 
-from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
+from pymodaq_plugins_urashg.hardware.newport1830c_controller import (
     Newport1830CController,
 )
 

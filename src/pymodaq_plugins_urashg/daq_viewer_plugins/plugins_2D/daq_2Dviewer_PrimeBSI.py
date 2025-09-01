@@ -1,620 +1,91 @@
 import numpy as np
-from pymodaq.control_modules.viewer_utility_classes import (
-    DAQ_Viewer_base,
-    comon_parameters,
-)
-
-# Removed unused imports: get_param_path, iter_children
+from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters
 from pymodaq_data.data import Axis, DataSource, DataToExport, DataWithAxes
-from pymodaq_gui.parameter import Parameter
 from pymodaq_utils.utils import ThreadCommand
+from pymodaq_gui.parameter import Parameter
 
-# Import URASHG configuration
-try:
-    from pymodaq_plugins_urashg import get_config
-    from pymodaq_plugins_urashg.utils.config import Config
-
-    config = get_config()
-    camera_config = config.get_hardware_config("camera")
-except ImportError:
-    camera_config = {
-        "exposure_default": 50.0,
-        "cooling_enabled": True,
-        "cooling_temperature": -20,
-        "roi_x": 0,
-        "roi_y": 0,
-        "roi_width": 2048,
-        "roi_height": 2048,
-    }
-
-# Try to import PyVCAM and handle the case where it's not installed
-try:
-    from pyvcam import pvc
-    from pyvcam.camera import Camera
-
-    PYVCAM_AVAILABLE = True
-except ImportError as e:
-    print(f"PyVCAM import error: {e}")
-    PYVCAM_AVAILABLE = False
-
-    # Define dummy classes to avoid crashing on import if pyvcam is missing
-    class Camera:
-        @staticmethod
-        def detect_camera():
-            return iter([])
-
-    class TriggerMode:
-        INTERNAL = "Internal"
-
-    class ClearMode:
-        PRE_SEQUENCE = "Pre-Sequence"
-
-    class Param:
-        EXP_TIME = None
-        READOUT_PORT = None
-        PIX_TIME = None
-        GAIN_INDEX = None
-        TEMP_SETPOINT = None
-
+from pymodaq_plugins_urashg.hardware.camera_wrapper import CameraWrapper, MockCameraWrapper, HardwareError
 
 class DAQ_2DViewer_PrimeBSI(DAQ_Viewer_base):
-    """
-    PyMoDAQ Plugin for Photometrics Prime BSI and other PVCAM-compatible cameras.
-
-    This plugin interfaces with the camera using the official PyVCAM library.
-    It supports:
-    - Live acquisition and single-shot captures.
-    - Dynamic querying of camera features, including post-processing and advanced parameters.
-    - Control over exposure, gain, readout speed, and triggering.
-    - Dynamic ROI selection and on-the-fly intensity integration for 0D data export.
-    """
-
+    """PyMoDAQ Plugin for Photometrics Prime BSI cameras with dynamic parameter discovery."""
     params = comon_parameters + [
-        {
-            "title": "Camera Settings",
-            "name": "camera_settings",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Mock Mode",
-                    "name": "mock_mode",
-                    "type": "bool",
-                    "value": False,
-                    "tip": "Enable mock mode for testing without hardware",
-                },
-                {
-                    "title": "Camera Name:",
-                    "name": "camera_name",
-                    "type": "str",
-                    "value": "",
-                    "readonly": True,
-                },
-                {
-                    "title": "Sensor Size:",
-                    "name": "sensor_size",
-                    "type": "str",
-                    "value": "",
-                    "readonly": True,
-                },
-                {
-                    "title": "Exposure (ms):",
-                    "name": "exposure",
-                    "type": "float",
-                    "value": camera_config.get("exposure_default", 50.0),
-                    "min": 0.01,
-                    "max": 10000.0,
-                    "suffix": "ms",
-                    "tip": "Camera exposure time in milliseconds",
-                },
-                {
-                    "title": "Readout Port:",
-                    "name": "readout_port",
-                    "type": "list",
-                    "limits": ["Port 1", "Port 2"],
-                    "value": "Port 1",
-                    "tip": "Camera readout port selection",
-                },
-                {
-                    "title": "Speed Index:",
-                    "name": "speed_index",
-                    "type": "list",
-                    "limits": ["High Speed", "Low Noise"],
-                    "value": "High Speed",
-                    "tip": "Readout speed selection",
-                },
-                {
-                    "title": "Gain:",
-                    "name": "gain",
-                    "type": "list",
-                    "limits": ["Low", "Medium", "High"],
-                    "value": "Medium",
-                    "tip": "Camera gain setting",
-                },
-                {
-                    "title": "Trigger Mode:",
-                    "name": "trigger_mode",
-                    "type": "list",
-                    "limits": ["Internal", "External", "Software"],
-                    "value": "Internal",
-                    "tip": "Camera trigger mode",
-                },
-                {
-                    "title": "Clear Mode:",
-                    "name": "clear_mode",
-                    "type": "list",
-                    "limits": ["Pre-Sequence", "Pre-Exposure", "Never"],
-                    "value": "Pre-Sequence",
-                    "tip": "Sensor clearing mode",
-                },
-                {
-                    "title": "Temperature (°C):",
-                    "name": "temperature",
-                    "type": "float",
-                    "readonly": True,
-                },
-                {
-                    "title": "Temp. Setpoint (°C):",
-                    "name": "temperature_setpoint",
-                    "type": "int",
-                    "value": camera_config.get("cooling_temperature", -20),
-                    "min": -40,
-                    "max": 25,
-                    "suffix": "°C",
-                    "tip": "Camera sensor cooling temperature",
-                },
-            ],
-        },
-        {
-            "title": "Advanced Settings",
-            "name": "advanced_settings",
-            "type": "group",
-            "children": [],
-        },
-        {
-            "title": "Post-Processing",
-            "name": "post_processing",
-            "type": "group",
-            "children": [],
-        },
-        {
-            "title": "ROI Settings",
-            "name": "roi_settings",
-            "type": "group",
-            "children": [
-                {
-                    "title": "Enable ROI Integration",
-                    "name": "roi_integration",
-                    "type": "bool",
-                    "value": True,
-                },
-            ],
-        },
+        {"title": "Mock Mode", "name": "mock_mode", "type": "bool", "value": False},
+        {"title": "Exposure (ms):", "name": "exposure", "type": "float", "value": 50.0},
+        {"title": "Camera Info", "name": "camera_info", "type": "group", "children": [
+            {"title": "Camera Name:", "name": "camera_name", "type": "str", "value": "", "readonly": True},
+            {"title": "Sensor Size:", "name": "sensor_size", "type": "str", "value": "", "readonly": True},
+        ]},
+        {"title": "Advanced Settings", "name": "advanced_settings", "type": "group", "children": []},
+        {"title": "Post-Processing", "name": "post_processing", "type": "group", "children": []},
     ]
 
-    # PyMoDAQ 5 handles common parameters differently
-    # Common parameters are automatically added by the base class
-
     def ini_attributes(self):
-        """Initialize attributes before __init__ - PyMoDAQ 5.x pattern"""
-        self.camera: Camera = None
-        self.x_axis = None
-        self.y_axis = None
+        self.controller: CameraWrapper = None
+        self.x_axis: Axis = None
+        self.y_axis: Axis = None
 
     def ini_detector(self, controller=None):
-        """Initialize the camera - PyMoDAQ 5.x standard method"""
         self.initialized = False
         try:
-            # Check for mock mode
-            mock_mode = self.settings.child("camera_settings", "mock_mode").value()
+            ControllerClass = MockCameraWrapper if self.settings.child("mock_mode").value() else CameraWrapper
+            self.controller = controller or ControllerClass()
+            self.controller.connect()
 
-            if mock_mode or not PYVCAM_AVAILABLE:
-                # Mock mode - create a mock camera
-                from unittest.mock import Mock
-
-                import numpy as np
-
-                self.camera = Mock()
-                self.camera.name = "pvcamUSB_0"
-                self.camera.is_open = True
-                self.camera.sensor_size = (2048, 2048)
-                self.camera.temp = -19.89
-                self.camera.readout_ports = {"CMOS": 0}
-                self.camera.exp_modes = {"Internal Trigger": 1792}
-                self.camera.clear_modes = {"Auto": 0}
-
-                # Mock methods
-                self.camera.get_frame = Mock(
-                    return_value=np.random.randint(
-                        0, 4096, (2048, 2048), dtype=np.uint16
-                    )
-                )
-                self.camera.close = Mock()
-
-                # Set camera parameters in GUI
-                self.settings.child("camera_settings", "camera_name").setValue(
-                    "pvcamUSB_0 (Mock)"
-                )
-                self.settings.child("camera_settings", "sensor_size").setValue(
-                    "2048 x 2048"
-                )
-
-                # Generate mock axes
-                self.x_axis = Axis(label="x", units="pixels", data=np.arange(2048))
-                self.y_axis = Axis(label="y", units="pixels", data=np.arange(2048))
-
-                self.status.update(msg="Mock camera initialized", busy=False)
-                self.initialized = True
-                return "Mock camera initialized", True
-
-            # Real hardware mode
-            # Ensure clean PVCAM state
-            try:
-                if pvc.get_cam_total() >= 0:  # Check if already initialized
-                    pvc.uninit_pvcam()
-            except:
-                pass  # PVCAM not initialized or other state issues
-
-            # Fresh initialization
-            pvc.init_pvcam()
-
-            # Check camera availability
-            total_cams = pvc.get_cam_total()
-            if total_cams == 0:
-                raise RuntimeError("No cameras found by PVCAM")
-
-            cameras = list(Camera.detect_camera())
-            if len(cameras) == 0:
-                raise RuntimeError(
-                    "No cameras detected by PyVCAM Camera.detect_camera()"
-                )
-
-            self.camera = cameras[0]  # Use first camera
-            self.camera.open()
-
-            # Update GUI with camera capabilities
-            self.update_camera_params()
-            self.populate_advanced_params()
-            self.populate_post_processing_params()
-
-            self.status.update(
-                msg=f"Camera {self.camera.name} Initialized.", busy=False
-            )
+            self.update_camera_info()
+            self.populate_dynamic_params()
             self.initialized = True
-            return f"Camera {self.camera.name} Initialized.", True
+            return f"Camera {self.settings.child('camera_info', 'camera_name').value()} Initialized.", True
+        except (HardwareError, ImportError) as e:
+            self.status.update(msg=f"Camera Initialization Failed: {e}", busy=False)
+            return f"Camera Initialization Failed: {e}", False
 
-        except Exception as e:
-            error_msg = f"Camera Initialization Failed: {str(e)}"
-            self.status.update(msg=error_msg, busy=False)
-            self.initialized = False
-            return error_msg, False
+    def update_camera_info(self):
+        """Update GUI with camera properties and set up axes."""
+        props = self.controller.get_camera_properties()
+        self.settings.child('camera_info', 'camera_name').setValue(props["name"])
+        self.settings.child('camera_info', 'sensor_size').setValue(f"{props['sensor_size'][0]} x {props['sensor_size'][1]}")
+        
+        height, width = props["sensor_size"]
+        self.x_axis = Axis(data=np.arange(width), label="X", units="px")
+        self.y_axis = Axis(data=np.arange(height), label="Y", units="px")
 
-    def update_camera_params(self):
-        """
-        Queries the connected camera for its primary capabilities and updates the main settings panel.
-        """
-        self.settings.child("camera_settings", "camera_name").setValue(self.camera.name)
-        sensor_size = f"{self.camera.sensor_size[0]} x {self.camera.sensor_size[1]}"
-        self.settings.child("camera_settings", "sensor_size").setValue(sensor_size)
-
-        self.settings.child("camera_settings", "readout_port").setLimits(
-            self.camera.readout_ports
-        )
-        # Get available speeds from current port
-        current_port = self.camera.readout_port
-        port_name = list(self.camera.readout_ports.keys())[
-            list(self.camera.readout_ports.values()).index(current_port)
-        ]
-        port_info = self.camera.port_speed_gain_table[port_name]
-        speed_names = [k for k in port_info.keys() if k.startswith("Speed_")]
-        self.settings.child("camera_settings", "speed_index").setLimits(speed_names)
-        # Get available gains for current speed
-        current_speed_name = f"Speed_{self.camera.speed}"
-        if current_speed_name in port_info:
-            speed_info = port_info[current_speed_name]
-            gain_names = [
-                k
-                for k in speed_info.keys()
-                if k not in ["speed_index", "pixel_time", "bit_depth", "gain_range"]
-            ]
-            self.settings.child("camera_settings", "gain").setLimits(gain_names)
-        self.settings.child("camera_settings", "trigger_mode").setLimits(
-            list(self.camera.exp_modes.keys())
-        )
-        self.settings.child("camera_settings", "clear_mode").setLimits(
-            list(self.camera.clear_modes.keys())
-        )
-
-        self.settings.child("camera_settings", "readout_port").setValue(
-            self.camera.readout_port
-        )
-        self.settings.child("camera_settings", "speed_index").setValue(
-            f"Speed_{self.camera.speed}"
-        )
-        self.settings.child("camera_settings", "gain").setValue(self.camera.gain_name)
-        self.settings.child("camera_settings", "trigger_mode").setValue(
-            list(self.camera.exp_modes.keys())[
-                list(self.camera.exp_modes.values()).index(self.camera.exp_mode)
-            ]
-        )
-        self.settings.child("camera_settings", "clear_mode").setValue(
-            list(self.camera.clear_modes.keys())[
-                list(self.camera.clear_modes.values()).index(self.camera.clear_mode)
-            ]
-        )
-        self.settings.child("camera_settings", "temperature_setpoint").setValue(
-            self.camera.temp_setpoint
-        )
-
-        self.x_axis = self.get_xaxis()
-        self.y_axis = self.get_yaxis()
-
-    def _create_param_from_feature(self, feature, is_post_processing=False):
-        """Helper function to create a PyMoDAQ Parameter from a PyVCAM feature dictionary."""
-        param_dict = {
-            "title": feature["name"] + ":",
-            "name": feature["name"].replace(" ", "_").lower(),
-            "readonly": feature["access"] == "Read Only",
-        }
-
-        if is_post_processing:
-            param_dict["opts"] = {"pvc_id": feature["id"]}
-            current_value = self.camera.get_pp_param(feature["id"])
-        else:  # Is a general parameter
-            param_dict["opts"] = {"pvc_enum": feature["id"]}
-            current_value = self.camera.get_param(feature["id"])
-
-        if feature["type"] == "Enum":
-            param_dict["type"] = "list"
-            param_dict["limits"] = feature["values"]
-            param_dict["value"] = feature["values"][
-                current_value
-            ]  # Enum value is an index
-        elif feature["type"] == "Boolean":
-            param_dict["type"] = "bool"
-            param_dict["value"] = current_value
-        elif feature["type"] in [
-            "Integer",
-            "Long",
-            "Unsigned Integer",
-            "Unsigned Long",
-        ]:
-            param_dict["type"] = "int"
-            param_dict["value"] = current_value
-            param_dict["min"] = feature["min"]
-            param_dict["max"] = feature["max"]
-        elif feature["type"] == "Float":
-            param_dict["type"] = "float"
-            param_dict["value"] = current_value
-            param_dict["min"] = feature["min"]
-            param_dict["max"] = feature["max"]
-        else:
-            return None  # Skip unsupported types
-
-        return Parameter.create(**param_dict)
-
-    def populate_advanced_params(self):
-        """Dynamically discovers and creates GUI controls for general camera features."""
+    def populate_dynamic_params(self):
+        """Dynamically discover and create GUI controls for camera features."""
+        params_dict = self.controller.discover_params()
+        
         adv_group = self.settings.child("advanced_settings")
-        for child in adv_group.children():
-            child.remove()
+        for param_data in params_dict["advanced"]:
+            adv_group.addChild(Parameter.create(**param_data))
 
-        # Set of parameters already handled in the main 'Camera Settings' group
-        if PYVCAM_AVAILABLE:
-            from pyvcam.constants import (
-                PARAM_EXP_TIME,
-                PARAM_GAIN_INDEX,
-                PARAM_PIX_TIME,
-                PARAM_READOUT_PORT,
-                PARAM_TEMP_SETPOINT,
-            )
-
-            handled_params = {
-                PARAM_EXP_TIME,
-                PARAM_READOUT_PORT,
-                PARAM_PIX_TIME,
-                PARAM_GAIN_INDEX,
-                PARAM_TEMP_SETPOINT,
-            }
-        else:
-            handled_params = set()
-
-        if hasattr(self.camera, "params"):
-            for param_enum, param_info in self.camera.params.items():
-                if param_enum in handled_params or param_info["access"] in [
-                    "Read Only",
-                    "Unavailable",
-                ]:
-                    continue
-
-                # PyVCAM param_info is slightly different from post_processing_features
-                feature_dict = {
-                    "name": param_info["name"],
-                    "access": param_info["access"],
-                    "type": param_info["type"].__name__,
-                    "id": param_enum,
-                    "values": param_info.get("enum_map", {}).keys(),
-                    "min": param_info.get("min"),
-                    "max": param_info.get("max"),
-                }
-
-                new_param = self._create_param_from_feature(
-                    feature_dict, is_post_processing=False
-                )
-                if new_param:
-                    adv_group.addChild(new_param)
-
-    def populate_post_processing_params(self):
-        """Dynamically discovers and creates GUI controls for post-processing features."""
-        post_proc_group = self.settings.child("post_processing")
-        for child in post_proc_group.children():
-            child.remove()
-
-        if not hasattr(self.camera, "post_processing_features"):
-            return
-
-        for feature in self.camera.post_processing_features:
-            new_param = self._create_param_from_feature(
-                feature, is_post_processing=True
-            )
-            if new_param:
-                post_proc_group.addChild(new_param)
+        pp_group = self.settings.child("post_processing")
+        for param_data in params_dict["post_processing"]:
+            pp_group.addChild(Parameter.create(**param_data))
 
     def close(self):
-        """Closes the camera connection and uninitializes the PVCAM library."""
-        try:
-            if (
-                self.camera is not None
-                and hasattr(self.camera, "is_open")
-                and self.camera.is_open
-            ):
-                self.camera.close()
-        except Exception as e:
-            print(f"Warning: Error closing camera: {e}")
-
-        try:
-            if PYVCAM_AVAILABLE:
-                pvc.uninit_pvcam()
-        except Exception as e:
-            print(f"Warning: Error uninitializing PVCAM: {e}")
+        """Disconnect from the camera."""
+        if self.controller:
+            self.controller.disconnect()
 
     def commit_settings(self, param: Parameter):
-        """Applies a changed setting to the camera hardware."""
+        """Apply a changed setting to the camera hardware."""
         try:
-            # Handle standard camera settings
-            if param.name() == "exposure":
-                self.camera.exp_time = int(param.value())
-            elif param.name() == "readout_port":
-                self.camera.readout_port = param.value()
-                # Update speed limits when port changes
-                current_port = param.value()
-                port_name = list(self.camera.readout_ports.keys())[
-                    list(self.camera.readout_ports.values()).index(current_port)
-                ]
-                port_info = self.camera.port_speed_gain_table[port_name]
-                speed_names = [k for k in port_info.keys() if k.startswith("Speed_")]
-                self.settings.child("camera_settings", "speed_index").setLimits(
-                    speed_names
-                )
-            elif param.name() == "speed_index":
-                # Extract speed index from Speed_X format
-                speed_index = int(param.value().split("_")[1])
-                self.camera.speed = speed_index
-            elif param.name() == "gain":
-                # Find gain_index from gain name
-                current_port = self.camera.readout_port
-                port_name = list(self.camera.readout_ports.keys())[
-                    list(self.camera.readout_ports.values()).index(current_port)
-                ]
-                port_info = self.camera.port_speed_gain_table[port_name]
-                speed_info = port_info[f"Speed_{self.camera.speed}"]
-                if param.value() in speed_info:
-                    self.camera.gain = speed_info[param.value()]["gain_index"]
-            elif param.name() == "trigger_mode":
-                self.camera.exp_mode = self.camera.exp_modes[param.value()]
-            elif param.name() == "clear_mode":
-                self.camera.clear_mode = self.camera.clear_modes[param.value()]
-            elif param.name() == "temperature_setpoint":
-                self.camera.temp_setpoint = param.value()
-
-            # Handle dynamically generated parameters
-            value = param.value()
-            if param.type() == "list":
-                value = list(param.opts["limits"]).index(value)
-
-            if "pvc_id" in param.opts:  # Post-processing parameter
-                self.camera.set_pp_param(param.opts["pvc_id"], value)
-            elif "pvc_enum" in param.opts:  # Advanced general parameter
-                self.camera.set_param(param.opts["pvc_enum"], value)
-
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand(
-                    "Update Error", [f"Failed to set {param.name()}: {str(e)}"]
-                )
-            )
-
-    def get_xaxis(self):
-        """Get the x_axis from the camera sensor size."""
-        if self.camera and self.camera.rois:
-            roi = self.camera.rois[0]
-            return Axis(data=np.arange(roi.shape[1]), label="Pixels")
-        return Axis(data=np.arange(1), label="Pixels")
-
-    def get_yaxis(self):
-        """Get the y_axis from the camera sensor size."""
-        if self.camera and self.camera.rois:
-            roi = self.camera.rois[0]
-            return Axis(data=np.arange(roi.shape[0]), label="Pixels")
-        return Axis(data=np.arange(1), label="Pixels")
-
-    def get_roi_bounds(self):
-        """Get ROI bounds for integration. Returns None if no ROI is set."""
-        if self.camera and self.camera.rois:
-            roi = self.camera.rois[0]
-            # ROI bounds: (start_row, height, start_col, width)
-            return (roi.p1, roi.p2 - roi.p1 + 1, roi.s1, roi.s2 - roi.s1 + 1)
-        return None
+            if 'pvc_enum' in param.opts:
+                self.controller.set_param(param.opts['pvc_enum'], param.value())
+            elif 'pvc_id' in param.opts:
+                self.controller.set_pp_param(param.opts['pvc_id'], param.value())
+        except HardwareError as e:
+            self.emit_status(ThreadCommand("Update Error", [f"Failed to set {param.name()}: {e}", "error"]))
 
     def grab_data(self, Naverage=1, **kwargs):
-        """
-        Acquires a single frame from the camera and emits the data.
-        Performs ROI integration if enabled.
-        """
+        """Acquire a frame from the camera and emit the data."""
         try:
-            self.settings.child("camera_settings", "camera_name").setValue(
-                self.camera.name
-            )
-
-            # Get frame from camera
-            raw_frame = self.camera.get_frame(
-                exp_time=self.settings.child("camera_settings", "exposure").value()
-            )
-
-            # Reshape to proper 2D array
-            if hasattr(self.camera, "rois") and self.camera.rois:
-                frame = raw_frame.reshape(self.camera.rois[0].shape)
-            else:
-                # Fallback to sensor size
-                frame = raw_frame.reshape(self.camera.sensor_size)
-
-            # PyMoDAQ 5.0+ data structure - ensure frame is 2D numpy array
-            dwa_2d = DataWithAxes(
-                name="PrimeBSI",
-                source=DataSource.raw,
-                data=[frame],  # Must be a list containing 2D numpy arrays
-                axes=[self.y_axis, self.x_axis],
-            )
-            data_to_emit = [dwa_2d]
-
-            if self.settings.child("roi_settings", "roi_integration").value():
-                roi_bounds = self.get_roi_bounds()
-                if roi_bounds:
-                    y, h, x, w = roi_bounds
-                    roi_frame = frame[y : y + h, x : x + w]
-                    integrated_signal = np.sum(roi_frame, dtype=np.float64)
-                    # PyMoDAQ 5.0+ 0D data structure
-                    dwa_0d = DataWithAxes(
-                        name="SHG Signal",
-                        source=DataSource.calculated,
-                        data=[np.array([integrated_signal])],
-                    )
-                    data_to_emit.append(dwa_0d)
-
-            # PyMoDAQ 5.0+ signal emission
-            dte = DataToExport(name="PrimeBSI_Data", data=data_to_emit)
-            self.dte_signal.emit(dte)
-
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand("Acquisition Error", [f"Failed to grab data: {str(e)}"])
-            )
+            exposure_ms = self.settings.child("exposure").value()
+            frame = self.controller.get_frame(int(exposure_ms))
+            
+            dwa = DataWithAxes("PrimeBSI", DataSource.raw, [frame], axes=[self.y_axis, self.x_axis])
+            self.dte_signal.emit(DataToExport("PrimeBSI_Data", data=[dwa]))
+        except HardwareError as e:
+            self.emit_status(ThreadCommand("Acquisition Error", [f"Failed to grab data: {e}", "error"]))
 
     def stop(self):
-        """Stops any ongoing acquisition."""
-        try:
-            pass
-        except Exception as e:
-            self.emit_status(
-                ThreadCommand("Stop Error", [f"Error stopping acquisition: {str(e)}"])
-            )
         return ""
