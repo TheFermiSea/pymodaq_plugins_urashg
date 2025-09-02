@@ -1,14 +1,14 @@
 import pytest
 from unittest.mock import MagicMock
 
-from pymodaq_plugins_urashg.hardware.newport1830c_controller import Newport1830CController
+from pymodaq_plugins_urashg.hardware.newport1830c_controller import Newport1830CController, MockNewport1830CController
 
 @pytest.fixture
 def mock_newport_controller():
     """Fixture to create a Newport1830CController in mock mode."""
     import logging
     logging.basicConfig()
-    controller = Newport1830CController(mock_mode=True)
+    controller = MockNewport1830CController(port="COM_MOCK")
     controller.connect()
     # Mock the serial connection for deep control
     controller.ser = MagicMock()
@@ -16,7 +16,7 @@ def mock_newport_controller():
 
 def test_newport_init_and_connect():
     """Test initialization and connection."""
-    controller = Newport1830CController(mock_mode=True)
+    controller = MockNewport1830CController(port="COM_MOCK")
     assert controller.mock_mode is True
     assert controller.is_connected() is False
     controller.connect()

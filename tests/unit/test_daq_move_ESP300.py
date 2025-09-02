@@ -20,7 +20,7 @@ pytestmark = [pytest.mark.unit]
 def mock_esp300_controller():
     """Fixture to provide a mock ESP300Controller."""
     with patch(
-        "pymodaq_plugins_urashg.hardware.urashg.esp300_controller.ESP300Controller"
+        "pymodaq_plugins_urashg.hardware.esp300_controller.ESP300Controller"
     ) as mock_controller:
         yield mock_controller
 

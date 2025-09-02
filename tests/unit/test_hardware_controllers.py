@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 @pytest.mark.unit
 def test_maitai_controller_import():
     """Test MaiTai controller can be imported"""
-    from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+    from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
 
     assert MaiTaiController is not None
 
@@ -22,7 +22,7 @@ def test_maitai_controller_import():
 @pytest.mark.unit
 def test_elliptec_controller_import():
     """Test Elliptec controller can be imported"""
-    from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import (
+    from pymodaq_plugins_urashg.hardware.elliptec_wrapper import (
         ElliptecController,
     )
 
@@ -32,7 +32,7 @@ def test_elliptec_controller_import():
 @pytest.mark.unit
 def test_newport1830c_controller_import():
     """Test Newport 1830C controller can be imported"""
-    from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
+    from pymodaq_plugins_urashg.hardware.newport1830c_controller import (
         Newport1830CController,
     )
 
@@ -42,7 +42,7 @@ def test_newport1830c_controller_import():
 @pytest.mark.unit
 def test_esp300_controller_import():
     """Test ESP300 controller can be imported"""
-    from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
+    from pymodaq_plugins_urashg.hardware.esp300_controller import (
         ESP300Controller,
     )
 
@@ -52,7 +52,7 @@ def test_esp300_controller_import():
 @pytest.mark.unit
 def test_maitai_controller_mock_creation():
     """Test MaiTai controller creation in mock mode"""
-    from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+    from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
 
     controller = MaiTaiController(port="/dev/ttyUSB0", mock_mode=True)
     assert controller is not None
@@ -62,7 +62,7 @@ def test_maitai_controller_mock_creation():
 @pytest.mark.unit
 def test_elliptec_controller_mock_creation():
     """Test Elliptec controller creation in mock mode"""
-    from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import (
+    from pymodaq_plugins_urashg.hardware.elliptec_wrapper import (
         ElliptecController,
     )
 
@@ -74,7 +74,7 @@ def test_elliptec_controller_mock_creation():
 @pytest.mark.unit
 def test_newport1830c_controller_mock_creation():
     """Test Newport 1830C controller creation"""
-    from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import (
+    from pymodaq_plugins_urashg.hardware.newport1830c_controller import (
         Newport1830CController,
     )
 
@@ -87,7 +87,7 @@ def test_newport1830c_controller_mock_creation():
 @pytest.mark.unit
 def test_esp300_controller_mock_creation():
     """Test ESP300 controller creation"""
-    from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import (
+    from pymodaq_plugins_urashg.hardware.esp300_controller import (
         ESP300Controller,
     )
 

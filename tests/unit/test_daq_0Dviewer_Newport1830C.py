@@ -20,7 +20,7 @@ pytestmark = [pytest.mark.unit]
 def mock_newport_controller():
     """Fixture to provide a mock Newport1830CController."""
     with patch(
-        "pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller.Newport1830CController"
+        "pymodaq_plugins_urashg.hardware.newport1830c_controller.Newport1830CController"
     ) as mock_controller:
         yield mock_controller
 

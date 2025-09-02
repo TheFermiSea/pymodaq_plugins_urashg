@@ -133,7 +133,7 @@ def primebsi_plugin_with_camera(comprehensive_mock_pyvcam):
     from pymodaq_data.data import Axis
     
     plugin = DAQ_2DViewer_PrimeBSI(None, None)
-    plugin.settings.child("camera_settings", "mock_mode").setValue(True)
+    plugin.settings.child("mock_mode").setValue(True)
     plugin.camera = comprehensive_mock_pyvcam[2]
     
     # Initialize axes required by grab_data
@@ -200,7 +200,7 @@ class TestPrimeBSICameraInitialization:
         )
         
         plugin = DAQ_2DViewer_PrimeBSI(None, None)
-        plugin.settings.child("camera_settings", "mock_mode").setValue(True)
+        plugin.settings.child("mock_mode").setValue(True)
         
         info_string, success = plugin.ini_detector()
         
@@ -215,7 +215,7 @@ class TestPrimeBSICameraInitialization:
         )
         
         plugin = DAQ_2DViewer_PrimeBSI(None, None)
-        plugin.settings.child("camera_settings", "mock_mode").setValue(True)
+        plugin.settings.child("mock_mode").setValue(True)
         
         info_string, success = plugin.ini_detector()
         
@@ -234,7 +234,7 @@ class TestPrimeBSICameraInitialization:
                 mock_camera_class.detect_camera.return_value = []
                 
                 plugin = DAQ_2DViewer_PrimeBSI(None, None)
-                plugin.settings.child("camera_settings", "mock_mode").setValue(False)
+                plugin.settings.child("mock_mode").setValue(False)
                 
                 info_string, success = plugin.ini_detector()
                 
@@ -391,7 +391,7 @@ class TestPrimeBSICameraControl:
         plugin = primebsi_plugin_with_camera
         
         # Test exposure parameter
-        exposure_param = plugin.settings.child("camera_settings", "exposure")
+        exposure_param = plugin.settings.child("exposure")
         
         # Test various exposure times
         exposure_times = [1.0, 10.0, 50.0, 100.0, 500.0]
@@ -602,7 +602,7 @@ class TestPrimeBSIErrorRecovery:
         
         # Set invalid parameter values
         try:
-            plugin.settings.child("camera_settings", "exposure").setValue(-100)
+            plugin.settings.child("exposure").setValue(-100)
         except:
             pass  # Expected to fail
             
@@ -632,7 +632,7 @@ class TestPrimeBSIIntegrationScenarios:
         plugin.camera.is_open = True
         
         # Configure for SHG imaging
-        plugin.settings.child("camera_settings", "exposure").setValue(100.0)
+        plugin.settings.child("exposure").setValue(100.0)
         
         # Acquire multiple frames
         with patch.object(plugin, 'dte_signal') as mock_signal:
@@ -665,7 +665,7 @@ class TestPrimeBSIIntegrationScenarios:
         plugin.camera.is_open = True
         
         # Fast acquisition for time series
-        plugin.settings.child("camera_settings", "exposure").setValue(10.0)
+        plugin.settings.child("exposure").setValue(10.0)
         
         with patch.object(plugin, 'dte_signal') as mock_signal:
             # Simulate rapid acquisition
@@ -680,7 +680,7 @@ class TestPrimeBSIIntegrationScenarios:
         plugin.camera.is_open = True
         
         # Configure for calibration
-        plugin.settings.child("camera_settings", "exposure").setValue(50.0)
+        plugin.settings.child("exposure").setValue(50.0)
         plugin.settings.child("roi_settings", "roi_integration").setValue(True)
         
         # Set calibration ROI

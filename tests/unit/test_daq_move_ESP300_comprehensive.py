@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.unit]
 @pytest.fixture
 def mock_esp300_controller():
     """Comprehensive mock ESP300Controller for testing."""
-    with patch("pymodaq_plugins_urashg.hardware.urashg.esp300_controller.ESP300Controller") as mock_controller_class:
+    with patch("pymodaq_plugins_urashg.hardware.esp300_controller.ESP300Controller") as mock_controller_class:
         mock_controller = Mock()
         mock_controller_class.return_value = mock_controller
         

@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.unit]
 @pytest.fixture
 def mock_elliptec_controller():
     """Comprehensive mock ElliptecController for testing."""
-    with patch("pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper.ElliptecController") as mock_controller_class:
+    with patch("pymodaq_plugins_urashg.hardware.elliptec_wrapper.ElliptecController") as mock_controller_class:
         mock_controller = Mock()
         mock_controller_class.return_value = mock_controller
         

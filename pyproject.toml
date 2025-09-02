@@ -154,6 +154,7 @@ pyvcam = { git = "https://github.com/Photometrics/PyVCAM.git" }
 [dependency-groups]
 dev = [
     "pytest-cov>=6.2.1",
+    "pytest-timeout",
     "pyserial",
     "pymodaq",
     "pyqt6",

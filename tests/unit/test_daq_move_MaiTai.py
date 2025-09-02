@@ -1,10 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
 from qtpy.QtCore import Signal
 
 # Mock the hardware controller import before importing the plugin
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base
-from pymodaq.utils.conftests import qtbotsleep
+import pytest
 
 # It's crucial to mock the hardware imports *before* importing the plugin class
 MAITAI_CONTROLLER_PATH = "pymodaq_plugins_urashg.hardware.maitai_control.MaiTaiController"
@@ -46,7 +45,7 @@ def mock_plugin_maitai(qtbot):
     
     # Initialize the plugin (this connects signals)
     plugin.ini_stage()
-    qtbotsleep(100) # Allow signals to process
+    qtbot.wait_signal(timeout=100) # Allow signals to process
     
     # Attach the mock controller instance for easy access in tests
     plugin.mock_controller = mock_controller_instance
@@ -76,7 +75,7 @@ def test_move_abs(mock_plugin_maitai):
     
     plugin.mock_controller.set_wavelength.assert_called_with(850.0)
 
-def test_shutter_signals(mock_plugin_maitai):
+def test_shutter_signals(mock_plugin_maitai, qtbot):
     """Test that shutter signals from the UI call the correct methods."""
     plugin = mock_plugin_maitai
     
@@ -90,14 +89,14 @@ def test_shutter_signals(mock_plugin_maitai):
     
     # Emit signals
     plugin.ui.open_shutter_signal.emit()
-    qtbotsleep(10)
+    qtbot.wait_signal(timeout=10)
     plugin.open_shutter.assert_called_once()
 
     plugin.ui.close_shutter_signal.emit()
-    qtbotsleep(10)
+    qtbot.wait_signal(timeout=10)
     plugin.close_shutter.assert_called_once()
 
-def test_poll_status(mock_plugin_maitai):
+def test_poll_status(mock_plugin_maitai, qtbot):
     """Test the poll_status method and its signal emission."""
     plugin = mock_plugin_maitai
     
@@ -106,7 +105,7 @@ def test_poll_status(mock_plugin_maitai):
     plugin.status_signal.connect(mock_status_slot)
     
     plugin.poll_status()
-    qtbotsleep(10)
+    qtbot.wait_signal(timeout=10)
     
     # Check that all controller methods were called
     plugin.mock_controller.get_wavelength.assert_called()

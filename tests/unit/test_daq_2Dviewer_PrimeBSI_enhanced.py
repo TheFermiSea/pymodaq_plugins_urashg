@@ -68,7 +68,7 @@ def primebsi_plugin_enhanced(enhanced_mock_pyvcam):
     
     plugin = DAQ_2DViewer_PrimeBSI(None, None)
     # Enable mock mode for proper testing
-    plugin.settings.child("camera_settings", "mock_mode").setValue(True)
+    plugin.settings.child("mock_mode").setValue(True)
     plugin.camera = enhanced_mock_pyvcam[2]  # Use the mock camera instance
     
     # CRITICAL: Initialize axes required by grab_data method
@@ -115,7 +115,7 @@ class TestPrimeBSIPluginEnhanced:
         
         plugin = DAQ_2DViewer_PrimeBSI(None, None)
         # Ensure mock mode is disabled for this failure test
-        plugin.settings.child("camera_settings", "mock_mode").setValue(False)
+        plugin.settings.child("mock_mode").setValue(False)
         
         # Mock no cameras found and PYVCAM available to force real hardware path
         enhanced_mock_pyvcam[1].detect_camera.return_value = []

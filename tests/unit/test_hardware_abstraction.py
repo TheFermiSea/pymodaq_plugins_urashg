@@ -15,7 +15,7 @@ class TestElliptecWrapper:
     def test_elliptec_controller_import(self):
         """Test that ElliptecController can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import ElliptecController
+            from pymodaq_plugins_urashg.hardware.elliptec_wrapper import ElliptecController
             assert ElliptecController is not None
         except ImportError as e:
             pytest.skip(f"ElliptecController not available: {e}")
@@ -24,14 +24,13 @@ class TestElliptecWrapper:
         """Test mock Elliptec controller creation."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import ElliptecController
+                from pymodaq_plugins_urashg.hardware.elliptec_wrapper import ElliptecController
                 
                 controller = ElliptecController(
                     port="/dev/ttyUSB0",
                     baudrate=9600,
                     timeout=2.0,
-                    mount_addresses="2,3,8",
-                    mock_mode=True
+                    mount_addresses="2,3,8"
                 )
                 
                 assert controller is not None
@@ -44,9 +43,9 @@ class TestElliptecWrapper:
         """Test connection and disconnection methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import ElliptecController
+                from pymodaq_plugins_urashg.hardware.elliptec_wrapper import ElliptecController
                 
-                controller = ElliptecController(mock_mode=True)
+                controller = ElliptecController()
                 
                 # Test connection
                 result = controller.connect()
@@ -66,9 +65,9 @@ class TestElliptecWrapper:
         """Test movement command methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import ElliptecController
+                from pymodaq_plugins_urashg.hardware.elliptec_wrapper import ElliptecController
                 
-                controller = ElliptecController(mock_mode=True)
+                controller = ElliptecController()
                 controller.connect()
                 
                 # Test absolute movement
@@ -94,9 +93,9 @@ class TestElliptecWrapper:
         """Test position reading methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.elliptec_wrapper import ElliptecController
+                from pymodaq_plugins_urashg.hardware.elliptec_wrapper import ElliptecController
                 
-                controller = ElliptecController(mock_mode=True)
+                controller = ElliptecController()
                 controller.connect()
                 
                 # Test get position
@@ -117,7 +116,7 @@ class TestMaiTaiControl:
     def test_maitai_controller_import(self):
         """Test that MaiTaiController can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+            from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
             assert MaiTaiController is not None
         except ImportError as e:
             pytest.skip(f"MaiTaiController not available: {e}")
@@ -126,13 +125,12 @@ class TestMaiTaiControl:
         """Test mock MaiTai controller creation."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+                from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
                 
                 controller = MaiTaiController(
                     port="/dev/ttyUSB2",
                     baudrate=9600,
-                    timeout=2.0,
-                    mock_mode=True
+                    timeout=2.0
                 )
                 
                 assert controller is not None
@@ -145,9 +143,9 @@ class TestMaiTaiControl:
         """Test wavelength control methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+                from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
                 
-                controller = MaiTaiController(mock_mode=True)
+                controller = MaiTaiController()
                 controller.connect()
                 
                 # Test wavelength setting
@@ -166,9 +164,9 @@ class TestMaiTaiControl:
         """Test shutter control methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+                from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
                 
-                controller = MaiTaiController(mock_mode=True)
+                controller = MaiTaiController()
                 controller.connect()
                 
                 # Test shutter open
@@ -186,9 +184,9 @@ class TestMaiTaiControl:
         """Test power monitoring methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.maitai_control import MaiTaiController
+                from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
                 
-                controller = MaiTaiController(mock_mode=True)
+                controller = MaiTaiController()
                 controller.connect()
                 
                 # Test power reading (if available)
@@ -206,7 +204,7 @@ class TestESP300Controller:
     def test_esp300_controller_import(self):
         """Test that ESP300Controller can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
+            from pymodaq_plugins_urashg.hardware.esp300_controller import ESP300Controller
             assert ESP300Controller is not None
         except ImportError as e:
             pytest.skip(f"ESP300Controller not available: {e}")
@@ -215,7 +213,7 @@ class TestESP300Controller:
         """Test ESP300 controller creation (ESP300Controller doesn't have mock_mode)."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
+                from pymodaq_plugins_urashg.hardware.esp300_controller import ESP300Controller
                 
                 # ESP300Controller doesn't support mock_mode parameter
                 controller = ESP300Controller(
@@ -236,9 +234,9 @@ class TestESP300Controller:
         """Test axis control methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
+                from pymodaq_plugins_urashg.hardware.esp300_controller import ESP300Controller
                 
-                controller = ESP300Controller()  # No mock_mode parameter
+                controller = ESP300Controller(port='COM1')  # No mock_mode parameter
                 # ESP300Controller requires axes configuration, test class exists and can be created
                 assert controller is not None
                 assert hasattr(controller, 'axes')
@@ -252,9 +250,9 @@ class TestESP300Controller:
         """Test homing operations."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.esp300_controller import ESP300Controller
+                from pymodaq_plugins_urashg.hardware.esp300_controller import ESP300Controller
                 
-                controller = ESP300Controller()  # No mock_mode parameter
+                controller = ESP300Controller(port='COM1')  # No mock_mode parameter
                 # ESP300Controller has homing methods but requires proper axis configuration
                 assert controller is not None
                 assert hasattr(controller, 'home_all_axes')
@@ -271,7 +269,7 @@ class TestNewport1830CController:
     def test_newport_controller_import(self):
         """Test that Newport1830CController can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
+            from pymodaq_plugins_urashg.hardware.newport1830c_controller import Newport1830CController
             assert Newport1830CController is not None
         except ImportError as e:
             pytest.skip(f"Newport1830CController not available: {e}")
@@ -280,13 +278,12 @@ class TestNewport1830CController:
         """Test mock Newport controller creation."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
+                from pymodaq_plugins_urashg.hardware.newport1830c_controller import Newport1830CController
                 
                 controller = Newport1830CController(
                     port="/dev/ttyS0",
                     baudrate=9600,
-                    timeout=2.0,
-                    mock_mode=True
+                    timeout=2.0
                 )
                 
                 assert controller is not None
@@ -299,9 +296,9 @@ class TestNewport1830CController:
         """Test power measurement methods."""
         with patch('serial.Serial'):
             try:
-                from pymodaq_plugins_urashg.hardware.urashg.newport1830c_controller import Newport1830CController
+                from pymodaq_plugins_urashg.hardware.newport1830c_controller import Newport1830CController
                 
-                controller = Newport1830CController(mock_mode=True)
+                controller = Newport1830CController()
                 controller.connect()
                 
                 # Test power reading
@@ -323,7 +320,7 @@ class TestCameraUtils:
     def test_camera_utils_import(self):
         """Test that camera utilities can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.camera_utils import CameraUtils
+            from pymodaq_plugins_urashg.hardware.camera_utils import CameraUtils
             assert CameraUtils is not None
         except ImportError as e:
             pytest.skip(f"CameraUtils not available: {e}")
@@ -331,7 +328,7 @@ class TestCameraUtils:
     def test_image_processing_utilities(self):
         """Test image processing utility functions."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.camera_utils import CameraUtils
+            from pymodaq_plugins_urashg.hardware.camera_utils import CameraUtils
             
             # Create test image
             test_image = np.random.randint(0, 4096, (1024, 1024), dtype=np.uint16)
@@ -348,7 +345,7 @@ class TestCameraUtils:
     def test_roi_utilities(self):
         """Test ROI utility functions."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.camera_utils import CameraUtils
+            from pymodaq_plugins_urashg.hardware.camera_utils import CameraUtils
             
             utils = CameraUtils()
             
@@ -368,7 +365,7 @@ class TestRedPitayaControl:
     def test_redpitaya_import(self):
         """Test that RedPitaya modules can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import RedPitayaController
+            from pymodaq_plugins_urashg.hardware.redpitaya_control import RedPitayaController
             assert RedPitayaController is not None
         except ImportError as e:
             pytest.skip(f"RedPitayaController not available: {e}")
@@ -376,7 +373,7 @@ class TestRedPitayaControl:
     def test_redpitaya_mock_creation(self):
         """Test RedPitaya controller creation (RedPitayaController doesn't have mock_mode)."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import RedPitayaController
+            from pymodaq_plugins_urashg.hardware.redpitaya_control import RedPitayaController
             
             # RedPitayaController doesn't support mock_mode parameter
             controller = RedPitayaController(ip_address="192.168.1.100")
@@ -392,7 +389,7 @@ class TestRedPitayaControl:
     def test_redpitaya_pid_control(self):
         """Test PID control functionality."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import RedPitayaController
+            from pymodaq_plugins_urashg.hardware.redpitaya_control import RedPitayaController
             
             controller = RedPitayaController()  # No mock_mode parameter
             controller.connect()
@@ -415,7 +412,7 @@ class TestRedPitayaControl:
     def test_redpitaya_data_acquisition(self):
         """Test data acquisition from RedPitaya."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.redpitaya_control import RedPitayaController
+            from pymodaq_plugins_urashg.hardware.redpitaya_control import RedPitayaController
             
             controller = RedPitayaController()  # No mock_mode parameter
             controller.connect()
@@ -435,7 +432,7 @@ class TestSystemControl:
     def test_system_control_import(self):
         """Test that system control can be imported."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.system_control import SystemControl
+            from pymodaq_plugins_urashg.hardware.system_control import SystemControl
             assert SystemControl is not None
         except ImportError as e:
             pytest.skip(f"SystemControl not available: {e}")
@@ -443,7 +440,7 @@ class TestSystemControl:
     def test_hardware_discovery(self):
         """Test hardware discovery functionality."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.system_control import SystemControl
+            from pymodaq_plugins_urashg.hardware.system_control import SystemControl
             
             system = SystemControl()
             
@@ -458,7 +455,7 @@ class TestSystemControl:
     def test_system_status_monitoring(self):
         """Test system status monitoring."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.system_control import SystemControl
+            from pymodaq_plugins_urashg.hardware.system_control import SystemControl
             
             system = SystemControl()
             
@@ -477,7 +474,7 @@ class TestUtilityFunctions:
     def test_utils_import(self):
         """Test that utility functions can be imported."""
         try:
-            import pymodaq_plugins_urashg.hardware.urashg.utils as utils
+            import pymodaq_plugins_urashg.hardware.utils as utils
             # Basic import test
             assert utils is not None
         except ImportError as e:
@@ -486,7 +483,7 @@ class TestUtilityFunctions:
     def test_data_conversion_utilities(self):
         """Test data conversion utility functions."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.utils import convert_units
+            from pymodaq_plugins_urashg.hardware.utils import convert_units
             
             # Test unit conversion (if available)
             result = convert_units(1.0, 'nm', 'um')
@@ -498,7 +495,7 @@ class TestUtilityFunctions:
     def test_validation_utilities(self):
         """Test validation utility functions."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.utils import validate_range
+            from pymodaq_plugins_urashg.hardware.utils import validate_range
             
             # Test range validation (if available)
             result = validate_range(50.0, 0.0, 100.0)
@@ -514,7 +511,7 @@ class TestUtilityFunctions:
     def test_configuration_utilities(self):
         """Test configuration utility functions."""
         try:
-            from pymodaq_plugins_urashg.hardware.urashg.utils import load_config
+            from pymodaq_plugins_urashg.hardware.utils import load_config
             
             # Test configuration loading (if available)
             config = load_config("default")

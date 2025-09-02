@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 # Assume the controller is in the hardware directory now
-from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController
+from pymodaq_plugins_urashg.hardware.maitai_control import MaiTaiController, MockMaiTaiController
 
 @pytest.fixture
 def mock_maitai_controller():
@@ -10,7 +10,7 @@ def mock_maitai_controller():
     # The controller's __init__ might try to log, so ensure logging is configured
     import logging
     logging.basicConfig()
-    controller = MaiTaiController(mock_mode=True)
+    controller = MockMaiTaiController(port="COM_MOCK")
     # Mock the serial connection part even in mock mode for full control
     controller._serial_connection = MagicMock()
     controller.connect()
@@ -18,7 +18,7 @@ def mock_maitai_controller():
 
 def test_maitai_controller_init():
     """Test the initialization of the MaiTaiController."""
-    controller = MaiTaiController(mock_mode=True)
+    controller = MockMaiTaiController(port="COM_MOCK")
     assert controller.mock_mode is True
     assert controller._connected is False
 

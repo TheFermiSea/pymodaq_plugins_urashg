@@ -1,11 +1,11 @@
 from pymodaq.control_modules.move_utility_classes import DAQ_Move_base, DataActuator, comon_parameters_fun, main
 from pymodaq_utils.utils import ThreadCommand
-from pymodaq_utils.data import DataToExport
+from pymodaq_data.data import DataToExport
 from qtpy.QtCore import Signal, QTimer
 import numpy as np
 
 from pymodaq_plugins_urashg.daq_move_plugins.elliptec_ui import ElliptecUI
-from pymodaq_plugins_urashg.hardware.elliptec_wrapper import ElliptecController, MockElliptecController, ElliptecError
+from pymodaq_plugins_urashg.hardware.elliptec_wrapper import ElliptecController, ElliptecError
 
 try:
     from pymodaq_plugins_urashg.utils.config import get_config
@@ -45,11 +45,10 @@ class DAQ_Move_Elliptec(DAQ_Move_base):
         self.initialized = False
         try:
             mount_addresses = [int(addr.strip()) for addr in self.settings.child("mount_addresses").value().split(',')]
-            ControllerClass = MockElliptecController if self.settings.child("mock_mode").value() else ElliptecController
-
-            self.controller = controller or ControllerClass(
+            self.controller = controller or ElliptecController(
                 port=self.settings.child("serial_port").value(),
-                mount_addresses=mount_addresses
+                mount_addresses=mount_addresses,
+                mock_mode=self.settings.child("mock_mode").value()
             )
             
             self.controller.connect()

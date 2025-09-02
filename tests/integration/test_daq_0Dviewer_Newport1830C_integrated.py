@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base
-from pymodaq.utils.conftests import qtbotsleep
 from pymodaq_data.data import DataToExport, DataWithAxes
 
 # Import the plugin class
@@ -55,7 +54,7 @@ def test_newport_plugin_init(qtbot, newport_plugin_and_controller):
     plugin, mock_controller = newport_plugin_and_controller
     
     info, initialized = plugin.ini_detector()
-    qtbotsleep(100)
+    qtbot.waitSignal(timeout=100)
     
     assert initialized is True
     if mock_controller: # Mock mode assertions
@@ -67,14 +66,14 @@ def test_grab_data(qtbot, newport_plugin_and_controller):
     
     # Initialize the detector first
     plugin.ini_detector()
-    qtbotsleep(100)
+    qtbot.waitSignal(timeout=100)
 
     # Mock the dte_signal to capture the emitted data
     mock_dte_slot = MagicMock()
     plugin.dte_signal.connect(mock_dte_slot)
     
     plugin.grab_data(Naverage=2)
-    qtbotsleep(100)
+    qtbot.waitSignal(timeout=100)
 
     # Check that the signal was emitted
     mock_dte_slot.assert_called_once()
@@ -107,14 +106,14 @@ def test_commit_settings(qtbot, newport_plugin_and_controller):
     plugin, mock_controller = newport_plugin_and_controller
 
     plugin.ini_detector()
-    qtbotsleep(100)
+    qtbot.waitSignal(timeout=100)
 
     # Get the wavelength parameter from the settings tree
     wavelength_param = plugin.settings.child('measurement_group', 'wavelength')
     
     # Change the wavelength
     wavelength_param.setValue(810.0)
-    qtbotsleep(100)
+    qtbot.waitSignal(timeout=100)
 
     if mock_controller: # Mock mode assertions
         mock_controller.set_wavelength.assert_called_with(810.0)

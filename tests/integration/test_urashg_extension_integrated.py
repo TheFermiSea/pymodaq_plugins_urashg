@@ -4,21 +4,25 @@ from unittest.mock import patch, MagicMock
 
 from qtpy.QtWidgets import QApplication
 from pymodaq.dashboard import DashBoard
-from pymodaq.utils.conftests import qtbotsleep
 
 # Import the extension class
 from pymodaq_plugins_urashg.extensions.urashg_microscopy_extension import URASHGMicroscopyExtension
+
+from qtpy.QtWidgets import QMainWindow
+from pymodaq_gui.utils.dock import DockArea
 
 @pytest.fixture
 def dashboard_app(qtbot):
     """Fixture to create a full Dashboard application."""
     app = QApplication.instance() or QApplication([])
-    win = MagicMock() # Mock the main window
-    dashboard = DashBoard(win)
+    win = QMainWindow()
+    dock_area = DockArea()
+    win.setCentralWidget(dock_area)
+    dashboard = DashBoard(dock_area)
     yield dashboard
     # Teardown
     dashboard.quit_fun()
-    qtbotsleep(100)
+    qtbot.waitSignal(timeout=100)
 
 def test_extension_loading_and_preset(dashboard_app, qtbot, tmp_path):
     """
@@ -27,7 +31,7 @@ def test_extension_loading_and_preset(dashboard_app, qtbot, tmp_path):
     dashboard = dashboard_app
     
     # 1. Load the extension
-    extension = URASHGMicroscopyExtension(parent=dashboard.dock_area, dashboard=dashboard)
+    extension = URASHGMicroscopyExtension(dashboard)
     assert extension.name == "μRASHG Microscopy System"
 
     # 2. Create a mock preset file
@@ -66,7 +70,7 @@ def test_extension_loading_and_preset(dashboard_app, qtbot, tmp_path):
     dashboard.preset_manager.preset_loaded.connect(mock_status_update)
 
     extension.load_preset()
-    qtbotsleep(500) # Allow time for modules to load
+    qtbot.waitSignal(timeout=500) # Allow time for modules to load
 
     # 4. Verify results
     # Check that the modules are now in the ModuleManager
@@ -82,7 +86,7 @@ def test_start_measurement(MockWorker, dashboard_app, qtbot, tmp_path):
     Test the start_measurement logic.
     """
     dashboard = dashboard_app
-    extension = URASHGMicroscopyExtension(parent=dashboard.dock_area, dashboard=dashboard)
+    extension = URASHGMicroscopyExtension(dashboard)
 
     # Mock the loaded modules in the manager
     mock_elliptec = MagicMock()
@@ -96,7 +100,7 @@ def test_start_measurement(MockWorker, dashboard_app, qtbot, tmp_path):
     
     # Call the start measurement method
     extension.start_measurement()
-    qtbotsleep(100)
+    qtbot.waitSignal(timeout=100)
     
     # Verify the MeasurementWorker was instantiated correctly
     MockWorker.assert_called_once()
