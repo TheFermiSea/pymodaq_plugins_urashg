@@ -4,10 +4,10 @@ A **PyMoDAQ 5.x compliant** plugin package for **μRASHG (micro Rotational Aniso
 
 ## 🎉 Status: Production Ready
 
-✅ **GUI Interface**: Fully working unified 5-panel interface for complete system control  
-✅ **Mock Device Support**: Comprehensive simulation for GUI testing without hardware  
-✅ **PyMoDAQ 5.x Compliance**: 16/16 tests passing - complete standards compliance  
-✅ **Plugin Discovery**: All 5 plugins discoverable by PyMoDAQ framework  
+✅ **GUI Interface**: Fully working unified 5-panel interface for complete system control
+✅ **Mock Device Support**: Comprehensive simulation for GUI testing without hardware
+✅ **PyMoDAQ 5.x Compliance**: 16/16 tests passing - complete standards compliance
+✅ **Plugin Discovery**: All 5 plugins discoverable by PyMoDAQ framework
 ✅ **Measurement System**: Functional calibration and measurement workflows
 
 ## Important Notice
@@ -52,7 +52,7 @@ The URASHG plugin package enables sophisticated polarimetric second harmonic gen
 
 ### Motion Control
 - **Thorlabs ELL14 Rotation Mounts** - Polarization control (QWP, HWP)
-- **MaiTai Laser** - Wavelength control and EOM power modulation  
+- **MaiTai Laser** - Wavelength control and EOM power modulation
 - **Newport ESP300** - Precision positioning stages
 
 ### Detection
@@ -123,7 +123,7 @@ pip install -e .[pyrpl]  # May fail - see PyRPL section below
    ```bash
    # Try installing PyRPL manually first
    pip install pyrpl>=0.9.3
-   
+
    # Then install URASHG plugins
    uv add . --optional pyrpl
    ```
@@ -132,7 +132,6 @@ pip install -e .[pyrpl]  # May fail - see PyRPL section below
    - Use PyRPL in a separate Python 2.7 environment
    - Use Docker container with PyRPL pre-installed
    - Contact PyRPL maintainers for Python 3 compatibility
-```
 
 ### PyMoDAQ Integration
 
@@ -253,12 +252,12 @@ uv run flake8 src/
 
 This package is **fully compliant** with PyMoDAQ 5.x standards:
 
-✅ **Plugin Structure**: Proper inheritance from DAQ_Move_base/DAQ_Viewer_base  
-✅ **Initialization**: Required `ini_attributes()` methods implemented  
-✅ **Import Patterns**: Uses `pymodaq_gui.parameter`, `pymodaq_utils.utils`  
-✅ **Entry Points**: Correctly registered in pyproject.toml  
-✅ **Data Handling**: Uses DataWithAxes and DataToExport patterns  
-✅ **Extension Architecture**: Follows CustomApp patterns  
+✅ **Plugin Structure**: Proper inheritance from DAQ_Move_base/DAQ_Viewer_base
+✅ **Initialization**: Required `ini_attributes()` methods implemented
+✅ **Import Patterns**: Uses `pymodaq_gui.parameter`, `pymodaq_utils.utils`
+✅ **Entry Points**: Correctly registered in pyproject.toml
+✅ **Data Handling**: Uses DataWithAxes and DataToExport patterns
+✅ **Extension Architecture**: Follows CustomApp patterns
 
 **Compliance Test Results**: 16/16 tests passing
 
